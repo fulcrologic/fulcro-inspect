@@ -391,22 +391,21 @@
     (js/console.log "Installing Fulcro Inspect" options)
     (global-inspector options)
 
-    (when (resolve `fulcro/register-tool)
-      (fulcro/register-tool
-        {::fulcro/tool-id
-         ::fulcro-inspect
+    (fulcro/register-tool
+      {::fulcro/tool-id
+       ::fulcro-inspect
 
-         ::fulcro/app-started
-         (fn [{:keys [reconciler] :as app}]
-           (let [id (-> reconciler app-id dedupe-id)]
-             (swap! (-> reconciler om/app-state) assoc ::app-id id)
-             (inspect-app id app))
-           app)
+       ::fulcro/app-started
+       (fn [{:keys [reconciler] :as app}]
+         (let [id (-> reconciler app-id dedupe-id)]
+           (swap! (-> reconciler om/app-state) assoc ::app-id id)
+           (inspect-app id app))
+         app)
 
-         ::fulcro/network-wrapper
-         (fn [networks]
-           (into {} (map (fn [[k v]] [k (inspect-network v)])) networks))
+       ::fulcro/network-wrapper
+       (fn [networks]
+         (into {} (map (fn [[k v]] [k (inspect-network v)])) networks))
 
-         ::fulcro/tx-listen
-         (fn [{:keys [reconciler]} info]
-           #_(js/console.log "tx" (app-id reconciler) info))}))))
+       ::fulcro/tx-listen
+       (fn [{:keys [reconciler]} info]
+         #_(js/console.log "tx" (app-id reconciler) info))})))
