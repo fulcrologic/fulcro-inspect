@@ -23,10 +23,15 @@
 
 (declare render-data)
 
-(defn render-ordered-list [{:keys [css] :as input} content]
+(defn render-ordered-list [{:keys [css path path-action linkable?] :as input} content]
   (for [[x i] (map vector content (range))]
     (dom/div #js {:key i :className (:list-item css)}
-      (dom/div #js {:className (:list-item-index css)} (str i))
+      (dom/div #js {:className (:list-item-index css)}
+        (if (and linkable? path-action)
+          (dom/div #js {:className (:path-action css)
+                        :onClick   #(path-action (conj path i))}
+            (str i))
+          (str i)))
       (render-data (update input :path conj i) x))))
 
 (defn render-sequential [{:keys [css expanded path toggle open-close] :as input} content]
@@ -55,10 +60,10 @@
         (second open-close)))))
 
 (defn render-vector [input content]
-  (render-sequential (assoc input :open-close ["[" "]"]) content))
+  (render-sequential (assoc input :open-close ["[" "]"] :linkable? true) content))
 
 (defn render-list [input content]
-  (render-sequential (assoc input :open-close ["(" ")"]) content))
+  (render-sequential (assoc input :open-close ["(" ")"] :linkable? true) content))
 
 (defn render-set [input content]
   (render-sequential (assoc input :open-close ["#{" "}"]) content))
