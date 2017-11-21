@@ -1,16 +1,12 @@
 # fulcro-inspect
 
+[![Clojars Project](https://img.shields.io/clojars/v/fulcrologic/fulcro-inspect.svg)](https://clojars.org/fulcrologic/fulcro-inspect)
+
 Inspect Fulcro applications
 
 ## Usage
 
-The `fulcro-inspect` is not released on clojars yet, so you need to download this repository and run:
-
-```
-lein install
-```
-
-Then add this dependencies:
+Add this dependencies:
 
 ```
 [fulcrologic/fulcro "1.2.0-SNAPSHOT"]
