@@ -100,10 +100,7 @@
   (ident [_ props] [::tx-id (::tx-id props)])
 
   static css/CSS
-  (local-rules [_] [[:.container {:height     "50%"
-                                  :padding    "5px 0"
-                                  :overflow   "auto"
-                                  :border-top "1px solid #a3a3a3"}]
+  (local-rules [_] [[:.container {}]
                     [:.ident {:align-self  "flex-end"
                               :padding     "3px 6px"
                               :background  "#f3f3f3"
@@ -142,7 +139,7 @@
   (action [env]
     (let [{:keys [state ref]} env
           tx-refs (get-in @state (conj ref ::tx-list))]
-      (swap! state assoc-in (conj ref ::tx-list) [])
+      (swap! state update-in ref assoc ::tx-list [] ::active-tx nil)
       (if (seq tx-refs)
         (swap! state #(reduce h/deep-remove-ref % tx-refs))))))
 
@@ -168,15 +165,26 @@
                               :font-family   ui/label-font-family
                               :font-size     ui/label-font-size
                               :display       "flex"
-                              :align-items   "center"}
-                     [:.icon {:padding     "1px 7px"
-                              :font-size   "16px"
-                              :cursor      "pointer"
-                              :color       "transparent"
-                              :text-shadow (str "0 0 0 " ui/color-text-normal)}
-                      [:&:hover {:text-shadow (str "0 0 0 " ui/color-text-strong)}]]]
+                              :align-items   "center"}]
+
+                    [:.icon {:padding     "1px 7px"
+                             :cursor      "pointer"
+                             :color       "transparent"
+                             :text-shadow (str "0 0 0 " ui/color-text-normal)}
+                     [:&:hover {:text-shadow (str "0 0 0 " ui/color-text-strong)}]]
+
                     [:.transactions {:flex     "1"
-                                     :overflow "auto"}]])
+                                     :overflow "auto"}]
+
+                    [:.active-tx {:border-top "1px solid #a3a3a3"
+                                  :height     "50%"
+                                  :overflow   "auto"}]
+                    [:.active-tools {:background    "#f3f3f3"
+                                     :border-bottom "1px solid #ccc"
+                                     :display       "flex"
+                                     :align-items   "center"
+                                     :margin-bottom "5px"
+                                     :height        "28px"}]])
   (include-children [_] [Transaction TransactionRow])
 
   Object
@@ -187,6 +195,7 @@
         (dom/div #js {:className (:tools css)}
           (dom/div #js {:className (:icon css)
                         :title     "Clear transactions"
+                        :style     #js {:fontSize "16px"}
                         :onClick   #(om/transact! this [`(clear-transactions {})])}
             "🚫"))
         (dom/div #js {:className (:transactions css)}
@@ -201,6 +210,14 @@
               tx-list)
             "No transactions"))
         (if active-tx
-          (transaction active-tx))))))
+          (dom/div #js {:className (:active-tx css)}
+            (dom/div #js {:className (:active-tools css)}
+              (dom/div #js {:style #js {:flex 1}})
+              (dom/div #js {:className (:icon css)
+                            :style     #js {:fontSize "12px"}
+                            :title     "Close panel"
+                            :onClick   #(mutations/set-value! this ::active-tx nil)}
+                "❌"))
+            (transaction active-tx)))))))
 
 (def transaction-list (om/factory TransactionList))
