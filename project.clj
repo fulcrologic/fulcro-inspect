@@ -3,8 +3,9 @@
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
             :url  "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.9.0-beta3" :scope "provided"]
+  :dependencies [[org.clojure/clojure "1.8.0" :scope "provided"]
                  [org.clojure/clojurescript "1.9.946" :scope "provided"]
+                 [clojure-future-spec "1.9.0-beta4"]
                  [fulcrologic/fulcro "1.2.0-SNAPSHOT"]
                  [fulcrologic/fulcro-css "1.0.0"]
                  [fulcrologic/fulcro-spec "1.0.0" :scope "test" :exclusions [fulcrologic/fulcro]]]
