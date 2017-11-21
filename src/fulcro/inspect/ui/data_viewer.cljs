@@ -91,14 +91,25 @@
           (->> content
                (sort-by (comp str first))
                (mapv (fn [[k v]]
-                       [(dom/div #js {:key (str k "-key")}
-                          (dom/div #js {:className (:list-item-index css)}
-                            (if path-action
-                              (dom/div #js {:className (:path-action css)
-                                            :onClick   #(path-action (conj path k))}
-                                (render-data input k))
-                              (render-data input k))))
-                        (dom/div #js {:key (str k "-value")} (render-data (update input :path conj k) v))]))
+                       (if (expanded (conj path k))
+                         [(dom/div #js {:key (str k "-key")}
+                            (dom/div #js {:className (:list-item-index css)}
+                              (if path-action
+                                (dom/div #js {:className (:path-action css)
+                                              :onClick   #(path-action (conj path k))}
+                                  (render-data input k))
+                                (render-data input k))))
+                          (dom/div #js {:key (str k "-key-space")})
+                          (dom/div #js {:className (:map-expanded-item css)
+                                        :key       (str k "-value")} (render-data (update input :path conj k) v))]
+                         [(dom/div #js {:key (str k "-key")}
+                            (dom/div #js {:className (:list-item-index css)}
+                              (if path-action
+                                (dom/div #js {:className (:path-action css)
+                                              :onClick   #(path-action (conj path k))}
+                                  (render-data input k))
+                                (render-data input k))))
+                          (dom/div #js {:key (str k "-value")} (render-data (update input :path conj k) v))])))
                (apply concat)))
 
         (dom/div #js {:className (:list-container css)}
@@ -220,6 +231,9 @@
 
                                       :display               "grid"
                                       :grid-template-columns "max-content 1fr"}]
+
+                    [:.map-expanded-item {:grid-column-start "1"
+                                          :grid-column-end   "3"}]
 
                     [:.map-inline-key-item {:margin-left "4px"}]
                     [:.map-inline-value-item {:margin-left "8px"}]
