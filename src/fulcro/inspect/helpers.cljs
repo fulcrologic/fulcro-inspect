@@ -17,9 +17,15 @@
         state      (as-> state <>
                      (update-in <> root-ident merge root)
                      (merge-with (partial merge-with merge) <> idents))]
-    (if named-parameters
+    (if (seq named-parameters)
       (apply fulcro/integrate-ident state root-ident named-parameters)
       state)))
+
+(defn create-entity! [{:keys [state ref]} x data & named-parameters]
+  (let [named-parameters (->> (partition 2 named-parameters)
+                              (map (fn [[op path]] [op (conj ref path)]))
+                              (apply concat))]
+    (apply swap! state merge-entity x (fulcro/get-initial-state x data) named-parameters)))
 
 (defn- dissoc-in [m path]
   (cond-> m

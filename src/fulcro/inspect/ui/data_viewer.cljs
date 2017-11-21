@@ -17,6 +17,7 @@
       (keyword? x)
       (number? x)
       (boolean? x)
+      (symbol? x)
       (uuid? x)
       (om/tempid? x)
       (and (vector? x)

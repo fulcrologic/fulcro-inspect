@@ -5,29 +5,31 @@
             [fulcro.client.core :as fulcro]
             [fulcro.client.mutations :as mutations :refer-macros [defmutation]]
             [fulcro.client.network :as f.network]
-            [fulcro.inspect.ui.core :as ft.ui]
-            [fulcro.inspect.ui.data-viewer :as f.data-viewer]
-            [fulcro.inspect.ui.data-watcher :as f.data-watcher]
-            [fulcro.inspect.ui.inspector :as f.inspector]
-            [fulcro.inspect.ui.events :as f.events]
-            [fulcro.inspect.ui.network :as f.ui.network]
+            [fulcro.inspect.ui.core :as ui]
+            [fulcro.inspect.ui.data-viewer :as data-viewer]
+            [fulcro.inspect.ui.data-watcher :as data-watcher]
+            [fulcro.inspect.ui.inspector :as inspector]
+            [fulcro.inspect.ui.events :as events]
+            [fulcro.inspect.ui.network :as network]
+            [fulcro.inspect.ui.transactions :as transactions]
             [fulcro-css.css :as css]
             [om.dom :as dom]
-            [om.next :as om]))
+            [om.next :as om]
+            [clojure.data :as data]))
 
 (defmutation add-inspector [inspector]
   (action [env]
     (let [{:keys [ref state reconciler]} env
-          inspector-ref (om/ident f.inspector/Inspector inspector)
+          inspector-ref (om/ident inspector/Inspector inspector)
           current       (get-in @state (conj ref ::current-app))]
-      (fulcro/merge-state! reconciler f.inspector/Inspector inspector :append (conj ref ::inspectors))
+      (fulcro/merge-state! reconciler inspector/Inspector inspector :append (conj ref ::inspectors))
       (if (nil? current)
         (swap! state update-in ref assoc ::current-app inspector-ref)))))
 
-(defmutation set-app [{::f.inspector/keys [id]}]
+(defmutation set-app [{::inspector/keys [id]}]
   (action [env]
     (let [{:keys [ref state]} env]
-      (swap! state update-in ref assoc ::current-app [::f.inspector/id id]))))
+      (swap! state update-in ref assoc ::current-app [::inspector/id id]))))
 
 (om/defui ^:once MultiInspector
   static fulcro/InitialAppState
@@ -37,7 +39,7 @@
   static om/IQuery
   (query [_] [::multi-inspector
               ::inspectors
-              {::current-app (om/get-query f.inspector/Inspector)}])
+              {::current-app (om/get-query inspector/Inspector)}])
 
   static om/Ident
   (ident [_ props] [::multi-inspector "main"])
@@ -48,24 +50,24 @@
                                   :width          "100%"
                                   :height         "100%"
                                   :overflow       "hidden"}]
-                    [:.selector (merge ft.ui/label-font
+                    [:.selector (merge ui/label-font
                                        {:display     "flex"
                                         :align-items "center"
                                         :background  "#f3f3f3"
-                                        :color       "#5a5a5a"
+                                        :color       ui/color-text-normal
                                         :border-top  "1px solid #ccc"
                                         :padding     "12px"
                                         :user-select "none"})]
                     [:.label {:margin-right "10px"}]
                     [:.no-app (merge
-                                ft.ui/label-font
+                                ui/label-font
                                 {:display         "flex"
                                  :background      "#f3f3f3"
                                  :font-size       "23px"
                                  :flex            1
                                  :align-items     "center"
                                  :justify-content "center"})]])
-  (include-children [_] [f.inspector/Inspector])
+  (include-children [_] [inspector/Inspector])
 
   Object
   (render [this]
@@ -73,14 +75,14 @@
           css (css/get-classnames MultiInspector)]
       (dom/div #js {:className (:container css)}
         (if current-app
-          (f.inspector/inspector current-app)
+          (inspector/inspector current-app)
           (dom/div #js {:className (:no-app css)}
             (dom/div nil "No app connected.")))
         (if (> (count inspectors) 1)
           (dom/div #js {:className (:selector css)}
             (dom/div #js {:className (:label css)} "App")
-            (dom/select #js {:value    (str (::f.inspector/id current-app))
-                             :onChange #(om/transact! this `[(set-app {::f.inspector/id ~(read-string (.. % -target -value))})])}
+            (dom/select #js {:value    (str (::inspector/id current-app))
+                             :onChange #(om/transact! this `[(set-app {::inspector/id ~(read-string (.. % -target -value))})])}
               (for [app-id (->> (map (comp pr-str second) inspectors) sort)]
                 (dom/option #js {:key   app-id
                                  :value app-id}
@@ -136,8 +138,8 @@
           css       (css/get-classnames GlobalInspector)]
       (dom/div #js {:className (:reset css)
                     :style     (if visible? nil #js {:display "none"})}
-        (f.events/key-listener {::f.events/action    #(mutations/set-value! this :ui/visible? (not visible?))
-                                ::f.events/keystroke keystroke})
+        (events/key-listener {::events/action    #(mutations/set-value! this :ui/visible? (not visible?))
+                              ::events/keystroke keystroke})
         (dom/div #js {:className (:resizer css)
                       :ref       #(gobj/set this "resizer" %)
                       :style     #js {:left (str size "%")}
@@ -193,8 +195,8 @@
        (reset! global-inspector* (start-global-inspector options)))))
 
 (defn update-inspect-state [reconciler app-id state]
-  (om/transact! reconciler [::f.data-watcher/id [::app-id app-id]]
-    [`(f.data-watcher/update-state ~state) ::f.data-viewer/content]))
+  (om/transact! reconciler [::data-watcher/id [::app-id app-id]]
+    [`(data-watcher/update-state ~state) ::data-viewer/content]))
 
 (defn inspect-network-init [network app]
   (some-> network :options ::app* (reset! app)))
@@ -202,17 +204,18 @@
 (defn inspect-app [app-id target-app]
   (let [inspector     (global-inspector)
         state*        (some-> target-app :reconciler :config :state)
-        new-inspector (-> (fulcro/get-initial-state f.inspector/Inspector @state*)
-                          (assoc ::f.inspector/id app-id)
-                          (assoc-in [::f.inspector/app-state ::f.data-watcher/id] [::app-id app-id])
-                          (assoc-in [::f.inspector/network ::f.ui.network/history-id] [::app-id app-id]))]
+        new-inspector (-> (fulcro/get-initial-state inspector/Inspector @state*)
+                          (assoc ::inspector/id app-id)
+                          (assoc-in [::inspector/app-state ::data-watcher/id] [::app-id app-id])
+                          (assoc-in [::inspector/network ::network/history-id] [::app-id app-id])
+                          (assoc-in [::inspector/transactions ::transactions/tx-list-id] [::app-id app-id]))]
     (om/transact! (:reconciler inspector) [::multi-inspector "main"]
       [`(add-inspector ~new-inspector)
        ::inspectors])
 
     (when (inspect-network-init (-> target-app :networking :remote) {:inspector inspector
                                                                      :app       target-app})
-      (om/transact! (:reconciler inspector) [::f.inspector/id app-id]
+      (om/transact! (:reconciler inspector) [::inspector/id app-id]
         `[(mutations/set-props {:ui/network? true})]))
 
     (add-watch state* app-id
@@ -265,27 +268,27 @@
       (fn [{::keys [request-id app]} edn]
         (let [{:keys [inspector app]} app
               app-id (app-id (:reconciler app))]
-          (om/transact! (:reconciler inspector) [::f.ui.network/history-id [::app-id app-id]]
-            [`(f.ui.network/request-start ~{::f.ui.network/request-id  request-id
-                                            ::f.ui.network/request-edn edn})]))
+          (om/transact! (:reconciler inspector) [::network/history-id [::app-id app-id]]
+            [`(network/request-start ~{::network/request-id  request-id
+                                       ::network/request-edn edn})]))
         edn)
 
       ::transform-response
       (fn [{::keys [request-id app]} response]
         (let [{:keys [inspector app]} app
               app-id (app-id (:reconciler app))]
-          (om/transact! (:reconciler inspector) [::f.ui.network/history-id [::app-id app-id]]
-            [`(f.ui.network/request-update ~{::f.ui.network/request-id   request-id
-                                             ::f.ui.network/response-edn response})]))
+          (om/transact! (:reconciler inspector) [::network/history-id [::app-id app-id]]
+            [`(network/request-update ~{::network/request-id   request-id
+                                        ::network/response-edn response})]))
         response)
 
       ::transform-error
       (fn [{::keys [request-id app]} error]
         (let [{:keys [inspector app]} app
               app-id (app-id (:reconciler app))]
-          (om/transact! (:reconciler inspector) [::f.ui.network/history-id [::app-id app-id]]
-            [`(f.ui.network/request-update ~{::f.ui.network/request-id request-id
-                                             ::f.ui.network/error      error})]))
+          (om/transact! (:reconciler inspector) [::network/history-id [::app-id app-id]]
+            [`(network/request-update ~{::network/request-id request-id
+                                        ::network/error      error})]))
         error)})))
 
 ;;; installer
@@ -300,11 +303,18 @@
       :else new-id)))
 
 (defn dedupe-id [id]
-  (let [ids-in-use (some-> (global-inspector) :reconciler om/app-state deref ::f.inspector/id)]
+  (let [ids-in-use (some-> (global-inspector) :reconciler om/app-state deref ::inspector/id)]
     (loop [new-id id]
       (if (contains? ids-in-use new-id)
         (recur (inc-id new-id))
         new-id))))
+
+(defn inspect-tx [{:keys [reconciler] :as env} info]
+  (let [inspector (global-inspector)
+        tx        (merge info (select-keys env [:old-state :new-state :ref :component]))
+        app-id    (app-id reconciler)]
+    (om/transact! (:reconciler inspector) [::transactions/tx-list-id [::app-id app-id]]
+      [`(transactions/add-tx ~tx) ::transactions/tx-list])))
 
 (defn install [options]
   (when-not @global-inspector*
@@ -327,5 +337,4 @@
          (into {} (map (fn [[k v]] [k (inspect-network v)])) networks))
 
        ::fulcro/tx-listen
-       (fn [{:keys [reconciler]} info]
-         #_(js/console.log "tx" (app-id reconciler) info))})))
+       #'inspect-tx})))

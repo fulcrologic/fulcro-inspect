@@ -1,5 +1,4 @@
 (ns fulcro.inspect.ui.data-watcher-cards
-  (:require-macros [cljs.core.async.macros :refer [go]])
   (:require
     [devcards.core :refer-macros [defcard]]
     [fulcro-css.css :as css]

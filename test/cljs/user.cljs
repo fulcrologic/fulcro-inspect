@@ -1,6 +1,7 @@
 (ns cljs.user
   (:require
     [fulcro.inspect.helpers-spec]
+    [fulcro.inspect.ui.transactions-spec]
     [fulcro-spec.selectors :as sel]
     [fulcro-spec.suite :as suite]))
 

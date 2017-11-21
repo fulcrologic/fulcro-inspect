@@ -2,7 +2,8 @@
   (:require
     [fulcro-spec.core :refer [specification behavior component assertions]]
     [fulcro.inspect.helpers :as h]
-    [om.next :as om]))
+    [om.next :as om]
+    [fulcro.client.core :as fulcro]))
 
 (om/defui ^:once Child
   static om/IQuery
@@ -12,6 +13,9 @@
   (ident [_ props] [:child/id (:child/id props)]))
 
 (om/defui ^:once Container
+  static fulcro/InitialAppState
+  (initial-state [_ x] (merge {:state :inited} x))
+
   static om/IQuery
   (query [_] [:container/id
               {:child (om/get-query Child)}])
@@ -37,8 +41,31 @@
     => {:container/id {"cont" {:container/id   "cont"
                                :container/name "Huf"
                                :child          [:child/id "child"]}}
-        :child/id     {"child" {:child/id "child"
+        :child/id     {"child" {:child/id   "child"
                                 :child/name "Bla"}}}))
+
+(specification "create-entity"
+  (assertions
+    (h/create-entity! {:state (atom {})}
+      Container {:container/id "cont"
+                 :child        {:child/id "child"}})
+    => {:container/id {"cont" {:state        :inited
+                               :container/id "cont"
+                               :child        [:child/id "child"]}}
+        :child/id     {"child" {:child/id "child"}}}
+
+    (h/create-entity! {:state (atom {:parent {"pai" {:parent    "pai"
+                                                    :containers []}}})
+                      :ref    [:parent "pai"]}
+      Container {:container/id "cont"
+                 :child        {:child/id "child"}}
+      :append :containers)
+    => {:parent       {"pai" {:parent     "pai"
+                              :containers [[:container/id "cont"]]}}
+        :container/id {"cont" {:state        :inited
+                               :container/id "cont"
+                               :child        [:child/id "child"]}}
+        :child/id     {"child" {:child/id "child"}}}))
 
 (specification "deep-remove"
   (assertions
