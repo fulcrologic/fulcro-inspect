@@ -157,7 +157,6 @@
 
         (dom/div #js {:className (:group css)}
           (dom/div #js {:className (:label css)} "Diff added")
-          (js/console.log "diff add" props)
           (data-viewer/data-viewer diff-add-view))
 
         (dom/div #js {:className (:group css)}

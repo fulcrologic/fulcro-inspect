@@ -67,7 +67,6 @@
   (let [named-parameters (->> (partition 2 named-parameters)
                               (map (fn [[op path]] [op (conj ref path)]))
                               (apply concat))]
-    (js/console.log "start entity" x (fulcro/get-initial-state x data))
     (apply swap! state merge-entity x (fulcro/get-initial-state x data) named-parameters)))
 
 (defn- dissoc-in [m path]
