@@ -170,8 +170,8 @@
                     [:.icon {:padding     "1px 7px"
                              :cursor      "pointer"
                              :color       "transparent"
-                             :text-shadow (str "0 0 0 " ui/color-text-normal)}
-                     [:&:hover {:text-shadow (str "0 0 0 " ui/color-text-strong)}]]
+                             :text-shadow (str "0 0 0 " ui/color-icon-normal)}
+                     [:&:hover {:text-shadow (str "0 0 0 " ui/color-icon-strong)}]]
 
                     [:.transactions {:flex     "1"
                                      :overflow "auto"}]
@@ -195,7 +195,7 @@
         (dom/div #js {:className (:tools css)}
           (dom/div #js {:className (:icon css)
                         :title     "Clear transactions"
-                        :style     #js {:fontSize "16px"}
+                        :style     #js {:fontSize "15px"}
                         :onClick   #(om/transact! this [`(clear-transactions {})])}
             "🚫"))
         (dom/div #js {:className (:transactions css)}
@@ -207,8 +207,7 @@
 
                       ::selected?
                       (= (::tx-id active-tx) (::tx-id %))})
-              tx-list)
-            "No transactions"))
+              tx-list)))
         (if active-tx
           (dom/div #js {:className (:active-tx css)}
             (dom/div #js {:className (:active-tools css)}
