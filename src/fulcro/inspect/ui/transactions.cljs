@@ -88,8 +88,10 @@
             :ui/tx-row-view    (fulcro/get-initial-state data-viewer/DataViewer tx)
             :ui/ret-view       (fulcro/get-initial-state data-viewer/DataViewer ret)
             :ui/sends-view     (fulcro/get-initial-state data-viewer/DataViewer sends)
-            :ui/old-state-view (fulcro/get-initial-state data-viewer/DataViewer old-state)
-            :ui/new-state-view (fulcro/get-initial-state data-viewer/DataViewer new-state)}
+            :ui/old-state-view (assoc (fulcro/get-initial-state data-viewer/DataViewer old-state)
+                                 ::data-viewer/expanded {})
+            :ui/new-state-view (assoc (fulcro/get-initial-state data-viewer/DataViewer new-state)
+                                 ::data-viewer/expanded {})}
            transaction))
 
   static om/IQuery
