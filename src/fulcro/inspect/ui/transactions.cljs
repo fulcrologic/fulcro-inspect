@@ -7,7 +7,8 @@
     [fulcro-css.css :as css]
     [om.dom :as dom]
     [om.next :as om]
-    [fulcro.inspect.ui.core :as ui]))
+    [fulcro.inspect.ui.core :as ui]
+    [clojure.string :as str]))
 
 (defn add-zeros [n x]
   (loop [n (str n)]
@@ -32,7 +33,7 @@
 
   static om/IQuery
   (query [_]
-    [::tx-id ::timestamp :ref
+    [::tx-id ::timestamp :ref :tx
      {:ui/tx-row-view (om/get-query data-viewer/DataViewer)}])
 
   static om/Ident
@@ -146,10 +147,11 @@
   static fulcro/InitialAppState
   (initial-state [_ _]
     {::tx-list-id (random-uuid)
-     ::tx-list    []})
+     ::tx-list    []
+     ::tx-filter  ""})
 
   static om/IQuery
-  (query [_] [::tx-list-id
+  (query [_] [::tx-list-id ::tx-filter
               {::active-tx (om/get-query Transaction)}
               {::tx-list (om/get-query TransactionRow)}])
 
@@ -161,8 +163,6 @@
                                   :height         "100%"
                                   :flex-direction "column"}]
                     [:.tools {:border-bottom "1px solid #dadada"
-                              :font-family   ui/label-font-family
-                              :font-size     ui/label-font-size
                               :display       "flex"
                               :align-items   "center"}]
 
@@ -175,9 +175,22 @@
                     [:.transactions {:flex     "1"
                                      :overflow "auto"}]
 
+                    [:.tool-separator {:background "#ccc"
+                                       :width      "1px"
+                                       :height     "16px"
+                                       :margin     "0 6px"}]
+
+                    [:.input {:color       ui/color-text-normal
+                              :outline     "0"
+                              :margin      "0 2px"
+                              :font-family ui/label-font-family
+                              :font-size   ui/label-font-size
+                              :padding     "2px 4px"}]
+
                     [:.active-tx {:border-top "1px solid #a3a3a3"
                                   :height     "50%"
                                   :overflow   "auto"}]
+
                     [:.active-tools {:background    "#f3f3f3"
                                      :border-bottom "1px solid #ccc"
                                      :display       "flex"
@@ -185,31 +198,40 @@
                                      :margin-bottom "5px"
                                      :height        "28px"}]
 
-                    [:.icon-close {:font-size "9px"
+                    [:.icon-close {:font-size     "9px"
                                    :padding-right "12px"}]])
   (include-children [_] [Transaction TransactionRow])
 
   Object
   (render [this]
-    (let [{::keys [tx-list active-tx]} (om/props this)
-          css (css/get-classnames TransactionList)]
+    (let [{::keys [tx-list active-tx tx-filter]} (om/props this)
+          css     (css/get-classnames TransactionList)
+          tx-list (if (seq tx-filter)
+                    (filter #(str/includes? (-> % :tx pr-str) tx-filter) tx-list)
+                    tx-list)]
       (dom/div #js {:className (:container css)}
         (dom/div #js {:className (:tools css)}
           (dom/div #js {:className (:icon css)
                         :title     "Clear transactions"
                         :style     #js {:fontSize "15px"}
                         :onClick   #(om/transact! this [`(clear-transactions {})])}
-            "🚫"))
+            "🚫")
+          (dom/div #js {:className (css :tool-separator)})
+          (dom/input #js {:className   (:input css)
+                          :type        "text"
+                          :placeholder "Filter"
+                          :value       tx-filter
+                          :onChange    #(mutations/set-string! this ::tx-filter :event %)}))
         (dom/div #js {:className (:transactions css)}
           (if (seq tx-list)
-            (mapv #(transaction-row %
-                     {::on-select
-                      (fn [tx]
-                        (om/transact! this [`(select-tx ~tx)]))
+            (->> tx-list
+                 (mapv #(transaction-row %
+                          {::on-select
+                           (fn [tx]
+                             (om/transact! this [`(select-tx ~tx)]))
 
-                      ::selected?
-                      (= (::tx-id active-tx) (::tx-id %))})
-              tx-list)))
+                           ::selected?
+                           (= (::tx-id active-tx) (::tx-id %))})))))
         (if active-tx
           (dom/div #js {:className (:active-tx css)}
             (dom/div #js {:className (:active-tools css)}

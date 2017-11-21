@@ -53,7 +53,7 @@
                       [:&:hover {:background "transparent"}]]]
                     [:.tab-content {:flex     "1"
                                     :overflow "auto"}
-                     [:&.spaced {:margin "10px"}]]])
+                     [:&.spaced {:padding "10px"}]]])
   (include-children [_] [data-watcher/DataWatcher
                          network/NetworkHistory
                          transactions/TransactionList])
