@@ -2,6 +2,7 @@
   (:require [fulcro.client.core :as fulcro]
             [fulcro.client.mutations :as mutations]
             [fulcro-css.css :as css]
+            [fulcro.inspect.ui.core :as ui]
             [om.dom :as dom]
             [om.next :as om]))
 
@@ -151,12 +152,12 @@
       (dom/div #js {:className (:unknown css)} (str content)))))
 
 (def css-triangle
-  {:color          "#8f8f8f"
-   :cursor         "pointer"
-   :font-family    "sans-serif"
-   :font-size      "12px"
-   :vertical-align "middle"
-   :margin-right   "3px"})
+  (merge
+    ui/label-font
+    {:color          "#8f8f8f"
+     :cursor         "pointer"
+     :vertical-align "middle"
+     :margin-right   "3px"}))
 
 (def css-code-font
   {:font-family "'courier new', monospace"

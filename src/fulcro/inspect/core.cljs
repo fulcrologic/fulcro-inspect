@@ -23,13 +23,13 @@
   (initial-state [_ state]
     {::inspector-id   (random-uuid)
      ::inspector-page ::page-db
-     ::app-state      (fulcro/get-initial-state f.data-watcher/PinnableDataViewer state)
+     ::app-state      (fulcro/get-initial-state f.data-watcher/DataWatcher state)
      ::network        (fulcro/get-initial-state f.ui.network/NetworkHistory nil)
      :ui/network?     false})
 
   static om/IQuery
   (query [_] [::inspector-page ::inspector-id :ui/network?
-              {::app-state (om/get-query f.data-watcher/PinnableDataViewer)}
+              {::app-state (om/get-query f.data-watcher/DataWatcher)}
               {::network (om/get-query f.ui.network/NetworkHistory)}])
 
   static om/Ident
@@ -41,13 +41,12 @@
                                   :width          "100%"
                                   :height         "100%"
                                   :overflow       "hidden"}]
-                    [:.tabs {:display       "flex"
-                             :background    "#f3f3f3"
-                             :color         "#5a5a5a"
-                             :border-bottom "1px solid #ccc"
-                             :font-family   "sans-serif"
-                             :font-size     "12px"
-                             :user-select   "none"}]
+                    [:.tabs (merge ft.ui/label-font
+                                   {:display       "flex"
+                                    :background    "#f3f3f3"
+                                    :color         "#5a5a5a"
+                                    :border-bottom "1px solid #ccc"
+                                    :user-select   "none"})]
                     [:.tab {:cursor  "pointer"
                             :padding "6px 10px 5px"}
                      [:&:hover {:background "#e5e5e5"
@@ -61,7 +60,7 @@
                     [:.tab-content {:padding  "10px"
                                     :flex     "1"
                                     :overflow "auto"}]])
-  (include-children [_] [f.data-watcher/PinnableDataViewer
+  (include-children [_] [f.data-watcher/DataWatcher
                          f.ui.network/NetworkHistory])
 
   Object
@@ -104,12 +103,12 @@
 
 (defmutation add-inspector [inspector]
   (action [env]
-    (let [{:keys [ref state]} env
+    (let [{:keys [ref state reconciler]} env
           inspector-ref (om/ident Inspector inspector)
           current       (get-in @state (conj ref ::current-app))]
-      (swap! state (comp #(h/merge-entity % Inspector inspector)
-                         #(update-in % ref update ::inspectors conj inspector-ref)
-                         #(cond-> % (nil? current) (update-in ref assoc ::current-app inspector-ref)))))))
+      (fulcro/merge-state! reconciler Inspector inspector :append (conj ref ::inspectors))
+      (if (nil? current)
+        (swap! state update-in ref assoc ::current-app inspector-ref)))))
 
 (defmutation set-app [{::keys [inspector-id]}]
   (action [env]
@@ -135,15 +134,14 @@
                                   :width          "100%"
                                   :height         "100%"
                                   :overflow       "hidden"}]
-                    [:.selector {:display     "flex"
-                                 :align-items "center"
-                                 :background  "#f3f3f3"
-                                 :color       "#5a5a5a"
-                                 :border-top  "1px solid #ccc"
-                                 :padding     "12px"
-                                 :font-family "sans-serif"
-                                 :font-size   "12px"
-                                 :user-select "none"}]
+                    [:.selector (merge ft.ui/label-font
+                                       {:display     "flex"
+                                        :align-items "center"
+                                        :background  "#f3f3f3"
+                                        :color       "#5a5a5a"
+                                        :border-top  "1px solid #ccc"
+                                        :padding     "12px"
+                                        :user-select "none"})]
                     [:.label {:margin-right "10px"}]
                     [:.no-app (merge
                                 ft.ui/label-font
@@ -310,7 +308,9 @@
 (defrecord TransformNetwork [network options]
   f.network/NetworkBehavior
   (serialize-requests? [this]
-    (f.network/serialize-requests? network))
+    (try
+      (f.network/serialize-requests? network)
+      (catch :default _ true)))
 
   f.network/FulcroNetwork
   (send [_ edn ok error]
@@ -328,7 +328,10 @@
         (ok nil))))
 
   (start [this]
-    (f.network/start network)
+    (try
+      (f.network/start network)
+      (catch ::default e
+        (js/console.log "Error starting sub network" e)))
     this))
 
 (defn transform-network [network options]

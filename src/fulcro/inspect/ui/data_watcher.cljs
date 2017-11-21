@@ -1,6 +1,6 @@
 (ns fulcro.inspect.ui.data-watcher
   (:require [fulcro.client.core :as fulcro]
-            [fulcro.client.mutations :as mutations]
+            [fulcro.client.mutations :as mutations :refer-macros [defmutation]]
             [fulcro.inspect.ui.data-viewer :as f.data-viewer]
             [fulcro.inspect.helpers :as h]
             [fulcro-css.css :as css]
@@ -18,33 +18,31 @@
     state
     watches))
 
-(defmethod mutations/mutate `update-state [{:keys [ref state]} _ new-state]
-  {:action
-   (fn []
-     (let [watches     (get-in @state (conj ref ::watches))
-           content-ref (-> (get-in @state (conj ref ::root-data))
-                           (conj ::f.data-viewer/content))]
-       (swap! state (comp #(assoc-in % content-ref new-state)
-                          #(update-watchers % new-state watches)))))})
+(defmutation update-state [new-state]
+  (action [env]
+    (let [{:keys [ref state]} env
+          watches     (get-in @state (conj ref ::watches))
+          content-ref (-> (get-in @state (conj ref ::root-data))
+                          (conj ::f.data-viewer/content))]
+      (swap! state (comp #(assoc-in % content-ref new-state)
+                         #(update-watchers % new-state watches))))))
 
-(defmethod mutations/mutate `add-data-watch [{:keys [ref state]} _ {:keys [path]}]
-  {:action
-   (fn []
-     (let [content   (as-> (get-in @state (conj ref ::root-data)) <>
-                       (get-in @state (conj <> ::f.data-viewer/content))
-                       (get-in <> path))
-           {::keys [watch-id] :as watcher}
-           (fulcro/get-initial-state WatchPin {:path    path
-                                               :content content})
-           watch-ref [::watch-id watch-id]]
-       (swap! state (comp #(h/merge-entity % WatchPin watcher)
-                          #(update-in % (conj ref ::watches) (fn [x] (-> (cons watch-ref x) vec)))))))})
+(defmutation add-data-watch [{:keys [path]}]
+  (action [env]
+    (let [{:keys [ref state reconciler]} env
+          content (as-> (get-in @state (conj ref ::root-data)) <>
+                    (get-in @state (conj <> ::f.data-viewer/content))
+                    (get-in <> path))
+          watcher (fulcro/get-initial-state WatchPin {:path    path
+                                                      :content content})]
+      (fulcro/merge-state! reconciler WatchPin watcher :prepend (conj ref ::watches)))))
 
-(defmethod mutations/mutate `remove-data-watch [{:keys [ref state]} _ {:keys [index]}]
-  {:action
-   (fn []
-     ;; TODO clean up watch data
-     (swap! state update-in (conj ref ::watches) #(h/vec-remove-index index %)))})
+(defmutation remove-data-watch [{:keys [index]}]
+  (action [env]
+    (let [{:keys [ref state]} env
+          watch-ref (get-in @state (conj ref ::watches index))]
+      (swap! state h/deep-remove-ref watch-ref)
+      (swap! state update-in (conj ref ::watches) #(h/vec-remove-index index %)))))
 
 (om/defui ^:once WatchPin
   static fulcro/InitialAppState
@@ -99,7 +97,7 @@
 
 (def watch-pin (om/factory WatchPin))
 
-(om/defui ^:once PinnableDataViewer
+(om/defui ^:once DataWatcher
   static fulcro/InitialAppState
   (initial-state [_ state] {::id        (random-uuid)
                             ::root-data (fulcro/get-initial-state f.data-viewer/DataViewer state)
@@ -138,4 +136,4 @@
           {::f.data-viewer/path-action
            #(om/transact! this [`(add-data-watch {:path ~%})])})))))
 
-(def pinnable-data-viewer (om/factory PinnableDataViewer))
+(def pinnable-data-viewer (om/factory DataWatcher))
