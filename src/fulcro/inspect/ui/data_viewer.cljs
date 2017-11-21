@@ -153,12 +153,12 @@
       (dom/div #js {:className (:unknown css)} (str content)))))
 
 (def css-triangle
-  (merge
-    ui/label-font
-    {:color          "#8f8f8f"
-     :cursor         "pointer"
-     :vertical-align "middle"
-     :margin-right   "3px"}))
+  {:font-family    ui/label-font-family
+   :font-size      ui/label-font-size
+   :color          "#8f8f8f"
+   :cursor         "pointer"
+   :vertical-align "middle"
+   :margin-right   "3px"})
 
 (def css-code-font
   {:font-family "'courier new', monospace"

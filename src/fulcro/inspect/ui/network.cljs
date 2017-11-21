@@ -4,7 +4,7 @@
             [fulcro.client.mutations :refer-macros [defmutation]]
             [fulcro-css.css :as css]
             [fulcro.inspect.helpers :as h]
-            [fulcro.inspect.ui.core :as f.i.ui]
+            [fulcro.inspect.ui.core :as ui]
             [fulcro.inspect.ui.data-viewer :as f.data-viewer]
             [om.dom :as dom]
             [om.next :as om]))
@@ -126,8 +126,8 @@
   (ident [_ props] [::history-id (::history-id props)])
 
   static css/CSS
-  (local-rules [_] [[:.table (merge f.i.ui/label-font
-                                    {})
+  (local-rules [_] [[:.table {:font-family ui/label-font-family
+                              :font-size   ui/label-font-size}
                      [:th {:font-weight "normal"
                            :text-align  "left"}]]])
   (include-children [_] [Request])

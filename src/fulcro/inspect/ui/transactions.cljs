@@ -6,7 +6,8 @@
     [fulcro.client.mutations :as mutations :refer-macros [defmutation]]
     [fulcro-css.css :as css]
     [om.dom :as dom]
-    [om.next :as om]))
+    [om.next :as om]
+    [fulcro.inspect.ui.core :as ui]))
 
 (defn add-zeros [n x]
   (loop [n (str n)]
@@ -42,12 +43,12 @@
                                   :flex          "1"
                                   :border-bottom "1px solid #eee"
                                   :padding       "5px 0"}]
-                    [:.ident {:align-self  "flex-end"
+                    [:.ident {:font-family ui/label-font-family
+                              :font-size   ui/label-font-size
+                              :align-self  "flex-end"
                               :padding     "3px 6px"
                               :background  "#f3f3f3"
-                              :color       "#424242"
-                              :font-family "sans-serif"
-                              :font-size   "12px"}]
+                              :color       "#424242"}]
                     [:.timestamp {:font-family "monospace"
                                   :font-size   "11px"
                                   :color       "#808080"
@@ -93,8 +94,8 @@
                               :padding     "3px 6px"
                               :background  "#f3f3f3"
                               :color       "#424242"
-                              :font-family "sans-serif"
-                              :font-size   "12px"}]
+                              :font-family ui/label-font-family
+                              :font-size   ui/label-font-size}]
                     [:.timestamp {:font-family "monospace"
                                   :font-size   "11px"
                                   :color       "#808080"
@@ -135,8 +136,8 @@
                                   :flex           "1"
                                   :flex-direction "column"}]
                     [:.tools {:border-bottom "1px solid #dadada"
-                              :font-family "sans-serif"
-                              :font-size "12px"}]
+                              :font-family   ui/label-font-family
+                              :font-size     ui/label-font-size}]
                     [:.transactions {"flex" "1"}]])
   (include-children [_] [Transaction TransactionRow])
 

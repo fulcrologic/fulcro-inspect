@@ -50,23 +50,23 @@
                                   :width          "100%"
                                   :height         "100%"
                                   :overflow       "hidden"}]
-                    [:.selector (merge ui/label-font
-                                       {:display     "flex"
-                                        :align-items "center"
-                                        :background  "#f3f3f3"
-                                        :color       ui/color-text-normal
-                                        :border-top  "1px solid #ccc"
-                                        :padding     "12px"
-                                        :user-select "none"})]
+                    [:.selector {:font-family ui/label-font-family
+                                 :font-size   ui/label-font-size
+                                 :display     "flex"
+                                 :align-items "center"
+                                 :background  "#f3f3f3"
+                                 :color       ui/color-text-normal
+                                 :border-top  "1px solid #ccc"
+                                 :padding     "12px"
+                                 :user-select "none"}]
                     [:.label {:margin-right "10px"}]
-                    [:.no-app (merge
-                                ui/label-font
-                                {:display         "flex"
-                                 :background      "#f3f3f3"
-                                 :font-size       "23px"
-                                 :flex            1
-                                 :align-items     "center"
-                                 :justify-content "center"})]])
+                    [:.no-app {:display         "flex"
+                               :background      "#f3f3f3"
+                               :font-family     ui/label-font-family
+                               :font-size       "23px"
+                               :flex            1
+                               :align-items     "center"
+                               :justify-content "center"}]])
   (include-children [_] [inspector/Inspector])
 
   Object

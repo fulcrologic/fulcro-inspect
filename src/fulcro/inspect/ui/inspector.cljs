@@ -34,12 +34,13 @@
                                   :width          "100%"
                                   :height         "100%"
                                   :overflow       "hidden"}]
-                    [:.tabs (merge ui/label-font
-                                   {:display       "flex"
-                                    :background    "#f3f3f3"
-                                    :color         ui/color-text-normal
-                                    :border-bottom "1px solid #ccc"
-                                    :user-select   "none"})]
+                    [:.tabs {:font-family   ui/label-font-family
+                             :font-size     ui/label-font-size
+                             :display       "flex"
+                             :background    "#f3f3f3"
+                             :color         ui/color-text-normal
+                             :border-bottom "1px solid #ccc"
+                             :user-select   "none"}]
                     [:.tab {:cursor  "pointer"
                             :padding "6px 10px 5px"}
                      [:&:hover {:background "#e5e5e5"
