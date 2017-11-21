@@ -27,6 +27,8 @@
                                     :fulcro.inspect.ui.data-viewer/expanded {[] true [:foo] true}}}
                   :om.next/tables #{:fulcro.inspect.ui.data-viewer/id}
                   :ui/locale      :en}}}
+    :old-state {:id {123 {:a 1}}}
+    :new-state {:id {123 {:b 2}}}
     :sends     {}
     :ref       [:fulcro.inspect.ui.data-viewer/id #uuid "f13d5cb1-82c8-48fa-abc6-73b54dbf33f9"]
     :component nil})

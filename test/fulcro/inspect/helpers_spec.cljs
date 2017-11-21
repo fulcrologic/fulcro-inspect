@@ -1,9 +1,9 @@
 (ns fulcro.inspect.helpers-spec
   (:require
+    [fulcro.client.core :as fulcro]
     [fulcro-spec.core :refer [specification behavior component assertions]]
     [fulcro.inspect.helpers :as h]
-    [om.next :as om]
-    [fulcro.client.core :as fulcro]))
+    [om.next :as om]))
 
 (om/defui ^:once Child
   static om/IQuery
@@ -54,15 +54,17 @@
                                :child        [:child/id "child"]}}
         :child/id     {"child" {:child/id "child"}}}
 
-    (h/create-entity! {:state (atom {:parent {"pai" {:parent    "pai"
-                                                    :containers []}}})
-                      :ref    [:parent "pai"]}
+    (h/create-entity! {:state (atom {:parent {"pai" {:parent     "pai"
+                                                     :containers []}}})
+                       :ref   [:parent "pai"]}
       Container {:container/id "cont"
+                 :some-data    "vai"
                  :child        {:child/id "child"}}
       :append :containers)
     => {:parent       {"pai" {:parent     "pai"
                               :containers [[:container/id "cont"]]}}
         :container/id {"cont" {:state        :inited
+                               :some-data    "vai"
                                :container/id "cont"
                                :child        [:child/id "child"]}}
         :child/id     {"child" {:child/id "child"}}}))

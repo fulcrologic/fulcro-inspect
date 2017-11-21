@@ -1,14 +1,16 @@
 (ns fulcro.inspect.ui.transactions
   (:require
-    [fulcro.inspect.ui.data-viewer :as data-viewer]
-    [fulcro.inspect.helpers :as h]
+    [clojure.data :as data]
+    [clojure.string :as str]
+    [fulcro-css.css :as css]
     [fulcro.client.core :as fulcro]
     [fulcro.client.mutations :as mutations :refer-macros [defmutation]]
-    [fulcro-css.css :as css]
-    [om.dom :as dom]
-    [om.next :as om]
+    [fulcro.inspect.helpers :as h]
     [fulcro.inspect.ui.core :as ui]
-    [clojure.string :as str]))
+    [fulcro.inspect.ui.data-viewer :as data-viewer]
+    [goog.object :as gobj]
+    [om.dom :as dom]
+    [om.next :as om]))
 
 (defn add-zeros [n x]
   (loop [n (str n)]
@@ -79,14 +81,15 @@
 
 (om/defui ^:once Transaction
   static fulcro/InitialAppState
-  (initial-state [_ {:keys [tx ret] :as transaction}]
-    (merge {::tx-id         (random-uuid)
-            ::timestamp     (js/Date.)
-            :ui/tx-view     (fulcro/get-initial-state data-viewer/DataViewer tx)
-            :ui/tx-row-view (assoc (fulcro/get-initial-state data-viewer/DataViewer tx)
-                              ::data-viewer/expanded {})
-            :ui/ret-view    (assoc (fulcro/get-initial-state data-viewer/DataViewer ret)
-                              ::data-viewer/expanded {})}
+  (initial-state [_ {:keys [tx ret sends old-state new-state] :as transaction}]
+    (merge {::tx-id            (random-uuid)
+            ::timestamp        (js/Date.)
+            :ui/tx-view        (fulcro/get-initial-state data-viewer/DataViewer tx)
+            :ui/tx-row-view    (fulcro/get-initial-state data-viewer/DataViewer tx)
+            :ui/ret-view       (fulcro/get-initial-state data-viewer/DataViewer ret)
+            :ui/sends-view     (fulcro/get-initial-state data-viewer/DataViewer sends)
+            :ui/old-state-view (fulcro/get-initial-state data-viewer/DataViewer old-state)
+            :ui/new-state-view (fulcro/get-initial-state data-viewer/DataViewer new-state)}
            transaction))
 
   static om/IQuery
@@ -94,34 +97,86 @@
     [::tx-id ::timestamp :tx :ret :sends :old-state :new-state :ref :component
      {:ui/tx-view (om/get-query data-viewer/DataViewer)}
      {:ui/ret-view (om/get-query data-viewer/DataViewer)}
-     {:ui/tx-row-view (om/get-query data-viewer/DataViewer)}])
+     {:ui/tx-row-view (om/get-query data-viewer/DataViewer)}
+     {:ui/sends-view (om/get-query data-viewer/DataViewer)}
+     {:ui/old-state-view (om/get-query data-viewer/DataViewer)}
+     {:ui/new-state-view (om/get-query data-viewer/DataViewer)}
+     {:ui/diff-add-view (om/get-query data-viewer/DataViewer)}
+     {:ui/diff-rem-view (om/get-query data-viewer/DataViewer)}])
 
   static om/Ident
   (ident [_ props] [::tx-id (::tx-id props)])
 
   static css/CSS
-  (local-rules [_] [[:.container {}]
+  (local-rules [_] [[:.container {:height "100%"}]
                     [:.ident {:align-self  "flex-end"
-                              :padding     "3px 6px"
+                              :padding     "5px 6px"
                               :background  "#f3f3f3"
                               :color       "#424242"
-                              :font-family ui/label-font-family
+                              :display     "inline-block"
+                              :font-family ui/mono-font-family
                               :font-size   ui/label-font-size}]
                     [:.timestamp {:font-family "monospace"
                                   :font-size   "11px"
                                   :color       "#808080"
-                                  :margin      "0 4px 0 7px"}]])
+                                  :margin      "0 4px 0 7px"}]
+                    [:.group {:border-top "1px solid #eee"
+                              :padding    "7px 0"}]
+                    [:.label {:color         ui/color-text-normal
+                              :margin-bottom "6px"
+                              :font-weight   "bold"
+                              :font-family   ui/label-font-family
+                              :font-size     "13px"}]])
   (include-children [_] [data-viewer/DataViewer])
 
   Object
   (render [this]
-    (let [{:keys    [tx ret sends old-state new-state ref component]
-           :ui/keys [tx-view ret-view]
-           ::keys   [timestamp]} (om/props this)
+    (let [{:keys    [sends ref component]
+           :ui/keys [tx-view ret-view sends-view
+                     old-state-view new-state-view
+                     diff-add-view diff-rem-view]
+           :as props} (om/props this)
           css (css/get-classnames Transaction)]
       (dom/div #js {:className (:container css)}
-        (data-viewer/data-viewer tx-view)
-        (data-viewer/data-viewer ret-view)))))
+        (dom/div #js {:className (:group css)}
+          (dom/div #js {:className (:label css)} "Ref")
+          (dom/div #js {:className (:ident css)} (pr-str ref)))
+
+        (dom/div #js {:className (:group css)}
+          (dom/div #js {:className (:label css)} "Transaction")
+          (data-viewer/data-viewer tx-view))
+
+        (dom/div #js {:className (:group css)}
+          (dom/div #js {:className (:label css)} "Response")
+          (data-viewer/data-viewer ret-view))
+
+        (if (seq sends)
+          (dom/div #js {:className (:group css)}
+            (dom/div #js {:className (:label css)} "Sends")
+            (data-viewer/data-viewer sends-view)))
+
+        (dom/div #js {:className (:group css)}
+          (dom/div #js {:className (:label css)} "Diff added")
+          (js/console.log "diff add" props)
+          (data-viewer/data-viewer diff-add-view))
+
+        (dom/div #js {:className (:group css)}
+          (dom/div #js {:className (:label css)} "Diff removed")
+          (data-viewer/data-viewer diff-rem-view))
+
+        (if component
+          (dom/div #js {:className (:group css)}
+            (dom/div #js {:className (:label css)} "Component")
+            (dom/div #js {:className (:ident css)}
+              (gobj/get (om/react-type component) "displayName"))))
+
+        (dom/div #js {:className (:group css)}
+          (dom/div #js {:className (:label css)} "State before")
+          (data-viewer/data-viewer old-state-view))
+
+        (dom/div #js {:className (:group css)}
+          (dom/div #js {:className (:label css)} "State after")
+          (data-viewer/data-viewer new-state-view))))))
 
 (def transaction (om/factory Transaction))
 
@@ -131,8 +186,15 @@
 
 (defmutation select-tx [tx]
   (action [env]
-    (let [{:keys [state ref]} env
-          tx-ref (om/ident Transaction tx)]
+    (let [{:keys [state ref] :as env} env
+          tx-ref (om/ident Transaction tx)
+          {:keys [ui/diff-computed? old-state new-state]} (get-in @state tx-ref)]
+      (if-not diff-computed?
+        (let [[add rem] (data/diff new-state old-state)
+              env' (assoc env :ref tx-ref)]
+          (h/create-entity! env' data-viewer/DataViewer add :set :ui/diff-add-view)
+          (h/create-entity! env' data-viewer/DataViewer rem :set :ui/diff-rem-view)
+          (swap! state update-in tx-ref assoc :ui/diff-computed? true)))
       (swap! state update-in ref assoc ::active-tx tx-ref))))
 
 (defmutation clear-transactions [_]
@@ -187,15 +249,19 @@
                               :font-size   ui/label-font-size
                               :padding     "2px 4px"}]
 
-                    [:.active-tx {:border-top "1px solid #a3a3a3"
-                                  :height     "50%"
-                                  :overflow   "auto"}]
+                    [:.active-tx {:border-top     "1px solid #a3a3a3"
+                                  :display        "flex"
+                                  :flex-direction "column"
+                                  :height         "50%"}]
+
+                    [:.active-container {:flex     "1"
+                                         :overflow "auto"
+                                         :padding  "0 10px"}]
 
                     [:.active-tools {:background    "#f3f3f3"
                                      :border-bottom "1px solid #ccc"
                                      :display       "flex"
                                      :align-items   "center"
-                                     :margin-bottom "5px"
                                      :height        "28px"}]
 
                     [:.icon-close {:font-size     "9px"
@@ -240,6 +306,7 @@
                             :title     "Close panel"
                             :onClick   #(mutations/set-value! this ::active-tx nil)}
                 "❌"))
-            (transaction active-tx)))))))
+            (dom/div #js {:className (:active-container css)}
+              (transaction active-tx))))))))
 
 (def transaction-list (om/factory TransactionList))

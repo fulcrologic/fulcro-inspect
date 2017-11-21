@@ -1,5 +1,7 @@
 (ns fulcro.inspect.ui.core)
 
+(def mono-font-family "monospace")
+
 (def label-font-family "sans-serif")
 (def label-font-size "12px")
 
