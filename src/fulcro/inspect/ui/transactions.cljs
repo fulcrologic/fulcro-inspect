@@ -81,8 +81,7 @@
   (initial-state [_ {:keys [tx ret] :as transaction}]
     (merge {::tx-id         (random-uuid)
             ::timestamp     (js/Date.)
-            :ui/tx-view     (assoc (fulcro/get-initial-state data-viewer/DataViewer tx)
-                              ::data-viewer/expanded {})
+            :ui/tx-view     (fulcro/get-initial-state data-viewer/DataViewer tx)
             :ui/tx-row-view (assoc (fulcro/get-initial-state data-viewer/DataViewer tx)
                               ::data-viewer/expanded {})
             :ui/ret-view    (assoc (fulcro/get-initial-state data-viewer/DataViewer ret)
@@ -184,7 +183,10 @@
                                      :display       "flex"
                                      :align-items   "center"
                                      :margin-bottom "5px"
-                                     :height        "28px"}]])
+                                     :height        "28px"}]
+
+                    [:.icon-close {:font-size "9px"
+                                   :padding-right "12px"}]])
   (include-children [_] [Transaction TransactionRow])
 
   Object
@@ -212,8 +214,7 @@
           (dom/div #js {:className (:active-tx css)}
             (dom/div #js {:className (:active-tools css)}
               (dom/div #js {:style #js {:flex 1}})
-              (dom/div #js {:className (:icon css)
-                            :style     #js {:fontSize "12px"}
+              (dom/div #js {:className (str (css :icon) " " (css :icon-close))
                             :title     "Close panel"
                             :onClick   #(mutations/set-value! this ::active-tx nil)}
                 "❌"))
