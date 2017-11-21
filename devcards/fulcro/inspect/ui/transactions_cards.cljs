@@ -4,7 +4,8 @@
     [fulcro-css.css :as css]
     [fulcro.client.cards :refer-macros [defcard-fulcro]]
     [fulcro.inspect.ui.transactions :as transactions]
-    [fulcro.inspect.card-helpers :as card-helpers]))
+    [fulcro.inspect.card-helpers :as card-helpers]
+    [om.next :as om]))
 
 (def tx
   '{:tx        [(fulcro.client.mutations/set-props
@@ -40,7 +41,12 @@
 
 (defcard-fulcro transaction-list
   TxListRoot
-  (card-helpers/init-state-atom TxListRoot [tx tx tx]))
+  {}
+  {:fulcro {:started-callback
+            (fn [{:keys [reconciler]}]
+              (let [ref (-> reconciler om/app-state deref :ui/root)]
+                (doseq [x (repeat 5 tx)]
+                  (om/transact! reconciler ref [`(transactions/add-tx ~x)]))))}})
 
 (defcard-fulcro transaction-list-empty
   transactions/TransactionList)

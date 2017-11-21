@@ -24,25 +24,27 @@
 (om/defui ^:once TransactionRow
   static fulcro/InitialAppState
   (initial-state [_ {:keys [tx] :as transaction}]
-    (merge {::tx-id     (random-uuid)
-            ::timestamp (js/Date.)
-            :ui/tx-view (assoc (fulcro/get-initial-state data-viewer/DataViewer tx)
-                          ::data-viewer/expanded {})}
+    (merge {::tx-id         (random-uuid)
+            ::timestamp     (js/Date.)
+            :ui/tx-row-view (assoc (fulcro/get-initial-state data-viewer/DataViewer tx)
+                              ::data-viewer/expanded {})}
            transaction))
 
   static om/IQuery
   (query [_]
     [::tx-id ::timestamp :ref
-     {:ui/tx-view (om/get-query data-viewer/DataViewer)}])
+     {:ui/tx-row-view (om/get-query data-viewer/DataViewer)}])
 
   static om/Ident
   (ident [_ props] [::tx-id (::tx-id props)])
 
   static css/CSS
   (local-rules [_] [[:.container {:display       "flex"
+                                  :cursor        "pointer"
                                   :flex          "1"
                                   :border-bottom "1px solid #eee"
                                   :padding       "5px 0"}]
+                    [:.selected {:background "#f3f3f3"}]
                     [:.ident {:font-family ui/label-font-family
                               :font-size   ui/label-font-size
                               :align-self  "flex-end"
@@ -57,39 +59,49 @@
 
   Object
   (render [this]
-    (let [{:ui/keys [tx-view]
-           ::keys   [timestamp]} (om/props this)
+    (let [{:ui/keys [tx-row-view]
+           ::keys   [timestamp]
+           :as      props} (om/props this)
+          {::keys [on-select selected?]} (om/get-computed props)
           css (css/get-classnames TransactionRow)]
-      (dom/div #js {:className (:container css)}
+      (dom/div #js {:className (cond-> (:container css)
+                                 selected? (str " " (:selected css)))
+                    :onClick   #(if on-select (on-select props))}
         (dom/div #js {:className (:timestamp css)} (print-timestamp timestamp))
-        (data-viewer/data-viewer tx-view)))))
+        (data-viewer/data-viewer (assoc tx-row-view ::data-viewer/static? true))))))
 
-(def transaction-row (om/factory TransactionRow))
+(let [factory (om/factory TransactionRow)]
+  (defn transaction-row [props computed]
+    (factory (om/computed props computed))))
 
 (om/defui ^:once Transaction
   static fulcro/InitialAppState
   (initial-state [_ {:keys [tx ret] :as transaction}]
-    (merge {::tx-id      (random-uuid)
-            ::timestamp  (js/Date.)
-            :ui/tx-view  (assoc (fulcro/get-initial-state data-viewer/DataViewer tx)
-                           ::data-viewer/expanded {})
-            :ui/ret-view (assoc (fulcro/get-initial-state data-viewer/DataViewer ret)
-                           ::data-viewer/expanded {})}
+    (merge {::tx-id         (random-uuid)
+            ::timestamp     (js/Date.)
+            :ui/tx-view     (assoc (fulcro/get-initial-state data-viewer/DataViewer tx)
+                              ::data-viewer/expanded {})
+            :ui/tx-row-view (assoc (fulcro/get-initial-state data-viewer/DataViewer tx)
+                              ::data-viewer/expanded {})
+            :ui/ret-view    (assoc (fulcro/get-initial-state data-viewer/DataViewer ret)
+                              ::data-viewer/expanded {})}
            transaction))
 
   static om/IQuery
   (query [_]
     [::tx-id ::timestamp :tx :ret :sends :old-state :new-state :ref :component
      {:ui/tx-view (om/get-query data-viewer/DataViewer)}
-     {:ui/ret-view (om/get-query data-viewer/DataViewer)}])
+     {:ui/ret-view (om/get-query data-viewer/DataViewer)}
+     {:ui/tx-row-view (om/get-query data-viewer/DataViewer)}])
 
   static om/Ident
   (ident [_ props] [::tx-id (::tx-id props)])
 
   static css/CSS
-  (local-rules [_] [[:.container {:display "flex"
-                                  :flex    "1"
-                                  :padding "5px 0"}]
+  (local-rules [_] [[:.container {:height     "50%"
+                                  :padding    "5px 0"
+                                  :overflow   "auto"
+                                  :border-top "1px solid #a3a3a3"}]
                     [:.ident {:align-self  "flex-end"
                               :padding     "3px 6px"
                               :background  "#f3f3f3"
@@ -118,10 +130,17 @@
   (action [env]
     (h/create-entity! env Transaction tx :append ::tx-list)))
 
+(defmutation select-tx [tx]
+  (action [env]
+    (let [{:keys [state ref]} env
+          tx-ref (om/ident Transaction tx)]
+      (swap! state update-in ref assoc ::active-tx tx-ref))))
+
 (om/defui ^:once TransactionList
   static fulcro/InitialAppState
-  (initial-state [_ tx-list]
-    {::tx-list (mapv #(fulcro/get-initial-state Transaction %) tx-list)})
+  (initial-state [_ _]
+    {::tx-list-id (random-uuid)
+     ::tx-list    []})
 
   static om/IQuery
   (query [_] [::tx-list-id
@@ -133,12 +152,13 @@
 
   static css/CSS
   (local-rules [_] [[:.container {:display        "flex"
-                                  :flex           "1"
+                                  :height         "100%"
                                   :flex-direction "column"}]
                     [:.tools {:border-bottom "1px solid #dadada"
                               :font-family   ui/label-font-family
                               :font-size     ui/label-font-size}]
-                    [:.transactions {"flex" "1"}]])
+                    [:.transactions {:flex     "1"
+                                     :overflow "auto"}]])
   (include-children [_] [Transaction TransactionRow])
 
   Object
@@ -150,7 +170,14 @@
           "tools")
         (dom/div #js {:className (:transactions css)}
           (if (seq tx-list)
-            (mapv transaction-row tx-list)
+            (mapv #(transaction-row %
+                     {::on-select
+                      (fn [tx]
+                        (om/transact! this [`(select-tx ~tx)]))
+
+                      ::selected?
+                      (= (::tx-id active-tx) (::tx-id %))})
+              tx-list)
             "No transactions"))
         (if active-tx
           (transaction active-tx))))))

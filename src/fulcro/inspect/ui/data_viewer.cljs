@@ -36,9 +36,9 @@
           (str i)))
       (render-data (update input :path conj i) x))))
 
-(defn render-sequential [{:keys [css expanded path toggle open-close] :as input} content]
+(defn render-sequential [{:keys [css expanded path toggle open-close static?] :as input} content]
   (dom/div #js {:className (:data-row css)}
-    (if (> (count content) vec-max-inline)
+    (if (and (not static?) (> (count content) vec-max-inline))
       (dom/div #js {:onClick   #(toggle path)
                     :className (:toggle-button css)}
         (if (expanded path)
@@ -70,10 +70,11 @@
 (defn render-set [input content]
   (render-sequential (assoc input :open-close ["#{" "}"]) content))
 
-(defn render-map [{:keys [css expanded path toggle path-action elide-one?] :as input} content]
+(defn render-map [{:keys [css expanded path toggle path-action elide-one? static?] :as input} content]
   (dom/div #js {:className (:data-row css)}
-    (if (or (not elide-one?)
-            (> 1 (count content)))
+    (if (and (not static?)
+             (or (not elide-one?)
+                 (> 1 (count content))))
       (dom/div #js {:onClick   #(toggle path)
                     :className (:toggle-button css)}
         (if (expanded path)
@@ -131,6 +132,9 @@
       (keyword? content)
       (dom/div #js {:className (:keyword css)} (str content))
 
+      (symbol? content)
+      (dom/div #js {:className (:symbol css)} (str content))
+
       (number? content)
       (dom/div #js {:className (:number css)} (str content))
 
@@ -178,11 +182,11 @@
   (ident [_ props] [::id (::id props)])
 
   static css/CSS
-  (local-rules [_] [[:.container (merge {:background "#fff"}
-                                        css-code-font)]
+  (local-rules [_] [[:.container css-code-font]
                     [:.nil {:color "#808080"}]
                     [:.string {:color "#c41a16"}]
                     [:.keyword {:color "#881391"}]
+                    [:.symbol {:color "#134f91"}]
                     [:.number {:color "#1c00cf"}]
                     [:.boolean {:color "#009999"}]
 
@@ -227,11 +231,12 @@
 
   Object
   (render [this]
-    (let [{::keys [content expanded elide-one?] :as props} (om/props this)
+    (let [{::keys [content expanded elide-one? static?] :as props} (om/props this)
           {::keys [path-action]} (om/get-computed props)
           css (css/get-classnames DataViewer)]
       (dom/div #js {:className (:container css)}
         (render-data {:expanded    expanded
+                      :static?     static?
                       :elide-one?  elide-one?
                       :toggle      #(mutations/set-value! this ::expanded (update expanded % not))
                       :css         css
