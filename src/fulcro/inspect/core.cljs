@@ -89,7 +89,7 @@
         (dom/div #js {:className (:tab-content css)}
           (case inspector-page
             ::page-db
-            (f.data-watcher/pinnable-data-viewer app-state)
+            (f.data-watcher/data-watcher app-state)
 
             ::page-network
             (f.ui.network/network-history network)

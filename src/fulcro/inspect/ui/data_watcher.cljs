@@ -136,4 +136,4 @@
           {::f.data-viewer/path-action
            #(om/transact! this [`(add-data-watch {:path ~%})])})))))
 
-(def pinnable-data-viewer (om/factory DataWatcher))
+(def data-watcher (om/factory DataWatcher))
