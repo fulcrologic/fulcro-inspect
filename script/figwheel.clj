@@ -1,3 +1,3 @@
 (use 'figwheel-sidecar.repl-api)
-(start-figwheel! "devcards" #_ "test")
+(start-figwheel! "devcards" "test")
 (cljs-repl)
