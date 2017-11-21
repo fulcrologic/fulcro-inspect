@@ -43,8 +43,10 @@
                                   :cursor        "pointer"
                                   :flex          "1"
                                   :border-bottom "1px solid #eee"
-                                  :padding       "5px 0"}]
-                    [:.selected {:background "#f3f3f3"}]
+                                  :padding       "5px 0"}
+                     [:&:hover {:background "#eef3fa"}]
+                     [:&.selected {:background "#e6e6e6"}]]
+
                     [:.ident {:font-family ui/label-font-family
                               :font-size   ui/label-font-size
                               :align-self  "flex-end"
@@ -136,6 +138,14 @@
           tx-ref (om/ident Transaction tx)]
       (swap! state update-in ref assoc ::active-tx tx-ref))))
 
+(defmutation clear-transactions [_]
+  (action [env]
+    (let [{:keys [state ref]} env
+          tx-refs (get-in @state (conj ref ::tx-list))]
+      (swap! state assoc-in (conj ref ::tx-list) [])
+      (if (seq tx-refs)
+        (swap! state #(reduce h/deep-remove-ref % tx-refs))))))
+
 (om/defui ^:once TransactionList
   static fulcro/InitialAppState
   (initial-state [_ _]
@@ -156,7 +166,15 @@
                                   :flex-direction "column"}]
                     [:.tools {:border-bottom "1px solid #dadada"
                               :font-family   ui/label-font-family
-                              :font-size     ui/label-font-size}]
+                              :font-size     ui/label-font-size
+                              :display       "flex"
+                              :align-items   "center"}
+                     [:.icon {:padding     "1px 7px"
+                              :font-size   "16px"
+                              :cursor      "pointer"
+                              :color       "transparent"
+                              :text-shadow (str "0 0 0 " ui/color-text-normal)}
+                      [:&:hover {:text-shadow (str "0 0 0 " ui/color-text-strong)}]]]
                     [:.transactions {:flex     "1"
                                      :overflow "auto"}]])
   (include-children [_] [Transaction TransactionRow])
@@ -167,7 +185,10 @@
           css (css/get-classnames TransactionList)]
       (dom/div #js {:className (:container css)}
         (dom/div #js {:className (:tools css)}
-          "tools")
+          (dom/div #js {:className (:icon css)
+                        :title     "Clear transactions"
+                        :onClick   #(om/transact! this [`(clear-transactions {})])}
+            "🚫"))
         (dom/div #js {:className (:transactions css)}
           (if (seq tx-list)
             (mapv #(transaction-row %
