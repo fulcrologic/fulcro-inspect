@@ -5,115 +5,29 @@
             [fulcro.client.core :as fulcro]
             [fulcro.client.mutations :as mutations :refer-macros [defmutation]]
             [fulcro.client.network :as f.network]
-            [fulcro.inspect.helpers :as h]
             [fulcro.inspect.ui.core :as ft.ui]
             [fulcro.inspect.ui.data-viewer :as f.data-viewer]
             [fulcro.inspect.ui.data-watcher :as f.data-watcher]
+            [fulcro.inspect.ui.inspector :as f.inspector]
             [fulcro.inspect.ui.events :as f.events]
             [fulcro.inspect.ui.network :as f.ui.network]
             [fulcro-css.css :as css]
             [om.dom :as dom]
             [om.next :as om]))
 
-(defn set-style! [node prop value]
-  (gobj/set (gobj/get node "style") prop value))
-
-(om/defui ^:once Inspector
-  static fulcro/InitialAppState
-  (initial-state [_ state]
-    {::inspector-id   (random-uuid)
-     ::inspector-page ::page-db
-     ::app-state      (fulcro/get-initial-state f.data-watcher/DataWatcher state)
-     ::network        (fulcro/get-initial-state f.ui.network/NetworkHistory nil)
-     :ui/network?     false})
-
-  static om/IQuery
-  (query [_] [::inspector-page ::inspector-id :ui/network?
-              {::app-state (om/get-query f.data-watcher/DataWatcher)}
-              {::network (om/get-query f.ui.network/NetworkHistory)}])
-
-  static om/Ident
-  (ident [_ props] [::inspector-id (::inspector-id props)])
-
-  static css/CSS
-  (local-rules [_] [[:.container {:display        "flex"
-                                  :flex-direction "column"
-                                  :width          "100%"
-                                  :height         "100%"
-                                  :overflow       "hidden"}]
-                    [:.tabs (merge ft.ui/label-font
-                                   {:display       "flex"
-                                    :background    "#f3f3f3"
-                                    :color         "#5a5a5a"
-                                    :border-bottom "1px solid #ccc"
-                                    :user-select   "none"})]
-                    [:.tab {:cursor  "pointer"
-                            :padding "6px 10px 5px"}
-                     [:&:hover {:background "#e5e5e5"
-                                :color      "#333"}]
-                     [:&.tab-selected {:border-bottom "2px solid #5c7ebb"
-                                       :color         "#333"
-                                       :margin-bottom "-1px"}]
-                     [:&.tab-disabled {:color  "#bbb"
-                                       :cursor "default"}
-                      [:&:hover {:background "transparent"}]]]
-                    [:.tab-content {:padding  "10px"
-                                    :flex     "1"
-                                    :overflow "auto"}]])
-  (include-children [_] [f.data-watcher/DataWatcher
-                         f.ui.network/NetworkHistory])
-
-  Object
-  (render [this]
-    (let [{::keys   [app-state inspector-page network]
-           :ui/keys [network?]} (om/props this)
-          css      (css/get-classnames Inspector)
-          tab-item (fn [{:keys [title html-title disabled? page]}]
-                     (dom/div #js {:className (cond-> (:tab css)
-                                                disabled? (str " " (:tab-disabled css))
-                                                (= inspector-page page) (str " " (:tab-selected css)))
-                                   :title     html-title
-                                   :onClick   #(if-not disabled?
-                                                 (mutations/set-value! this ::inspector-page page))}
-                       title))]
-      (dom/div #js {:className (:container css)}
-        (dom/div #js {:className (:tabs css)}
-          (tab-item {:title "DB" :page ::page-db})
-          (tab-item {:title "Element" :disabled? true})
-          (tab-item (cond-> {:title "Network" :page ::page-network}
-                      (not network?)
-                      (assoc :disabled? true :html-title "You need to wrap your network with network-inspector to enable the network panel.")))
-          (tab-item {:title "Transactions" :disabled? true})
-          (tab-item {:title "OgE" :disabled? true}))
-
-        (dom/div #js {:className (:tab-content css)}
-          (case inspector-page
-            ::page-db
-            (f.data-watcher/data-watcher app-state)
-
-            ::page-network
-            (f.ui.network/network-history network)
-
-            (dom/div nil
-              "Invalid page " (pr-str inspector-page))))))))
-
-(def inspector (om/factory Inspector))
-
-;;;;;;;;;;;;;;;;;
-
 (defmutation add-inspector [inspector]
   (action [env]
     (let [{:keys [ref state reconciler]} env
-          inspector-ref (om/ident Inspector inspector)
+          inspector-ref (om/ident f.inspector/Inspector inspector)
           current       (get-in @state (conj ref ::current-app))]
-      (fulcro/merge-state! reconciler Inspector inspector :append (conj ref ::inspectors))
+      (fulcro/merge-state! reconciler f.inspector/Inspector inspector :append (conj ref ::inspectors))
       (if (nil? current)
         (swap! state update-in ref assoc ::current-app inspector-ref)))))
 
-(defmutation set-app [{::keys [inspector-id]}]
+(defmutation set-app [{::f.inspector/keys [id]}]
   (action [env]
     (let [{:keys [ref state]} env]
-      (swap! state update-in ref assoc ::current-app [::inspector-id inspector-id]))))
+      (swap! state update-in ref assoc ::current-app [::f.inspector/id id]))))
 
 (om/defui ^:once MultiInspector
   static fulcro/InitialAppState
@@ -123,7 +37,7 @@
   static om/IQuery
   (query [_] [::multi-inspector
               ::inspectors
-              {::current-app (om/get-query Inspector)}])
+              {::current-app (om/get-query f.inspector/Inspector)}])
 
   static om/Ident
   (ident [_ props] [::multi-inspector "main"])
@@ -151,7 +65,7 @@
                                  :flex            1
                                  :align-items     "center"
                                  :justify-content "center"})]])
-  (include-children [_] [Inspector])
+  (include-children [_] [f.inspector/Inspector])
 
   Object
   (render [this]
@@ -159,20 +73,23 @@
           css (css/get-classnames MultiInspector)]
       (dom/div #js {:className (:container css)}
         (if current-app
-          (inspector current-app)
+          (f.inspector/inspector current-app)
           (dom/div #js {:className (:no-app css)}
             (dom/div nil "No app connected.")))
         (if (> (count inspectors) 1)
           (dom/div #js {:className (:selector css)}
             (dom/div #js {:className (:label css)} "App")
-            (dom/select #js {:value    (str (::inspector-id current-app))
-                             :onChange #(om/transact! this `[(set-app {::inspector-id ~(read-string (.. % -target -value))})])}
+            (dom/select #js {:value    (str (::f.inspector/id current-app))
+                             :onChange #(om/transact! this `[(set-app {::f.inspector/id ~(read-string (.. % -target -value))})])}
               (for [app-id (->> (map (comp pr-str second) inspectors) sort)]
                 (dom/option #js {:key   app-id
                                  :value app-id}
                   app-id)))))))))
 
 (def multi-inspector (om/factory MultiInspector))
+
+(defn set-style! [node prop value]
+  (gobj/set (gobj/get node "style") prop value))
 
 (om/defui ^:once GlobalInspector
   static fulcro/InitialAppState
@@ -285,17 +202,17 @@
 (defn inspect-app [app-id target-app]
   (let [inspector     (global-inspector)
         state*        (some-> target-app :reconciler :config :state)
-        new-inspector (-> (fulcro/get-initial-state Inspector @state*)
-                          (assoc ::inspector-id app-id)
-                          (assoc-in [::app-state ::f.data-watcher/id] [::app-id app-id])
-                          (assoc-in [::network ::f.ui.network/history-id] [::app-id app-id]))]
+        new-inspector (-> (fulcro/get-initial-state f.inspector/Inspector @state*)
+                          (assoc ::f.inspector/id app-id)
+                          (assoc-in [::f.inspector/app-state ::f.data-watcher/id] [::app-id app-id])
+                          (assoc-in [::f.inspector/network ::f.ui.network/history-id] [::app-id app-id]))]
     (om/transact! (:reconciler inspector) [::multi-inspector "main"]
       [`(add-inspector ~new-inspector)
        ::inspectors])
 
     (when (inspect-network-init (-> target-app :networking :remote) {:inspector inspector
                                                                      :app       target-app})
-      (om/transact! (:reconciler inspector) [::inspector-id app-id]
+      (om/transact! (:reconciler inspector) [::f.inspector/id app-id]
         `[(mutations/set-props {:ui/network? true})]))
 
     (add-watch state* app-id
@@ -383,7 +300,7 @@
       :else new-id)))
 
 (defn dedupe-id [id]
-  (let [ids-in-use (some-> (global-inspector) :reconciler om/app-state deref ::inspector-id)]
+  (let [ids-in-use (some-> (global-inspector) :reconciler om/app-state deref ::f.inspector/id)]
     (loop [new-id id]
       (if (contains? ids-in-use new-id)
         (recur (inc-id new-id))
