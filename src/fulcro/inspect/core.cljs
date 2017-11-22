@@ -117,7 +117,7 @@
                                   :overflow   "auto"
                                   :z-index    "9999"}]
                     [:.resizer {:position    "fixed"
-                                :cursor      "col-resize"
+                                :cursor      "ew-resize"
                                 :top         "0"
                                 :left        "50%"
                                 :margin-left "-5px"
