@@ -138,7 +138,7 @@
            :ui/keys [tx-view ret-view sends-view
                      old-state-view new-state-view
                      diff-add-view diff-rem-view]
-           :as props} (om/props this)
+           :as      props} (om/props this)
           css (css/get-classnames Transaction)]
       (dom/div #js {:className (:container css)}
         (dom/div #js {:className (:group css)}
@@ -224,7 +224,8 @@
 
   static css/CSS
   (local-rules [_] [[:.container {:display        "flex"
-                                  :height         "100%"
+                                  :width          "100%"
+                                  :flex           "1"
                                   :flex-direction "column"}]
                     [:.tools {:border-bottom "1px solid #dadada"
                               :display       "flex"

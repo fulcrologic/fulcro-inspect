@@ -15,7 +15,8 @@
     [fulcro.inspect.ui.transactions :as transactions]
     [fulcro-css.css :as css]
     [om.dom :as dom]
-    [om.next :as om]))
+    [om.next :as om]
+    [garden.core :as g]))
 
 (defmutation add-inspector [inspector]
   (action [env]
@@ -93,6 +94,51 @@
 (defn set-style! [node prop value]
   (gobj/set (gobj/get node "style") prop value))
 
+(defn update-frame-content [this child]
+  (let [frame-component (gobj/get this "frame-component")]
+    (when frame-component
+      (js/ReactDOM.render child frame-component))))
+
+(defn append-css
+  [node root-component]
+  (let [style-ele (.createElement js/document "style")]
+    (set! (.-innerHTML style-ele) (g/css (css/get-css root-component)))
+    (.appendChild node style-ele)))
+
+(declare IFrame)
+
+(defn start-frame [this]
+  (let [frame-body (.-body (.-contentDocument (js/ReactDOM.findDOMNode this)))
+        {:keys [child css]} (om/props this)
+        e1         (.createElement js/document "div")]
+    (when (= 0 (gobj/getValueByKeys frame-body #js ["children" "length"]))
+      (.appendChild frame-body e1)
+      (append-css frame-body IFrame)
+      (if css (append-css frame-body css))
+      (gobj/set this "frame-component" e1)
+      (update-frame-content this child))))
+
+(om/defui IFrame
+  static css/CSS
+  (local-rules [_] [[:body {:margin "0" :padding "0" :box-sizing "border-box"}]])
+  (include-children [_] [])
+
+  Object
+  (componentDidMount [this] (start-frame this))
+
+  (componentDidUpdate [this _ _]
+    (let [child (:child (om/props this))]
+      (update-frame-content this child)))
+
+  (render [this]
+    (dom/iframe (-> (om/props this) (dissoc :child :css)
+                    (assoc :onLoad #(start-frame this))
+                    clj->js))))
+
+(let [factory (om/factory IFrame)]
+  (defn ui-iframe [props child]
+    (factory (assoc props :child child))))
+
 (om/defui ^:once GlobalInspector
   static fulcro/InitialAppState
   (initial-state [_ params] {:ui/size      50
@@ -114,7 +160,7 @@
                                   :right      "0"
                                   :bottom     "0"
                                   :width      "50%"
-                                  :overflow   "auto"
+                                  :overflow   "hidden"
                                   :z-index    "9999"}]
                     [:.resizer {:position    "fixed"
                                 :cursor      "ew-resize"
@@ -123,7 +169,10 @@
                                 :margin-left "-5px"
                                 :width       "10px"
                                 :bottom      "0"
-                                :z-index     "99999"}]])
+                                :z-index     "99999"}]
+                    [:.frame {:width  "100%"
+                              :height "100%"
+                              :border "0"}]])
   (include-children [_] [MultiInspector])
 
   Object
@@ -140,23 +189,30 @@
                     :style     (if visible? nil #js {:display "none"})}
         (events/key-listener {::events/action    #(mutations/set-value! this :ui/visible? (not visible?))
                               ::events/keystroke keystroke})
-        (dom/div #js {:className (:resizer css)
-                      :ref       #(gobj/set this "resizer" %)
-                      :style     #js {:left (str size "%")}
-                      :draggable true
-                      :onDrag    (fn [e]
-                                   (.preventDefault e)
-                                   (let [mouse (.-clientX e)
-                                         vw    js/document.body.clientWidth
-                                         pos   (* (/ mouse vw) 100)]
-                                     (when (pos? pos)
-                                       (set-style! (gobj/get this "resizer") "left" (str pos "%"))
-                                       (set-style! (gobj/get this "container") "width" (str (- 100 pos) "%"))
-                                       ((gobj/get this "resize-debouncer") pos))))})
+        (dom/div #js {:className   (:resizer css)
+                      :ref         #(gobj/set this "resizer" %)
+                      :style       #js {:left (str size "%")}
+                      :onMouseDown (fn [_]
+                                     (let [handler (fn [e]
+                                                     (let [mouse (.-clientX e)
+                                                           vw    js/document.body.clientWidth
+                                                           pos   (* (/ mouse vw) 100)]
+                                                       (when (pos? pos)
+                                                         (set-style! (gobj/get this "resizer") "left" (str pos "%"))
+                                                         (set-style! (gobj/get this "container") "width" (str (- 100 pos) "%"))
+                                                         ((gobj/get this "resize-debouncer") pos))))
+                                           frame   (js/ReactDOM.findDOMNode (gobj/get this "frameNode"))]
+                                       (set-style! frame "pointerEvents" "none")
+                                       (js/document.addEventListener "mousemove" handler)
+                                       (js/document.addEventListener "mouseup"
+                                         (fn [e]
+                                           (gobj/set (.-style frame) "pointerEvents" "initial")
+                                           (js/document.removeEventListener "mousemove" handler)))))})
         (dom/div #js {:className (:container css)
                       :style     #js {:width (str (- 100 size) "%")}
                       :ref       #(gobj/set this "container" %)}
-          (multi-inspector inspector))))))
+          (ui-iframe {:className (:frame css) :css MultiInspector :ref #(gobj/set this "frameNode" %)}
+            (multi-inspector inspector)))))))
 
 (def global-inspector-view (om/factory GlobalInspector))
 

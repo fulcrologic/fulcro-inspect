@@ -52,7 +52,8 @@
                                        :cursor "default"}
                       [:&:hover {:background "transparent"}]]]
                     [:.tab-content {:flex     "1"
-                                    :overflow "auto"}
+                                    :overflow "auto"
+                                    :display  "flex"}
                      [:&.spaced {:padding "10px"}]]])
   (include-children [_] [data-watcher/DataWatcher
                          network/NetworkHistory
