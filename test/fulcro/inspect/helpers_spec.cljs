@@ -67,7 +67,11 @@
                                :some-data    "vai"
                                :container/id "cont"
                                :child        [:child/id "child"]}}
-        :child/id     {"child" {:child/id "child"}}}))
+        :child/id     {"child" {:child/id "child"}}}
+
+    (h/create-entity! {:state (atom {})}
+      Container ^::h/initialized {:container/id "cont" :foo "bar"})
+    => {:container/id {"cont" {:container/id "cont" :foo "bar"}}}))
 
 (specification "deep-remove"
   (assertions

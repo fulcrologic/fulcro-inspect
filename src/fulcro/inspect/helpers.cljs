@@ -66,8 +66,11 @@
 (defn create-entity! [{:keys [state ref]} x data & named-parameters]
   (let [named-parameters (->> (partition 2 named-parameters)
                               (map (fn [[op path]] [op (conj ref path)]))
-                              (apply concat))]
-    (apply swap! state merge-entity x (fulcro/get-initial-state x data) named-parameters)))
+                              (apply concat))
+        data' (if (-> data meta ::initialized)
+                data
+                (fulcro/get-initial-state x data))]
+    (apply swap! state merge-entity x data' named-parameters)))
 
 (defn- dissoc-in [m path]
   (cond-> m
