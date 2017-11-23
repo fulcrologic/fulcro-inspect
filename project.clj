@@ -14,6 +14,8 @@
 
   :figwheel {:server-port 3389}
 
+  :jar-exclusions [#"public/.*"]
+
   :cljsbuild {:builds [{:id           "devcards"
                         :source-paths ["src" "devcards"]
                         :figwheel     {:devcards true}
