@@ -6,14 +6,13 @@
   "Starting from a denormalized entity map, normalizes using class x.
    It assumes the entity is going to be normalized too, then get all
    normalized data and merge back into the app state and idents."
-  (let [{::keys [root] :as idents}
-        (om/tree->db
-          (reify
-            om/IQuery
-            (query [_] [{::root (om/get-query x)}]))
-          {::root data} true)
+  (let [idents     (-> (om/tree->db
+                         (reify
+                           om/IQuery
+                           (query [_] [{::root (om/get-query x)}]))
+                         {::root data} true)
+                       (dissoc ::root ::om/tables))
         root-ident (om/ident x data)
-        idents     (dissoc idents ::root ::om/tables)
         state      (merge-with (partial merge-with merge) state idents)]
     (if (seq named-parameters)
       (apply fulcro/integrate-ident state root-ident named-parameters)
@@ -23,9 +22,9 @@
   (let [named-parameters (->> (partition 2 named-parameters)
                               (map (fn [[op path]] [op (conj ref path)]))
                               (apply concat))
-        data' (if (-> data meta ::initialized)
-                data
-                (fulcro/get-initial-state x data))]
+        data'            (if (-> data meta ::initialized)
+                           data
+                           (fulcro/get-initial-state x data))]
     (apply swap! state merge-entity x data' named-parameters)))
 
 (defn- dissoc-in [m path]
