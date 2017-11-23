@@ -115,9 +115,11 @@
       (update-frame-content this child)))
 
   (render [this]
-    (dom/iframe (-> (om/props this) (dissoc :child)
-                    (assoc :onLoad #(start-frame this))
-                    clj->js))))
+    (dom/iframe
+      (-> (om/props this)
+          (dissoc :child)
+          (assoc :onLoad #(start-frame this))
+          clj->js))))
 
 (let [factory (om/factory IFrame)]
   (defn ui-iframe [props child]
