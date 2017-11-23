@@ -29,12 +29,12 @@
 
 (defmutation add-data-watch [{:keys [path]}]
   (action [env]
-    (let [{:keys [ref state reconciler]} env
+    (let [{:keys [ref state]} env
           content (as-> (get-in @state (conj ref ::root-data)) <>
                     (get-in @state (conj <> ::f.data-viewer/content))
                     (get-in <> path))]
       (h/create-entity! env WatchPin {:path path :content content}
-        :prepend ::watchers))))
+        :prepend ::watches))))
 
 (defmutation remove-data-watch [{:keys [index]}]
   (action [env]
