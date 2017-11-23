@@ -16,9 +16,7 @@
 
 (defmutation request-start [req]
   (action [env]
-    (let [{:keys [ref reconciler]} env
-          req (fulcro/get-initial-state Request req)]
-      (fulcro/merge-state! reconciler Request req :append (conj ref ::requests)))))
+    (h/create-entity! env Request req :append ::requests)))
 
 (defmutation request-update [req]
   (action [env]

@@ -32,10 +32,9 @@
     (let [{:keys [ref state reconciler]} env
           content (as-> (get-in @state (conj ref ::root-data)) <>
                     (get-in @state (conj <> ::f.data-viewer/content))
-                    (get-in <> path))
-          watcher (fulcro/get-initial-state WatchPin {:path    path
-                                                      :content content})]
-      (fulcro/merge-state! reconciler WatchPin watcher :prepend (conj ref ::watches)))))
+                    (get-in <> path))]
+      (h/create-entity! env WatchPin {:path path :content content}
+        :prepend ::watchers))))
 
 (defmutation remove-data-watch [{:keys [index]}]
   (action [env]
