@@ -4,6 +4,7 @@
     [goog.functions :as gfun]
     [goog.object :as gobj]
     [fulcro.client.core :as fulcro]
+    [fulcro.ui.elements :as f.elements]
     [fulcro.client.mutations :as mutations :refer-macros [defmutation]]
     [fulcro.client.network :as f.network]
     [fulcro.inspect.ui.core :as ui]
@@ -263,10 +264,8 @@
       [`(add-inspector ~new-inspector)
        ::inspectors])
 
-    (when (inspect-network-init (-> target-app :networking :remote) {:inspector inspector
-                                                                     :app       target-app})
-      (om/transact! (:reconciler inspector) [::inspector/id app-id]
-        `[(mutations/set-props {:ui/network? true})]))
+    (inspect-network-init (-> target-app :networking :remote) {:inspector inspector
+                                                               :app       target-app})
 
     (add-watch state* app-id
       #(update-inspect-state (:reconciler inspector) app-id %4))

@@ -16,11 +16,10 @@
      ::tab          ::page-db
      ::app-state    (fulcro/get-initial-state data-watcher/DataWatcher state)
      ::network      (fulcro/get-initial-state network/NetworkHistory nil)
-     ::transactions (fulcro/get-initial-state transactions/TransactionList [])
-     :ui/network?   false})
+     ::transactions (fulcro/get-initial-state transactions/TransactionList [])})
 
   static om/IQuery
-  (query [_] [::tab ::id :ui/network?
+  (query [_] [::tab ::id
               {::app-state (om/get-query data-watcher/DataWatcher)}
               {::network (om/get-query network/NetworkHistory)}
               {::transactions (om/get-query transactions/TransactionList)}])
@@ -61,8 +60,7 @@
 
   Object
   (render [this]
-    (let [{::keys   [app-state tab network transactions]
-           :ui/keys [network?]} (om/props this)
+    (let [{::keys   [app-state tab network transactions]} (om/props this)
           css      (css/get-classnames Inspector)
           tab-item (fn [{:keys [title html-title disabled? page]}]
                      (dom/div #js {:className (cond-> (:tab css)
@@ -76,9 +74,7 @@
         (dom/div #js {:className (:tabs css)}
           (tab-item {:title "DB" :page ::page-db})
           (tab-item {:title "Element" :disabled? true})
-          (tab-item (cond-> {:title "Network" :page ::page-network}
-                      (not network?)
-                      (assoc :disabled? true :html-title "You need to wrap your network with network-inspector to enable the network panel.")))
+          (tab-item {:title "Network" :page ::page-network})
           (tab-item {:title "Transactions" :page ::page-transactions})
           (tab-item {:title "OgE" :disabled? true}))
 
