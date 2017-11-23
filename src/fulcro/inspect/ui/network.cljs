@@ -86,6 +86,7 @@
                       :border-bottom border
                       :padding       "2px 4px"
                       :overflow      "hidden"}
+        [:$fulcro_inspect_ui_data-viewer_DataViewer__container {:max-width "100"}]
         [(gs/& gs/first-child) {:flex 1}]
         [(gs/& gs/last-child) {:border-right border}]]]))
   (include-children [_] [data-viewer/DataViewer])

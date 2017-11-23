@@ -19,7 +19,7 @@
               :ui/react-key])
 
   static css/CSS
-  (local-rules [_] [[:.container {:height         "300px"
+  (local-rules [_] [[:.container {:height         "500px"
                                   :display        "flex"
                                   :flex-direction "column"}]])
   (include-children [_] [network/NetworkHistory])
