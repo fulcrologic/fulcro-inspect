@@ -38,9 +38,7 @@
                         ::current-app nil})
 
   static om/IQuery
-  (query [_] [::multi-inspector
-              ::inspectors
-              {::current-app (om/get-query inspector/Inspector)}])
+  (query [_] [::inspectors {::current-app (om/get-query inspector/Inspector)}])
 
   static om/Ident
   (ident [_ props] [::multi-inspector "main"])
@@ -99,30 +97,16 @@
     (when frame-component
       (js/ReactDOM.render child frame-component))))
 
-(defn append-css
-  [node root-component]
-  (let [style-ele (.createElement js/document "style")]
-    (set! (.-innerHTML style-ele) (g/css (css/get-css root-component)))
-    (.appendChild node style-ele)))
-
-(declare IFrame)
-
 (defn start-frame [this]
   (let [frame-body (.-body (.-contentDocument (js/ReactDOM.findDOMNode this)))
-        {:keys [child css]} (om/props this)
+        {:keys [child]} (om/props this)
         e1         (.createElement js/document "div")]
     (when (= 0 (gobj/getValueByKeys frame-body #js ["children" "length"]))
       (.appendChild frame-body e1)
-      (append-css frame-body IFrame)
-      (if css (append-css frame-body css))
       (gobj/set this "frame-component" e1)
       (update-frame-content this child))))
 
 (om/defui IFrame
-  static css/CSS
-  (local-rules [_] [[:body {:margin "0" :padding "0" :box-sizing "border-box"}]])
-  (include-children [_] [])
-
   Object
   (componentDidMount [this] (start-frame this))
 
@@ -131,7 +115,7 @@
       (update-frame-content this child)))
 
   (render [this]
-    (dom/iframe (-> (om/props this) (dissoc :child :css)
+    (dom/iframe (-> (om/props this) (dissoc :child)
                     (assoc :onLoad #(start-frame this))
                     clj->js))))
 
@@ -212,7 +196,10 @@
                       :style     #js {:width (str (- 100 size) "%")}
                       :ref       #(gobj/set this "container" %)}
           (ui-iframe {:className (:frame css) :css MultiInspector :ref #(gobj/set this "frameNode" %)}
-            (multi-inspector inspector)))))))
+            (dom/div nil
+              (dom/style #js {:dangerouslySetInnerHTML #js {:__html (g/css [[:body {:margin "0" :padding "0" :box-sizing "border-box"}]])}})
+              (dom/style #js {:dangerouslySetInnerHTML #js {:__html (g/css (css/get-css MultiInspector))}})
+              (multi-inspector inspector))))))))
 
 (def global-inspector-view (om/factory GlobalInspector))
 
