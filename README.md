@@ -9,7 +9,7 @@ Inspect Fulcro applications
 Add this dependencies:
 
 ```
-[fulcrologic/fulcro "1.2.0-SNAPSHOT"]
+[fulcrologic/fulcro "1.2.0"]
 [fulcrologic/fulcro-inspect "0.1.0-SNAPSHOT"]
 ```
 
