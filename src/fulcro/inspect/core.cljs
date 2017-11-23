@@ -45,7 +45,8 @@
   (ident [_ props] [::multi-inspector "main"])
 
   static css/CSS
-  (local-rules [_] [[:.container {:display        "flex"
+  (local-rules [_] [[:* {:box-sizing "border-box"}]
+                    [:.container {:display        "flex"
                                   :flex-direction "column"
                                   :width          "100%"
                                   :height         "100%"
