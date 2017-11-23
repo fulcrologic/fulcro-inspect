@@ -76,7 +76,7 @@
   static css/CSS
   (local-rules [_]
     (let [border (str "1px solid " ui/color-bg-light-border)]
-      [[:.row {:cursor "pointer"
+      [[:.row {:cursor  "pointer"
                :display "flex"}
         [(gs/& (gs/nth-child :odd)) {:background ui/color-bg-light}]
         [:&:hover {:background "#eef3fa !important"}]]
@@ -100,7 +100,7 @@
         (dom/div #js {:className (:table-cell css)}
           (data-viewer/data-viewer (assoc request-edn-view ::data-viewer/static? true)))
         (dom/div #js {:className (:table-cell css)
-                      :style #js {:width (get columns 0)}}
+                      :style     #js {:width (get columns 0)}}
           (case request-type
             ::type.mutation "Mutation"
             ::type.mixed "Mixed"
@@ -108,7 +108,7 @@
 
             "Unknown"))
         (dom/div #js {:className (:table-cell css)
-                      :style #js {:width (get columns 1)}}
+                      :style     #js {:width (get columns 1)}}
           (cond
             response-edn
             "Success"
@@ -119,7 +119,7 @@
             :else
             (dom/span #js {:className (:pending css)} "(pending...)")))
         (dom/div #js {:className (:table-cell css)
-                      :style #js {:width (get columns 2)}}
+                      :style     #js {:width (get columns 2)}}
           (if (and request-started-at request-finished-at)
             (str (- request-finished-at request-started-at) " ms")
             (dom/span #js {:className (:pending css)} "(pending...)")))))))
@@ -155,7 +155,8 @@
                  :display         "flex"
                  :flex-direction  "column"}]
 
-       [:.table-header {:display "flex"}]
+       [:.table-header {:display    "flex"
+                        :overflow-y "scroll"}]
 
        [(gs/> :.table-header "div") {:font-weight  "normal"
                                      :text-align   "left"
@@ -165,8 +166,8 @@
         [(gs/& gs/first-child) {:flex 1}]
         [(gs/& gs/last-child) {:border-right border}]]
 
-       [:.table-body {:flex     1
-                      :overflow "auto"}]]))
+       [:.table-body {:flex       1
+                      :overflow-y "scroll"}]]))
   (include-children [_] [Request])
 
   Object
