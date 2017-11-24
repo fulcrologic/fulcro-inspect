@@ -177,14 +177,15 @@
           css     (css/get-classnames NetworkHistory)
           columns [60 90 70]]
       (dom/div #js {:className (:container css)}
-        (if (seq requests)
-          (dom/div #js {:className (:table css)}
-            (dom/div #js {:className (:table-header css)}
-              (dom/div nil "Request")
-              (dom/div #js {:style #js {:width (get columns 0)}} "Type")
-              (dom/div #js {:style #js {:width (get columns 1)}} "Status")
-              (dom/div #js {:style #js {:width (get columns 2)}} "Time"))
-            (dom/div #js {:className (:table-body css)}
+        (dom/div #js {:className (:table css)}
+          (dom/div #js {:className (:table-header css)}
+            (dom/div nil "Request")
+            (dom/div #js {:style #js {:width (get columns 0)}} "Type")
+            (dom/div #js {:style #js {:width (get columns 1)}} "Status")
+            (dom/div #js {:style #js {:width (get columns 2)}} "Time"))
+
+          (dom/div #js {:className (:table-body css)}
+            (if (seq requests)
               (mapv (comp request #(om/computed % {:columns columns})) requests))))))))
 
 (def network-history (om/factory NetworkHistory))
