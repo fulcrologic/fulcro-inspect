@@ -3,6 +3,7 @@
             [fulcro.client.mutations :as mutations]
             [fulcro-css.css :as css]
             [fulcro.inspect.ui.core :as ui]
+            [fulcro.inspect.helpers :as h]
             [om.dom :as dom]
             [om.next :as om]))
 
@@ -77,8 +78,7 @@
           "▶")))
 
     (cond
-      (and (expanded path)
-           (> (count content) vec-max-inline))
+      (expanded path)
       (dom/div #js {:className (:list-container css)}
         (render-ordered-list input content))
 
@@ -210,6 +210,12 @@
   {:font-family "'courier new', monospace"
    :font-size   "12px"
    :white-space "nowrap"})
+
+(defn create-collapsed [content]
+  ^::h/initialized
+  {::id       (random-uuid)
+   ::content  content
+   ::expanded {}})
 
 (om/defui ^:once DataViewer
   static fulcro/InitialAppState

@@ -90,7 +90,7 @@
     (merge (cond-> {::request-id         (random-uuid)
                     ::request-started-at (js/Date.)}
              request-edn
-             (assoc ::request-edn-row-view (fulcro/get-initial-state data-viewer/DataViewer request-edn)))
+             (assoc ::request-edn-row-view (data-viewer/create-collapsed request-edn)))
            props))
 
   static om/Ident
