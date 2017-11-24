@@ -20,9 +20,6 @@
 (defn success? []
   (gen/generate (gen/frequency [[8 (gen/return true)] [1 (gen/return false)]])))
 
-(comment
-  (success?))
-
 (defn gen-request [this]
   (let [id         (random-uuid)
         reconciler (om/get-reconciler this)
@@ -32,7 +29,6 @@
     (js/setTimeout
       (fn []
         (let [suc? (success?)]
-          (js/console.log suc?)
           (om/transact! reconciler [::network/history-id "main"]
             [`(network/request-update ~(cond-> {::network/request-id id}
                                          suc? (assoc ::network/response-edn out)

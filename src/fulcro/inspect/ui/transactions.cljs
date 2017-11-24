@@ -12,18 +12,6 @@
     [om.dom :as dom]
     [om.next :as om]))
 
-(defn add-zeros [n x]
-  (loop [n (str n)]
-    (if (< (count n) x)
-      (recur (str 0 n))
-      n)))
-
-(defn print-timestamp [date]
-  (str (add-zeros (.getHours date) 2) ":"
-       (add-zeros (.getMinutes date) 2) ":"
-       (add-zeros (.getSeconds date) 2) ":"
-       (add-zeros (.getMilliseconds date) 3)))
-
 (om/defui ^:once TransactionRow
   static fulcro/InitialAppState
   (initial-state [_ {:keys [tx] :as transaction}]
@@ -56,10 +44,7 @@
                               :padding     "3px 6px"
                               :background  "#f3f3f3"
                               :color       "#424242"}]
-                    [:.timestamp {:font-family "monospace"
-                                  :font-size   "11px"
-                                  :color       "#808080"
-                                  :margin      "0 4px 0 7px"}]])
+                    [:.timestamp ui/css-timestamp]])
   (include-children [_] [data-viewer/DataViewer])
 
   Object
@@ -72,7 +57,7 @@
       (dom/div #js {:className (cond-> (:container css)
                                  selected? (str " " (:selected css)))
                     :onClick   #(if on-select (on-select props))}
-        (dom/div #js {:className (:timestamp css)} (print-timestamp timestamp))
+        (dom/div #js {:className (:timestamp css)} (ui/print-timestamp timestamp))
         (data-viewer/data-viewer (assoc tx-row-view ::data-viewer/static? true))))))
 
 (let [factory (om/factory TransactionRow)]
