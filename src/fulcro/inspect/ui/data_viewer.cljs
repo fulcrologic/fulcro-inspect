@@ -193,54 +193,55 @@
   (query [_] [::id ::content ::expanded])
 
   static css/CSS
-  (local-rules [_] [[:.container css-code-font]
-                    [:.nil {:color "#808080"}]
-                    [:.string {:color "#c41a16"}]
-                    [:.keyword {:color "#881391"}]
-                    [:.symbol {:color "#134f91"}]
-                    [:.number {:color "#1c00cf"}]
-                    [:.boolean {:color "#009999"}]
+  (local-rules [_]
+    [[:.container css-code-font]
+     [:.nil {:color "#808080"}]
+     [:.string {:color "#c41a16"}]
+     [:.keyword {:color "#881391"}]
+     [:.symbol {:color "#134f91"}]
+     [:.number {:color "#1c00cf"}]
+     [:.boolean {:color "#009999"}]
 
-                    [:.data-row {:display     "flex"
-                                 :margin-left "3px"}]
+     [:.data-row {:display     "flex"
+                  :margin-left "3px"}]
 
-                    [:.list-inline {:display "flex"}]
-                    [:.list-inline-item {:margin "0 4px"}]
+     [:.list-inline {:display "flex"}]
+     [:.list-inline-item {:margin "0 4px"}]
 
-                    [:.list-container {:padding          "3px 12px"
-                                       :border-top       "2px solid rgba(60, 90, 60, 0.1)"
-                                       :margin           "0px 1px 1px"
-                                       :background-color "rgba(100, 255, 100, 0.08)"}]
+     [:.list-container {:padding          "3px 12px"
+                        :border-top       "2px solid rgba(60, 90, 60, 0.1)"
+                        :margin           "0px 1px 1px"
+                        :background-color "rgba(100, 255, 100, 0.08)"}]
 
-                    [:.toggle-button css-triangle]
+     [:.toggle-button css-triangle]
 
-                    [:.list-item {:display     "flex"
-                                  :align-items "flex-start"}]
-                    [:.list-item-index {:background    "#dddddd"
-                                        :border-right  "2px solid rgba(100, 100, 100, 0.2)"
-                                        :text-align    "right"
-                                        :min-width     "35px"
-                                        :margin-bottom "1px"
-                                        :margin-right  "5px"
-                                        :padding       "0 3px"}]
+     [:.list-item {:display     "flex"
+                   :align-items "flex-start"}]
+     [:.list-item-index {:background    "#dddddd"
+                         :border-right  "2px solid rgba(100, 100, 100, 0.2)"
+                         :text-align    "right"
+                         :min-width     "35px"
+                         :margin-bottom "1px"
+                         :margin-right  "5px"
+                         :padding       "0 3px"}]
 
-                    [:.map-container {:padding               "3px 12px"
-                                      :border-top            "2px solid rgba(60, 90, 60, 0.1)"
-                                      :margin                "0px 1px 1px"
-                                      :background-color      "rgba(100, 255, 100, 0.08)"
+     [:.map-container {:padding               "3px 12px"
+                       :border-top            "2px solid rgba(60, 90, 60, 0.1)"
+                       :margin                "0px 1px 1px"
+                       :background-color      "rgba(100, 255, 100, 0.08)"
 
-                                      :display               "grid"
-                                      :grid-template-columns "max-content 1fr"}]
+                       :display               "grid"
+                       :grid-template-columns "max-content 1fr"}]
 
-                    [:.map-expanded-item {:grid-column-start "1"
-                                          :grid-column-end   "3"}]
+     [:.map-expanded-item {:grid-column-start "1"
+                           :grid-column-end   "3"}]
 
-                    [:.map-inline-key-item {:margin-left "4px"}]
-                    [:.map-inline-value-item {:margin-left "8px"}]
+     [:.map-inline-key-item {:margin-left "4px"}]
+     [:.map-inline-value-item {:margin-left "8px"}]
 
-                    [:.path-action {:cursor "pointer"}
-                     [:&:hover
-                      [:div {:text-decoration "underline"}]]]])
+     [:.path-action {:cursor "pointer"}
+      [:&:hover
+       [:div {:text-decoration "underline"}]]]])
   (include-children [_] [])
 
   Object

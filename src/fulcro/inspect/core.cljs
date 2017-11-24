@@ -169,6 +169,9 @@
     (gobj/set this "resize-debouncer"
       (gfun/debounce #(mutations/set-value! this :ui/size %) 300)))
 
+  (componentDidUpdate [this _ _]
+    (gobj/set this "frame-dom" (js/ReactDOM.findDOMNode (gobj/get this "frame-node"))))
+
   (render [this]
     (let [{:ui/keys [size visible? inspector]} (om/props this)
           keystroke (or (om/shared this [:options :launch-keystroke]) "ctrl-f")
@@ -202,10 +205,10 @@
                       :ref       #(gobj/set this "container" %)}
           (ui-iframe {:className (:frame css) :ref #(gobj/set this "frame-node" %)}
             (dom/div nil
-              (if (gobj/get this "frame-dom")
+              (when-let [frame (gobj/get this "frame-dom")]
                 (events/key-listener {::events/action    #(mutations/set-value! this :ui/visible? (not visible?))
                                       ::events/keystroke keystroke
-                                      ::events/target    (gobj/getValueByKeys this #js ["frame-dom" "contentDocument" "body"])}))
+                                      ::events/target    (gobj/getValueByKeys frame #js ["contentDocument" "body"])}))
               (dom/style #js {:dangerouslySetInnerHTML #js {:__html (g/css [[:body {:margin "0" :padding "0" :box-sizing "border-box"}]])}})
               (dom/style #js {:dangerouslySetInnerHTML #js {:__html (g/css (css/get-css MultiInspector))}})
               (multi-inspector inspector))))))))
@@ -328,7 +331,7 @@
         (let [{:keys [inspector app]} app
               app-id (app-id (:reconciler app))]
           (om/transact! (:reconciler inspector) [::network/history-id [::app-id app-id]]
-            [`(network/request-update ~{::network/request-id   request-id
+            [`(network/request-finish ~{::network/request-id   request-id
                                         ::network/response-edn response})]))
         response)
 
@@ -337,7 +340,7 @@
         (let [{:keys [inspector app]} app
               app-id (app-id (:reconciler app))]
           (om/transact! (:reconciler inspector) [::network/history-id [::app-id app-id]]
-            [`(network/request-update ~{::network/request-id request-id
+            [`(network/request-finish ~{::network/request-id request-id
                                         ::network/error      error})]))
         error)})))
 

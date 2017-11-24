@@ -35,8 +35,8 @@
                                   :flex          "1"
                                   :border-bottom "1px solid #eee"
                                   :padding       "5px 0"}
-                     [:&:hover {:background "#eef3fa"}]
-                     [:&.selected {:background "#e6e6e6"}]]
+                     [:&:hover {:background ui/color-row-hover}]
+                     [:&.selected {:background ui/color-row-selected}]]
 
                     [:.ident {:font-family ui/label-font-family
                               :font-size   ui/label-font-size
@@ -104,17 +104,8 @@
                               :display     "inline-block"
                               :font-family ui/mono-font-family
                               :font-size   ui/label-font-size}]
-                    [:.timestamp {:font-family "monospace"
-                                  :font-size   "11px"
-                                  :color       "#808080"
-                                  :margin      "0 4px 0 7px"}]
-                    [:.group {:border-top "1px solid #eee"
-                              :padding    "7px 0"}]
-                    [:.label {:color         ui/color-text-normal
-                              :margin-bottom "6px"
-                              :font-weight   "bold"
-                              :font-family   ui/label-font-family
-                              :font-size     "13px"}]])
+                    [:.group ui/css-info-group]
+                    [:.label ui/css-info-label]])
   (include-children [_] [data-viewer/DataViewer])
 
   Object
@@ -216,10 +207,7 @@
                               :display       "flex"
                               :align-items   "center"}]
 
-                    [:.icon {:padding     "1px 7px"
-                             :cursor      "pointer"
-                             :color       "transparent"
-                             :text-shadow (str "0 0 0 " ui/color-icon-normal)}
+                    [:.icon ui/css-icon
                      [:&:hover {:text-shadow (str "0 0 0 " ui/color-icon-strong)}]]
 
                     [:.transactions {:flex     "1"
@@ -237,23 +225,10 @@
                               :font-size   ui/label-font-size
                               :padding     "2px 4px"}]
 
-                    [:.active-tx {:border-top     "1px solid #a3a3a3"
-                                  :display        "flex"
-                                  :flex-direction "column"
-                                  :height         "50%"}]
-
-                    [:.active-container {:flex     "1"
-                                         :overflow "auto"
-                                         :padding  "0 10px"}]
-
-                    [:.active-tools {:background    "#f3f3f3"
-                                     :border-bottom "1px solid #ccc"
-                                     :display       "flex"
-                                     :align-items   "center"
-                                     :height        "28px"}]
-
-                    [:.icon-close {:font-size     "9px"
-                                   :padding-right "12px"}]])
+                    [:.active-tx ui/css-dock-details-container]
+                    [:.active-container ui/css-dock-details-item-container]
+                    [:.active-tools ui/css-dock-details-tools]
+                    [:.icon-close ui/css-icon-close]])
   (include-children [_] [Transaction TransactionRow])
 
   Object

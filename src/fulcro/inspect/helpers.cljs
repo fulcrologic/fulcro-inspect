@@ -2,6 +2,18 @@
   (:require [fulcro.client.core :as fulcro]
             [om.next :as om]))
 
+(defn query-component
+  ([this]
+   (let [component (om/react-type this)
+         ref       (om/get-ident this)]
+     (-> (om/transact! this [{ref (om/get-query component)}])
+         (get ref))))
+  ([this focus-path]
+   (let [component (om/react-type this)
+         ref       (om/get-ident this)]
+     (-> (om/transact! this [{ref (om/focus-query (om/get-query component) focus-path)}])
+         (get-in (concat [ref] focus-path))))))
+
 (defn merge-entity [state x data & named-parameters]
   "Starting from a denormalized entity map, normalizes using class x.
    It assumes the entity is going to be normalized too, then get all
