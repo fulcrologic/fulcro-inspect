@@ -19,6 +19,10 @@
 
   :jar-exclusions [#"public/.*"]
 
+  ;; CI tests: Set up to support karma runner.
+  :doo {:build "automated-tests"
+        :paths {:karma "node_modules/karma/bin/karma"}}
+
   :cljsbuild {:builds [{:id           "devcards"
                         :source-paths ["src" "devcards"]
                         :figwheel     {:devcards true}
