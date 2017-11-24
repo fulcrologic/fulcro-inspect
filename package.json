@@ -1,0 +1,20 @@
+{
+  "name": "fulcro-inspect",
+  "version": "1.0.0",
+  "description": "Testing",
+  "main": "index.js",
+  "directories": {},
+  "dependencies": {},
+  "devDependencies": {
+    "karma": "~1",
+    "karma-firefox-launcher": "~1",
+    "karma-chrome-launcher": "~2",
+    "karma-cljs-test": ">=0.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:fulcrologic/fulcro-inspect.git"
+  },
+  "author": "",
+  "license": "MIT"
+}

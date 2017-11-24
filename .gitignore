@@ -13,3 +13,7 @@ out/
 resources/public/js/
 figwheel_server.log
 *.iml
+.idea
+package-lock.json
+.idea
+node_modules
