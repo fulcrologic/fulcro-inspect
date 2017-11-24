@@ -186,11 +186,11 @@
                               ::content  content
                               ::expanded {[] true}})
 
-  static om/IQuery
-  (query [_] [::id ::content ::expanded])
-
   static om/Ident
   (ident [_ props] [::id (::id props)])
+
+  static om/IQuery
+  (query [_] [::id ::content ::expanded])
 
   static css/CSS
   (local-rules [_] [[:.container css-code-font]

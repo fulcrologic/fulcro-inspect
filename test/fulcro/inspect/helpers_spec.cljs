@@ -6,22 +6,22 @@
     [om.next :as om]))
 
 (om/defui ^:once Child
-  static om/IQuery
-  (query [_] [:child/id])
-
   static om/Ident
-  (ident [_ props] [:child/id (:child/id props)]))
+  (ident [_ props] [:child/id (:child/id props)])
+
+  static om/IQuery
+  (query [_] [:child/id]))
 
 (om/defui ^:once Container
   static fulcro/InitialAppState
   (initial-state [_ x] (merge {:state :inited} x))
 
+  static om/Ident
+  (ident [_ props] [:container/id (:container/id props)])
+
   static om/IQuery
   (query [_] [:container/id
-              {:child (om/get-query Child)}])
-
-  static om/Ident
-  (ident [_ props] [:container/id (:container/id props)]))
+              {:child (om/get-query Child)}]))
 
 (specification "merge-entity"
   (assertions

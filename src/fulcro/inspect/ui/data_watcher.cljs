@@ -51,12 +51,12 @@
      ::watch-path  path
      ::data-viewer (fulcro/get-initial-state f.data-viewer/DataViewer content)})
 
+  static om/Ident
+  (ident [_ props] [::watch-id (::watch-id props)])
+
   static om/IQuery
   (query [_] [:ui/expanded? ::watch-id ::watch-path
               {::data-viewer (om/get-query f.data-viewer/DataViewer)}])
-
-  static om/Ident
-  (ident [_ props] [::watch-id (::watch-id props)])
 
   static css/CSS
   (local-rules [_] [[:.container {:margin "6px 0"}]
@@ -102,13 +102,13 @@
                             ::root-data (fulcro/get-initial-state f.data-viewer/DataViewer state)
                             ::watches   []})
 
+  static om/Ident
+  (ident [_ props] [::id (::id props)])
+
   static om/IQuery
   (query [_] [::id
               {::root-data (om/get-query f.data-viewer/DataViewer)}
               {::watches (om/get-query WatchPin)}])
-
-  static om/Ident
-  (ident [_ props] [::id (::id props)])
 
   static css/CSS
   (local-rules [_] [])

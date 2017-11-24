@@ -21,13 +21,13 @@
                               ::data-viewer/expanded {})}
            transaction))
 
+  static om/Ident
+  (ident [_ props] [::tx-id (::tx-id props)])
+
   static om/IQuery
   (query [_]
     [::tx-id ::timestamp :ref :tx
      {:ui/tx-row-view (om/get-query data-viewer/DataViewer)}])
-
-  static om/Ident
-  (ident [_ props] [::tx-id (::tx-id props)])
 
   static css/CSS
   (local-rules [_] [[:.container {:display       "flex"
@@ -80,6 +80,9 @@
                                  ::data-viewer/expanded {})}
            transaction))
 
+  static om/Ident
+  (ident [_ props] [::tx-id (::tx-id props)])
+
   static om/IQuery
   (query [_]
     [::tx-id ::timestamp :tx :ret :sends :old-state :new-state :ref :component
@@ -91,9 +94,6 @@
      {:ui/new-state-view (om/get-query data-viewer/DataViewer)}
      {:ui/diff-add-view (om/get-query data-viewer/DataViewer)}
      {:ui/diff-rem-view (om/get-query data-viewer/DataViewer)}])
-
-  static om/Ident
-  (ident [_ props] [::tx-id (::tx-id props)])
 
   static css/CSS
   (local-rules [_] [[:.container {:height "100%"}]
@@ -199,13 +199,13 @@
      ::tx-list    []
      ::tx-filter  ""})
 
+  static om/Ident
+  (ident [_ props] [::tx-list-id (::tx-list-id props)])
+
   static om/IQuery
   (query [_] [::tx-list-id ::tx-filter
               {::active-tx (om/get-query Transaction)}
               {::tx-list (om/get-query TransactionRow)}])
-
-  static om/Ident
-  (ident [_ props] [::tx-list-id (::tx-list-id props)])
 
   static css/CSS
   (local-rules [_] [[:.container {:display        "flex"

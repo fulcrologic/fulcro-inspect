@@ -18,14 +18,14 @@
      ::network      (fulcro/get-initial-state network/NetworkHistory nil)
      ::transactions (fulcro/get-initial-state transactions/TransactionList [])})
 
+  static om/Ident
+  (ident [_ props] [::id (::id props)])
+
   static om/IQuery
   (query [_] [::tab ::id
               {::app-state (om/get-query data-watcher/DataWatcher)}
               {::network (om/get-query network/NetworkHistory)}
               {::transactions (om/get-query transactions/TransactionList)}])
-
-  static om/Ident
-  (ident [_ props] [::id (::id props)])
 
   static css/CSS
   (local-rules [_] [[:.container {:display        "flex"

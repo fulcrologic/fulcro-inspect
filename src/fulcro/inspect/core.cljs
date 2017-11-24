@@ -38,11 +38,11 @@
   (initial-state [_ _] {::inspectors  []
                         ::current-app nil})
 
-  static om/IQuery
-  (query [_] [::inspectors {::current-app (om/get-query inspector/Inspector)}])
-
   static om/Ident
   (ident [_ props] [::multi-inspector "main"])
+
+  static om/IQuery
+  (query [_] [::inspectors {::current-app (om/get-query inspector/Inspector)}])
 
   static css/CSS
   (local-rules [_] [[:* {:box-sizing "border-box"}]
@@ -133,12 +133,12 @@
                              :ui/visible?  false
                              :ui/inspector (fulcro/get-initial-state MultiInspector params)})
 
+  static om/Ident
+  (ident [_ props] [::floating-panel "main"])
+
   static om/IQuery
   (query [_] [{:ui/inspector (om/get-query MultiInspector)}
               :ui/size :ui/visible?])
-
-  static om/Ident
-  (ident [_ props] [::floating-panel "main"])
 
   static css/CSS
   (local-rules [_] [[:.container {:background "#fff"
