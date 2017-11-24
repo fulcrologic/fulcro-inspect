@@ -41,11 +41,9 @@
 
 (defmutation clear-requests [_]
   (action [env]
-    (let [{:keys [state ref]} env
-          reqs (get-in @state (conj ref ::requests))]
-      (swap! state update-in ref assoc ::requests [] ::active-request nil)
-      (if (seq reqs)
-        (swap! state #(reduce h/deep-remove-ref % reqs))))))
+    (let [{:keys [state ref] :as env} env]
+      (swap! state update-in ref assoc ::active-request nil)
+      (h/remove-all env ::requests))))
 
 (om/defui ^:once RequestDetails
   static fulcro/InitialAppState

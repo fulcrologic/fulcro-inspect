@@ -68,6 +68,12 @@
       (dissoc-in state ref)
       idents)))
 
+(defn remove-all [{:keys [state ref]} field]
+  (let [children (get-in @state (conj ref field))]
+    (if (seq children)
+      (swap! state (comp #(assoc-in % (conj ref field) [])
+                         #(reduce deep-remove-ref % children))))))
+
 (defn vec-remove-index [i v]
   "Remove an item from a vector via index."
   (->> (concat (subvec v 0 i)
