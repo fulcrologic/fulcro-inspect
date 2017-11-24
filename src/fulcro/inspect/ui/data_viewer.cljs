@@ -11,6 +11,37 @@
 (def vec-max-inline 2)
 (def sequential-max-inline 5)
 
+(defn children-expandable-paths [x]
+  (loop [lookup [{:e x :p []}]
+         paths  []]
+    (if (seq lookup)
+      (let [[{:keys [e p]} & t] lookup]
+        (cond
+          (or (sequential? e) (set? e))
+          (let [sub-paths (keep-indexed (fn [i x] (if (coll? x) {:e x :p (conj p i)})) e)]
+            (recur (into [] (concat t sub-paths))
+              (into paths (map :p) sub-paths)))
+
+          (map? e)
+          (let [sub-paths (keep (fn [[k x]] (if (coll? x) {:e x :p (conj p k)})) e)]
+            (recur (into [] (concat t sub-paths))
+              (into paths (map :p) sub-paths)))
+
+          :else
+          (recur t paths)))
+      paths)))
+
+(mutations/defmutation toggle [{::keys [path propagate?]}]
+  (action [env]
+    (let [{:keys [state ref]} env
+          open?   (get-in @state (conj ref ::expanded path))
+          content (get-in @state (concat ref [::content] path))
+          toggled (not open?)
+          paths   (cond-> {path toggled}
+                    propagate? (into (map #(vector (into path %) toggled)) (children-expandable-paths
+                                                                             content)))]
+      (swap! state update-in ref update ::expanded merge paths))))
+
 (defn keyable? [x]
   (or (nil? x)
       (string? x)
@@ -39,7 +70,7 @@
 (defn render-sequential [{:keys [css expanded path toggle open-close static?] :as input} content]
   (dom/div #js {:className (:data-row css)}
     (if (and (not static?) (> (count content) vec-max-inline))
-      (dom/div #js {:onClick   #(toggle path)
+      (dom/div #js {:onClick   #(toggle % path)
                     :className (:toggle-button css)}
         (if (expanded path)
           "▼"
@@ -75,7 +106,7 @@
     (if (and (not static?)
              (or (not elide-one?)
                  (> 1 (count content))))
-      (dom/div #js {:onClick   #(toggle path)
+      (dom/div #js {:onClick   #(toggle % path)
                     :className (:toggle-button css)}
         (if (expanded path)
           "▼"
@@ -253,7 +284,8 @@
         (render-data {:expanded    expanded
                       :static?     static?
                       :elide-one?  elide-one?
-                      :toggle      #(mutations/set-value! this ::expanded (update expanded % not))
+                      :toggle      #(om/transact! this [`(toggle {::path       ~%2
+                                                                  ::propagate? ~(.-metaKey %)})])
                       :css         css
                       :path        []
                       :path-action path-action}
