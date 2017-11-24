@@ -13,7 +13,7 @@
                  [lein-doo "0.1.7" :scope "test"]
                  [fulcrologic/fulcro-spec "1.0.0" :scope "test" :exclusions [fulcrologic/fulcro]]]
 
-  :source-paths ["src" "devcards"]
+  :source-paths ["src"]
 
   :figwheel {:server-port 3389}
 
