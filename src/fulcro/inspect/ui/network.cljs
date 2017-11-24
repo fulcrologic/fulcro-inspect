@@ -39,6 +39,14 @@
             (h/create-entity! env' data-viewer/DataViewer error :set :ui/error-view))))
       (swap! state update-in ref assoc ::active-request req-ref))))
 
+(defmutation clear-requests [_]
+  (action [env]
+    (let [{:keys [state ref]} env
+          reqs (get-in @state (conj ref ::requests))]
+      (swap! state update-in ref assoc ::requests [] ::active-request nil)
+      (if (seq reqs)
+        (swap! state #(reduce h/deep-remove-ref % reqs))))))
+
 (om/defui ^:once RequestDetails
   static fulcro/InitialAppState
   (initial-state [_ _] {})
@@ -195,10 +203,20 @@
        [:.table-body {:flex       1
                       :overflow-y "scroll"}]
 
+       [:.tools {:border-bottom "1px solid #dadada"
+                 :display       "flex"
+                 :align-items   "center"}]
+
+       [:.tool-separator {:background "#ccc"
+                          :width      "1px"
+                          :height     "16px"
+                          :margin     "0 6px"}]
+
        [:.active-request ui/css-dock-details-container]
        [:.active-container ui/css-dock-details-item-container]
        [:.active-tools ui/css-dock-details-tools]
-       [:.icon ui/css-icon]
+       [:.icon ui/css-icon
+        [:&:hover {:text-shadow (str "0 0 0 " ui/color-icon-strong)}]]
        [:.icon-close ui/css-icon-close]]))
   (include-children [_] [Request RequestDetails])
 
@@ -208,6 +226,13 @@
           css     (css/get-classnames NetworkHistory)
           columns [100 90 70]]
       (dom/div #js {:className (:container css)}
+        (dom/div #js {:className (:tools css)}
+          (dom/div #js {:className (:icon css)
+                        :title     "Clear requests"
+                        :style     #js {:fontSize "15px"}
+                        :onClick   #(om/transact! this [`(clear-requests {})])}
+            "🚫"))
+
         (dom/div #js {:className (:table css)}
           (dom/div #js {:className (:table-header css)}
             (dom/div #js {:style #js {:width (get columns 0)}} "Started")

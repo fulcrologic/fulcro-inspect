@@ -207,16 +207,16 @@
                               :display       "flex"
                               :align-items   "center"}]
 
+                    [:.tool-separator {:background "#ccc"
+                                       :width      "1px"
+                                       :height     "16px"
+                                       :margin     "0 6px"}]
+
                     [:.icon ui/css-icon
                      [:&:hover {:text-shadow (str "0 0 0 " ui/color-icon-strong)}]]
 
                     [:.transactions {:flex     "1"
                                      :overflow "auto"}]
-
-                    [:.tool-separator {:background "#ccc"
-                                       :width      "1px"
-                                       :height     "16px"
-                                       :margin     "0 6px"}]
 
                     [:.input {:color       ui/color-text-normal
                               :outline     "0"
