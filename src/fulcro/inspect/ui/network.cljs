@@ -82,13 +82,13 @@
         [:&:hover {:background "#eef3fa !important"}]]
        [:.pending {:color ui/color-text-faded}]
 
-       [:.table-cell {:border-left   border
+       [:.table-cell {:border-right  border
                       :border-bottom border
                       :padding       "2px 4px"
                       :overflow      "hidden"}
         [:$fulcro_inspect_ui_data-viewer_DataViewer__container {:max-width "100"}]
         [(gs/& gs/first-child) {:flex 1}]
-        [(gs/& gs/last-child) {:border-right border}]]]))
+        [(gs/& gs/last-child) {:border-right "0"}]]]))
   (include-children [_] [data-viewer/DataViewer])
 
   Object
@@ -142,7 +142,7 @@
 
   static css/CSS
   (local-rules [_]
-    (let [border (str "1px solid " ui/color-bg-light-border)]
+    (let [border (str "1px solid " ui/color-bg-medium-border)]
       [[:.container {:flex           1
                      :display        "flex"
                      :flex-direction "column"}
@@ -156,16 +156,16 @@
                  :display         "flex"
                  :flex-direction  "column"}]
 
-       [:.table-header {:display    "flex"
-                        :overflow-y "scroll"}]
+       [:.table-header {:display       "flex"
+                        :overflow-y    "scroll"
+                        :border-bottom border}]
 
        [(gs/> :.table-header "div") {:font-weight  "normal"
                                      :text-align   "left"
                                      :padding      "5px 4px"
-                                     :border       border
-                                     :border-right "0"}
+                                     :border-right border}
         [(gs/& gs/first-child) {:flex 1}]
-        [(gs/& gs/last-child) {:border-right border}]]
+        [(gs/& gs/last-child) {:border-right "0"}]]
 
        [:.table-body {:flex       1
                       :overflow-y "scroll"}]]))
