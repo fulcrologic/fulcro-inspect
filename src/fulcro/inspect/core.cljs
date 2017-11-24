@@ -45,14 +45,15 @@
   (query [_] [::inspectors {::current-app (om/get-query inspector/Inspector)}])
 
   static css/CSS
-  (local-rules [_] [[:* {:box-sizing "border-box"}]
-                    [:.container {:display        "flex"
+  (local-rules [_] [[:.container {:display        "flex"
                                   :flex-direction "column"
+                                  :box-sizing     "border-box"
                                   :width          "100%"
                                   :height         "100%"
                                   :overflow       "hidden"}]
                     [:.selector {:font-family ui/label-font-family
                                  :font-size   ui/label-font-size
+                                 :box-sizing  "border-box"
                                  :display     "flex"
                                  :align-items "center"
                                  :background  "#f3f3f3"
@@ -62,6 +63,7 @@
                                  :user-select "none"}]
                     [:.label {:margin-right "10px"}]
                     [:.no-app {:display         "flex"
+                               :box-sizing      "border-box"
                                :background      "#f3f3f3"
                                :font-family     ui/label-font-family
                                :font-size       "23px"
