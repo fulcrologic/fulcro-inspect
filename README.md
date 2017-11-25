@@ -25,6 +25,23 @@ Add a preload to your compiler options:
 
 The inspector will find the running Fulcro application, and be ready to inspect it!
 
+## Contributing
+
+Development is done against apps in dev cards, so run figwheel
+via:
+
+```
+lein run -m clojure.main script/figwheel.clj
+```
+
+This will start a build for tests and devcards. Open
+[http://localhost:3389](http://localhost:3389) for the
+cards, and
+[http://localhost:3389/test.html](http://localhost:3389/test.html) for the
+tests.
+
+You can run the tests (once) from the command line with `make tests`
+
 ## Authors
 
 Fulcro Inspect was written and contributed by Wilker Lucio.
