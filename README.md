@@ -31,15 +31,15 @@ The DB tab contains the state of the app.
 
 Use the triangles to expand/collapse data:
 
-[![Expand/collapse data](https://raw.githubusercontent.com/fulcrologic/fulcro-inspect/develop/doc/db-expand.gif)]
+[![Expand/collapse data]](https://raw.githubusercontent.com/fulcrologic/fulcro-inspect/develop/doc/db-expand.gif)
 
 Click on expanded keys to watch their content:
 
-[![Expand/collapse data](https://raw.githubusercontent.com/fulcrologic/fulcro-inspect/develop/doc/db-watch.gif)]
+[![Expand/collapse data]](https://raw.githubusercontent.com/fulcrologic/fulcro-inspect/develop/doc/db-watch.gif)
 
 Use `cmd`/`meta` key + click to expand/collapse the whole sub-tree:
 
-[![Expand/collapse data](https://raw.githubusercontent.com/fulcrologic/fulcro-inspect/develop/doc/db-expand-children.gif)]
+[![Expand/collapse data]](https://raw.githubusercontent.com/fulcrologic/fulcro-inspect/develop/doc/db-expand-children.gif)
 
 ## Contributing
 
