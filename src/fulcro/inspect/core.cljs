@@ -4,13 +4,12 @@
     [goog.functions :as gfun]
     [goog.object :as gobj]
     [fulcro.client.core :as fulcro]
-    [fulcro.ui.elements :as f.elements]
     [fulcro.client.mutations :as mutations :refer-macros [defmutation]]
     [fulcro.client.network :as f.network]
-    [fulcro.inspect.ui.core :as ui]
     [fulcro.inspect.ui.data-viewer :as data-viewer]
     [fulcro.inspect.ui.data-watcher :as data-watcher]
     [fulcro.inspect.ui.inspector :as inspector]
+    [fulcro.inspect.ui.multi-inspector :as multi-inspector]
     [fulcro.inspect.ui.events :as events]
     [fulcro.inspect.ui.network :as network]
     [fulcro.inspect.ui.transactions :as transactions]
@@ -18,77 +17,6 @@
     [om.dom :as dom]
     [om.next :as om]
     [garden.core :as g]))
-
-(defmutation add-inspector [inspector]
-  (action [env]
-    (let [{:keys [ref state reconciler]} env
-          inspector-ref (om/ident inspector/Inspector inspector)
-          current       (get-in @state (conj ref ::current-app))]
-      (fulcro/merge-state! reconciler inspector/Inspector inspector :append (conj ref ::inspectors))
-      (if (nil? current)
-        (swap! state update-in ref assoc ::current-app inspector-ref)))))
-
-(defmutation set-app [{::inspector/keys [id]}]
-  (action [env]
-    (let [{:keys [ref state]} env]
-      (swap! state update-in ref assoc ::current-app [::inspector/id id]))))
-
-(om/defui ^:once MultiInspector
-  static fulcro/InitialAppState
-  (initial-state [_ _] {::inspectors  []
-                        ::current-app nil})
-
-  static om/Ident
-  (ident [_ props] [::multi-inspector "main"])
-
-  static om/IQuery
-  (query [_] [::inspectors {::current-app (om/get-query inspector/Inspector)}])
-
-  static css/CSS
-  (local-rules [_] [[:.container {:display        "flex"
-                                  :flex-direction "column"
-                                  :width          "100%"
-                                  :height         "100%"
-                                  :overflow       "hidden"}]
-                    [:.selector {:font-family ui/label-font-family
-                                 :font-size   ui/label-font-size
-                                 :display     "flex"
-                                 :align-items "center"
-                                 :background  "#f3f3f3"
-                                 :color       ui/color-text-normal
-                                 :border-top  "1px solid #ccc"
-                                 :padding     "12px"
-                                 :user-select "none"}]
-                    [:.label {:margin-right "10px"}]
-                    [:.no-app {:display         "flex"
-                               :background      "#f3f3f3"
-                               :font-family     ui/label-font-family
-                               :font-size       "23px"
-                               :flex            1
-                               :align-items     "center"
-                               :justify-content "center"}]])
-  (include-children [_] [inspector/Inspector])
-
-  Object
-  (render [this]
-    (let [{::keys [inspectors current-app]} (om/props this)
-          css (css/get-classnames MultiInspector)]
-      (dom/div #js {:className (:container css)}
-        (if current-app
-          (inspector/inspector current-app)
-          (dom/div #js {:className (:no-app css)}
-            (dom/div nil "No app connected.")))
-        (if (> (count inspectors) 1)
-          (dom/div #js {:className (:selector css)}
-            (dom/div #js {:className (:label css)} "App")
-            (dom/select #js {:value    (str (::inspector/id current-app))
-                             :onChange #(om/transact! this `[(set-app {::inspector/id ~(read-string (.. % -target -value))})])}
-              (for [app-id (->> (map (comp pr-str second) inspectors) sort)]
-                (dom/option #js {:key   app-id
-                                 :value app-id}
-                  app-id)))))))))
-
-(def multi-inspector (om/factory MultiInspector))
 
 (defn set-style! [node prop value]
   (gobj/set (gobj/get node "style") prop value))
@@ -130,13 +58,13 @@
   static fulcro/InitialAppState
   (initial-state [_ params] {:ui/size      50
                              :ui/visible?  false
-                             :ui/inspector (fulcro/get-initial-state MultiInspector params)})
+                             :ui/inspector (fulcro/get-initial-state multi-inspector/MultiInspector params)})
 
   static om/Ident
   (ident [_ props] [::floating-panel "main"])
 
   static om/IQuery
-  (query [_] [{:ui/inspector (om/get-query MultiInspector)}
+  (query [_] [{:ui/inspector (om/get-query multi-inspector/MultiInspector)}
               :ui/size :ui/visible?])
 
   static css/CSS
@@ -209,8 +137,8 @@
                                       ::events/keystroke keystroke
                                       ::events/target    (gobj/getValueByKeys frame #js ["contentDocument" "body"])}))
               (dom/style #js {:dangerouslySetInnerHTML #js {:__html (g/css [[:body {:margin "0" :padding "0" :box-sizing "border-box"}]])}})
-              (dom/style #js {:dangerouslySetInnerHTML #js {:__html (g/css (css/get-css MultiInspector))}})
-              (multi-inspector inspector))))))))
+              (dom/style #js {:dangerouslySetInnerHTML #js {:__html (g/css (css/get-css multi-inspector/MultiInspector))}})
+              (multi-inspector/multi-inspector inspector))))))))
 
 (def global-inspector-view (om/factory GlobalInspector))
 
@@ -263,8 +191,8 @@
                           (assoc-in [::inspector/app-state ::data-watcher/id] [::app-id app-id])
                           (assoc-in [::inspector/network ::network/history-id] [::app-id app-id])
                           (assoc-in [::inspector/transactions ::transactions/tx-list-id] [::app-id app-id]))]
-    (om/transact! (:reconciler inspector) [::multi-inspector "main"]
-      [`(add-inspector ~new-inspector)
+    (om/transact! (:reconciler inspector) [::multi-inspector/multi-inspector "main"]
+      [`(multi-inspector/add-inspector ~new-inspector)
        ::inspectors])
 
     (inspect-network-init (-> target-app :networking :remote) {:inspector inspector
