@@ -254,6 +254,7 @@
         (dom/div #js {:className (:transactions css)}
           (if (seq tx-list)
             (->> tx-list
+                 rseq (take 50)
                  (mapv #(transaction-row %
                           {::on-select
                            (fn [tx]
