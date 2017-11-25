@@ -74,8 +74,8 @@
         (dom/div #js {:className (:tabs css)}
           (tab-item {:title "DB" :page ::page-db})
           (tab-item {:title "Element" :disabled? true})
-          (tab-item {:title "Network" :page ::page-network})
           (tab-item {:title "Transactions" :page ::page-transactions})
+          (tab-item {:title "Network" :page ::page-network})
           (tab-item {:title "OgE" :disabled? true}))
 
         (case tab
@@ -83,13 +83,13 @@
           (dom/div #js {:className (str (:tab-content css) " " (:spaced css))}
             (data-watcher/data-watcher app-state))
 
-          ::page-network
-          (dom/div #js {:className (:tab-content css)}
-            (network/network-history network))
-
           ::page-transactions
           (dom/div #js {:className (:tab-content css)}
             (transactions/transaction-list transactions))
+
+          ::page-network
+          (dom/div #js {:className (:tab-content css)}
+            (network/network-history network))
 
           (dom/div #js {:className (:tab-content css)}
             "Invalid page " (pr-str tab)))))))
