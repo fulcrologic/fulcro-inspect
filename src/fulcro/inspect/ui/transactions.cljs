@@ -157,7 +157,8 @@
 
 (defmutation add-tx [tx]
   (action [env]
-    (h/create-entity! env Transaction tx :append ::tx-list)))
+    (h/create-entity! env Transaction tx :append ::tx-list)
+    (h/swap-entity! env update ::tx-list #(->> (take-last 100 %) vec))))
 
 (defmutation select-tx [tx]
   (action [env]
@@ -251,7 +252,7 @@
         (dom/div #js {:className (:transactions css)}
           (if (seq tx-list)
             (->> tx-list
-                 rseq (take 50)
+                 rseq
                  (mapv #(transaction-row %
                           {::on-select
                            (fn [tx]

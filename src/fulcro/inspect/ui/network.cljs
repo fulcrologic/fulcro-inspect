@@ -13,19 +13,21 @@
 
 (defmutation request-start [{::keys [remote] :as request}]
   (action [env]
+    (h/create-entity! env Request request :append ::requests)
     (h/swap-entity! env update ::remotes conj remote)
-    (h/create-entity! env Request request :append ::requests)))
+    (h/swap-entity! env update ::requests #(->> (take-last 50 %) vec))))
 
 (defmutation request-finish [{::keys [response-edn error] :as request}]
   (action [env]
     (let [{:keys [ref state] :as env} env]
-      (when (get-in @state (conj ref :ui/request-edn-view))
-        (if response-edn
-          (h/create-entity! env data-viewer/DataViewer response-edn :set :ui/response-edn-view))
-        (if error
-          (h/create-entity! env data-viewer/DataViewer error :set :ui/error-view)))
+      (when (get-in @state (om/ident Request request)) ; prevent adding back a done request
+        (when (get-in @state (conj ref :ui/request-edn-view))
+          (if response-edn
+            (h/create-entity! env data-viewer/DataViewer response-edn :set :ui/response-edn-view))
+          (if error
+            (h/create-entity! env data-viewer/DataViewer error :set :ui/error-view)))
 
-      (swap! state h/merge-entity Request (assoc request ::request-finished-at (js/Date.))))))
+        (swap! state h/merge-entity Request (assoc request ::request-finished-at (js/Date.)))))))
 
 (defmutation select-request [{::keys [request-edn response-edn error] :as request}]
   (action [env]
@@ -252,7 +254,7 @@
           (dom/div #js {:className (:table-body css)}
             (if (seq requests)
               (->> requests
-                   rseq (take 50)
+                   rseq
                    (mapv (comp request
                                #(om/computed %
                                   {::show-remote?
