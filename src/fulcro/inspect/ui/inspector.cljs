@@ -3,6 +3,7 @@
             [fulcro.client.core :as fulcro]
             [fulcro.client.mutations :as mutations]
             [fulcro.inspect.ui.core :as ui]
+            [fulcro.inspect.ui.data-viewer :as data-viewer]
             [fulcro.inspect.ui.data-watcher :as data-watcher]
             [fulcro.inspect.ui.network :as network]
             [fulcro.inspect.ui.transactions :as transactions]
@@ -14,7 +15,8 @@
   (initial-state [_ state]
     {::id           (random-uuid)
      ::tab          ::page-db
-     ::app-state    (fulcro/get-initial-state data-watcher/DataWatcher state)
+     ::app-state    (-> (fulcro/get-initial-state data-watcher/DataWatcher state)
+                        (assoc-in [::data-watcher/root-data ::data-viewer/expanded] {[] true}))
      ::network      (fulcro/get-initial-state network/NetworkHistory nil)
      ::transactions (fulcro/get-initial-state transactions/TransactionList [])})
 

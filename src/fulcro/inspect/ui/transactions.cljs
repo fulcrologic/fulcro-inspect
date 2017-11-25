@@ -17,8 +17,7 @@
   (initial-state [_ {:keys [tx] :as transaction}]
     (merge {::tx-id         (random-uuid)
             ::timestamp     (js/Date.)
-            :ui/tx-row-view (assoc (fulcro/get-initial-state data-viewer/DataViewer tx)
-                              ::data-viewer/expanded {})}
+            :ui/tx-row-view (fulcro/get-initial-state data-viewer/DataViewer tx)}
            transaction))
 
   static om/Ident
@@ -69,15 +68,13 @@
   (initial-state [_ {:keys [tx ret sends old-state new-state] :as transaction}]
     (merge {::tx-id            (random-uuid)
             ::timestamp        (js/Date.)
-            :ui/tx-view        (fulcro/get-initial-state data-viewer/DataViewer tx)
-            :ui/tx-row-view    (assoc (fulcro/get-initial-state data-viewer/DataViewer tx)
-                                 ::data-viewer/expanded {})
+            :ui/tx-view        (-> (fulcro/get-initial-state data-viewer/DataViewer tx)
+                                   (assoc ::data-viewer/expanded {[] true}))
+            :ui/tx-row-view    (fulcro/get-initial-state data-viewer/DataViewer tx)
             :ui/ret-view       (fulcro/get-initial-state data-viewer/DataViewer ret)
             :ui/sends-view     (fulcro/get-initial-state data-viewer/DataViewer sends)
-            :ui/old-state-view (assoc (fulcro/get-initial-state data-viewer/DataViewer old-state)
-                                 ::data-viewer/expanded {})
-            :ui/new-state-view (assoc (fulcro/get-initial-state data-viewer/DataViewer new-state)
-                                 ::data-viewer/expanded {})}
+            :ui/old-state-view (fulcro/get-initial-state data-viewer/DataViewer old-state)
+            :ui/new-state-view (fulcro/get-initial-state data-viewer/DataViewer new-state)}
            transaction))
 
   static om/Ident

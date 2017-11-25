@@ -211,17 +211,11 @@
    :font-size   "12px"
    :white-space "nowrap"})
 
-(defn create-collapsed [content]
-  ^::h/initialized
-  {::id       (random-uuid)
-   ::content  content
-   ::expanded {}})
-
 (om/defui ^:once DataViewer
   static fulcro/InitialAppState
   (initial-state [_ content] {::id       (random-uuid)
                               ::content  content
-                              ::expanded {[] true}})
+                              ::expanded {}})
 
   static om/Ident
   (ident [_ props] [::id (::id props)])

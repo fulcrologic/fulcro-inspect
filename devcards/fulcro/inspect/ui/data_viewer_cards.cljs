@@ -37,11 +37,6 @@
 (defn init-state-atom [comp data]
   (atom (om/tree->db comp (fulcro/get-initial-state comp data) true)))
 
-(comment
-  (fulcro/get-initial-state DataViewerRoot {::f.i.data-viewer/id       :root
-                                            ::f.i.data-viewer/content  "Some string"
-                                            ::f.i.data-viewer/expanded {}}))
-
 (defcard-fulcro scalar-nil
   DataViewerRoot
   (init-state-atom DataViewerRoot
