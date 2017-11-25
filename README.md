@@ -25,6 +25,22 @@ Add a preload to your compiler options:
 
 The inspector will find the running Fulcro application, and be ready to inspect it!
 
+### DB Tab
+
+The DB tab contains the state of the app.
+
+Use the triangles to expand/collapse data:
+
+[![Expand/collapse data](https://raw.githubusercontent.com/fulcrologic/fulcro-inspect/develop/doc/db-expand.gif)]
+
+Click on expanded keys to watch their content:
+
+[![Expand/collapse data](https://raw.githubusercontent.com/fulcrologic/fulcro-inspect/develop/doc/db-watch.gif)]
+
+Use `cmd`/`meta` key + click to expand/collapse the whole sub-tree:
+
+[![Expand/collapse data](https://raw.githubusercontent.com/fulcrologic/fulcro-inspect/develop/doc/db-expand-children.gif)]
+
 ## Contributing
 
 Development is done against apps in dev cards, so run figwheel
