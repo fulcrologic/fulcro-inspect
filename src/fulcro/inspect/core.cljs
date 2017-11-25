@@ -160,7 +160,7 @@
                     [:.frame {:width  "100%"
                               :height "100%"
                               :border "0"}]])
-  (include-children [_] [MultiInspector])
+  (include-children [_] [])
 
   Object
   (componentDidMount [this]
