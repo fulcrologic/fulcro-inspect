@@ -251,20 +251,22 @@
 
           (dom/div #js {:className (:table-body css)}
             (if (seq requests)
-              (mapv (comp request
-                          #(om/computed %
-                             {::show-remote?
-                              show-remote?
+              (->> requests
+                   rseq (take 50)
+                   (mapv (comp request
+                               #(om/computed %
+                                  {::show-remote?
+                                   show-remote?
 
-                              ::columns
-                              columns
+                                   ::columns
+                                   columns
 
-                              ::selected?
-                              (= (::request-id active-request) (::request-id %))
+                                   ::selected?
+                                   (= (::request-id active-request) (::request-id %))
 
-                              ::on-select
-                              (fn [r] (om/transact! this `[(select-request ~r)]))}))
-                requests))))
+                                   ::on-select
+                                   (fn [r] (om/transact! this `[(select-request ~r)]))}))
+                     )))))
 
         (if active-request
           (dom/div #js {:className (:active-request css)}

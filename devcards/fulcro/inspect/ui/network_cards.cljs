@@ -125,7 +125,7 @@
     :out {}}])
 
 (defn gen-remote []
-  (gen/generate (gen/frequency [[4 (gen/return :remote)] [1 (gen/return :other)]])))
+  (gen/generate (gen/frequency [[6 (gen/return :remote)] [1 (gen/return :other)]])))
 
 (defn success? []
   (gen/generate (gen/frequency [[8 (gen/return true)] [1 (gen/return false)]])))
