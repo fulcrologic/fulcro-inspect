@@ -11,8 +11,9 @@
 
 (declare Request)
 
-(defmutation request-start [request]
+(defmutation request-start [{::keys [remote] :as request}]
   (action [env]
+    (h/swap-entity! env update ::remotes conj remote)
     (h/create-entity! env Request request :append ::requests)))
 
 (defmutation request-finish [{::keys [response-edn error] :as request}]
@@ -28,7 +29,7 @@
 
 (defmutation select-request [{::keys [request-edn response-edn error] :as request}]
   (action [env]
-    (let [{:keys [state ref] :as env} env
+    (let [{:keys [state] :as env} env
           req-ref (om/ident Request request)]
       (if-not (get-in @state (conj req-ref :ui/request-edn-view))
         (let [env' (assoc env :ref req-ref)]
@@ -37,13 +38,12 @@
             (h/create-entity! env' data-viewer/DataViewer response-edn :set :ui/response-edn-view))
           (if error
             (h/create-entity! env' data-viewer/DataViewer error :set :ui/error-view))))
-      (swap! state update-in ref assoc ::active-request req-ref))))
+      (h/swap-entity! env assoc ::active-request req-ref))))
 
 (defmutation clear-requests [_]
   (action [env]
-    (let [{:keys [state ref] :as env} env]
-      (swap! state update-in ref assoc ::active-request nil)
-      (h/remove-all env ::requests))))
+    (h/swap-entity! env assoc ::active-request nil ::remotes #{})
+    (h/remove-all env ::requests)))
 
 (om/defui ^:once RequestDetails
   static fulcro/InitialAppState
@@ -97,7 +97,7 @@
   (ident [_ props] [::request-id (::request-id props)])
 
   static om/IQuery
-  (query [_] [::request-id ::request-edn ::request-edn-row-view ::response-edn
+  (query [_] [::request-id ::request-edn ::request-edn-row-view ::response-edn ::remote
               ::request-started-at ::request-finished-at ::error])
 
   static css/CSS
@@ -124,9 +124,9 @@
 
   Object
   (render [this]
-    (let [{::keys [request-edn-row-view response-edn error
+    (let [{::keys [request-edn-row-view response-edn error remote
                    request-started-at request-finished-at] :as props} (om/props this)
-          {::keys [columns on-select selected?]} (om/get-computed props)
+          {::keys [columns on-select selected? show-remote?]} (om/get-computed props)
           css (css/get-classnames Request)]
       (dom/div (cond-> {:className (cond-> (:row css)
                                      error (str " " (:error css))
@@ -134,12 +134,16 @@
                  on-select (assoc :onClick #(on-select (h/query-component this)))
                  true clj->js)
         (dom/div #js {:className (:table-cell css)
-                      :style     #js {:width (get columns 0)}}
+                      :style     #js {:width (:started columns)}}
           (dom/span #js {:className (:timestamp css)} (ui/print-timestamp request-started-at)))
         (dom/div #js {:className (str (:table-cell css) " " (:flex css))}
           (data-viewer/data-viewer (assoc request-edn-row-view ::data-viewer/static? true)))
+        (if show-remote?
+          (dom/div #js {:className (:table-cell css)
+                        :style     #js {:width (:remote columns)}}
+            (str remote)))
         (dom/div #js {:className (:table-cell css)
-                      :style     #js {:width (get columns 1)}}
+                      :style     #js {:width (:status columns)}}
           (cond
             response-edn
             "Success"
@@ -150,7 +154,7 @@
             :else
             (dom/span #js {:className (:pending css)} "(pending...)")))
         (dom/div #js {:className (:table-cell css)
-                      :style     #js {:width (get columns 2)}}
+                      :style     #js {:width (:time columns)}}
           (if (and request-started-at request-finished-at)
             (str (- (.getTime request-finished-at) (.getTime request-started-at)) " ms")
             (dom/span #js {:className (:pending css)} "(pending...)")))))))
@@ -161,13 +165,14 @@
   static fulcro/InitialAppState
   (initial-state [_ _]
     {::history-id (random-uuid)
+     ::remotes    #{}
      ::requests   []})
 
   static om/Ident
   (ident [_ props] [::history-id (::history-id props)])
 
   static om/IQuery
-  (query [_] [::history-id
+  (query [_] [::history-id ::remotes
               {::requests (om/get-query Request)}
               {::active-request (om/get-query RequestDetails)}])
 
@@ -220,9 +225,13 @@
 
   Object
   (render [this]
-    (let [{::keys [requests active-request]} (om/props this)
-          css     (css/get-classnames NetworkHistory)
-          columns [100 90 70]]
+    (let [{::keys [requests active-request remotes]} (om/props this)
+          css          (css/get-classnames NetworkHistory)
+          show-remote? (> (count remotes) 1)
+          columns      {:started 100
+                        :remote 80
+                        :status 90
+                        :time 70}]
       (dom/div #js {:className (:container css)}
         (dom/div #js {:className (:tools css)}
           (dom/div #js {:className (:icon css)
@@ -233,16 +242,21 @@
 
         (dom/div #js {:className (:table css)}
           (dom/div #js {:className (:table-header css)}
-            (dom/div #js {:style #js {:width (get columns 0)}} "Started")
+            (dom/div #js {:style #js {:width (:started columns)}} "Started")
             (dom/div #js {:className (:flex css)} "Request")
-            (dom/div #js {:style #js {:width (get columns 1)}} "Status")
-            (dom/div #js {:style #js {:width (get columns 2)}} "Time"))
+            (if show-remote?
+              (dom/div #js {:style #js {:width (:remote columns)}} "Remote"))
+            (dom/div #js {:style #js {:width (:status columns)}} "Status")
+            (dom/div #js {:style #js {:width (:time columns)}} "Time"))
 
           (dom/div #js {:className (:table-body css)}
             (if (seq requests)
               (mapv (comp request
                           #(om/computed %
-                             {::columns
+                             {::show-remote?
+                              show-remote?
+
+                              ::columns
                               columns
 
                               ::selected?

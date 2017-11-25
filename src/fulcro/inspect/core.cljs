@@ -242,14 +242,15 @@
       (some-> reconciler om/app-root om/react-type (gobj/get "displayName") symbol)))
 
 (defn inspect-network
-  ([network]
+  ([remote network]
    (transform-network network
      {::transform-query
       (fn [{::keys [request-id app]} edn]
         (let [{:keys [inspector app]} app
               app-id (app-id (:reconciler app))]
           (om/transact! (:reconciler inspector) [::network/history-id [::app-id app-id]]
-            [`(network/request-start ~{::network/request-id  request-id
+            [`(network/request-start ~{::network/remote      remote
+                                       ::network/request-id  request-id
                                        ::network/request-edn edn})]))
         edn)
 
@@ -314,7 +315,7 @@
 
        ::fulcro/network-wrapper
        (fn [networks]
-         (into {} (map (fn [[k v]] [k (inspect-network v)])) networks))
+         (into {} (map (fn [[k v]] [k (inspect-network k v)])) networks))
 
        ::fulcro/tx-listen
        #'inspect-tx})))

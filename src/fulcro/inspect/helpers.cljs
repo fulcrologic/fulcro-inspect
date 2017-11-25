@@ -14,6 +14,9 @@
      (-> (om/transact! this [{ref (om/focus-query (om/get-query component) focus-path)}])
          (get-in (concat [ref] focus-path))))))
 
+(defn swap-entity! [{:keys [state ref]} & args]
+  (apply swap! state update-in ref args))
+
 (defn merge-entity [state x data & named-parameters]
   "Starting from a denormalized entity map, normalizes using class x.
    It assumes the entity is going to be normalized too, then get all

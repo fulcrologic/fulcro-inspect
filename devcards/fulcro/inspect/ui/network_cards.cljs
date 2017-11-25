@@ -124,20 +124,27 @@
           :ui/react-key]
     :out {}}])
 
+(defn gen-remote []
+  (gen/generate (gen/frequency [[4 (gen/return :remote)] [1 (gen/return :other)]])))
+
 (defn success? []
   (gen/generate (gen/frequency [[8 (gen/return true)] [1 (gen/return false)]])))
 
 (defn gen-request [this]
   (let [id         (random-uuid)
         reconciler (om/get-reconciler this)
+        remote     (gen-remote)
         {:keys [in out]} (rand-nth request-samples)]
     (om/transact! reconciler [::network/history-id "main"]
-      [`(network/request-start ~{::network/request-id id ::network/request-edn in})])
+      [`(network/request-start ~{::network/remote      remote
+                                 ::network/request-id  id
+                                 ::network/request-edn in})])
     (js/setTimeout
       (fn []
         (let [suc? (success?)]
           (om/transact! reconciler [::network/history-id "main"]
-            [`(network/request-finish ~(cond-> {::network/request-id id}
+            [`(network/request-finish ~(cond-> {::network/remote     remote
+                                                ::network/request-id id}
                                          suc? (assoc ::network/response-edn out)
                                          (not suc?) (assoc ::network/error {:error "bad"})))])))
       (gen/generate (gen/large-integer* {:min 30 :max 7000})))))
