@@ -11,6 +11,7 @@
     [fulcro.inspect.ui.inspector :as inspector]
     [fulcro.inspect.ui.multi-inspector :as multi-inspector]
     [fulcro.inspect.ui.events :as events]
+    [fulcro.inspect.ui.element :as element]
     [fulcro.inspect.ui.network :as network]
     [fulcro.inspect.ui.transactions :as transactions]
     [fulcro-css.css :as css]
@@ -190,6 +191,8 @@
                           (assoc ::inspector/id app-id)
                           (assoc-in [::inspector/app-state ::data-watcher/id] [::app-id app-id])
                           (assoc-in [::inspector/network ::network/history-id] [::app-id app-id])
+                          (assoc-in [::inspector/element ::element/panel-id] [::app-id app-id])
+                          (assoc-in [::inspector/element ::element/target-reconciler] (:reconciler target-app))
                           (assoc-in [::inspector/transactions ::transactions/tx-list-id] [::app-id app-id]))]
     (om/transact! (:reconciler inspector) [::multi-inspector/multi-inspector "main"]
       [`(multi-inspector/add-inspector ~new-inspector)

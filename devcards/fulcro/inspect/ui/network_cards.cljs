@@ -4,7 +4,6 @@
     [fulcro-css.css :as css]
     [fulcro.client.cards :refer-macros [defcard-fulcro]]
     [fulcro.inspect.ui.network :as network]
-    [fulcro.inspect.card-helpers :as card-helpers]
     [om.next :as om]
     [fulcro.client.core :as fulcro]
     [clojure.test.check.generators :as gen]

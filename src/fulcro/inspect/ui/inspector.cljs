@@ -5,6 +5,7 @@
             [fulcro.inspect.ui.core :as ui]
             [fulcro.inspect.ui.data-viewer :as data-viewer]
             [fulcro.inspect.ui.data-watcher :as data-watcher]
+            [fulcro.inspect.ui.element :as element]
             [fulcro.inspect.ui.network :as network]
             [fulcro.inspect.ui.transactions :as transactions]
             [om.dom :as dom]
@@ -17,6 +18,7 @@
      ::tab          ::page-db
      ::app-state    (-> (fulcro/get-initial-state data-watcher/DataWatcher state)
                         (assoc-in [::data-watcher/root-data ::data-viewer/expanded] {[] true}))
+     ::element      (fulcro/get-initial-state element/Panel nil)
      ::network      (fulcro/get-initial-state network/NetworkHistory nil)
      ::transactions (fulcro/get-initial-state transactions/TransactionList [])})
 
@@ -26,6 +28,7 @@
   static om/IQuery
   (query [_] [::tab ::id
               {::app-state (om/get-query data-watcher/DataWatcher)}
+              {::element (om/get-query element/Panel)}
               {::network (om/get-query network/NetworkHistory)}
               {::transactions (om/get-query transactions/TransactionList)}])
 
@@ -58,11 +61,12 @@
                      [:&.spaced {:padding "10px"}]]])
   (include-children [_] [data-watcher/DataWatcher
                          network/NetworkHistory
-                         transactions/TransactionList])
+                         transactions/TransactionList
+                         element/Panel])
 
   Object
   (render [this]
-    (let [{::keys   [app-state tab network transactions]} (om/props this)
+    (let [{::keys   [app-state tab element network transactions]} (om/props this)
           css      (css/get-classnames Inspector)
           tab-item (fn [{:keys [title html-title disabled? page]}]
                      (dom/div #js {:className (cond-> (:tab css)
@@ -75,7 +79,7 @@
       (dom/div #js {:className (:container css)}
         (dom/div #js {:className (:tabs css)}
           (tab-item {:title "DB" :page ::page-db})
-          (tab-item {:title "Element" :disabled? true})
+          (tab-item {:title "Element" :page ::page-element})
           (tab-item {:title "Transactions" :page ::page-transactions})
           (tab-item {:title "Network" :page ::page-network})
           (tab-item {:title "OgE" :disabled? true}))
@@ -84,6 +88,10 @@
           ::page-db
           (dom/div #js {:className (str (:tab-content css) " " (:spaced css))}
             (data-watcher/data-watcher app-state))
+
+          ::page-element
+          (dom/div #js {:className (:tab-content css)}
+            (element/panel element))
 
           ::page-transactions
           (dom/div #js {:className (:tab-content css)}
