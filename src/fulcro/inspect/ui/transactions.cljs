@@ -201,33 +201,10 @@
                                   :width          "100%"
                                   :flex           "1"
                                   :flex-direction "column"}]
-                    [:.tools {:border-bottom "1px solid #dadada"
-                              :display       "flex"
-                              :align-items   "center"}]
-
-                    [:.tool-separator {:background "#ccc"
-                                       :width      "1px"
-                                       :height     "16px"
-                                       :margin     "0 6px"}]
-
-                    [:.icon ui/css-icon
-                     [:&:hover {:text-shadow (str "0 0 0 " ui/color-icon-strong)}]]
 
                     [:.transactions {:flex     "1"
-                                     :overflow "auto"}]
-
-                    [:.input {:color       ui/color-text-normal
-                              :outline     "0"
-                              :margin      "0 2px"
-                              :font-family ui/label-font-family
-                              :font-size   ui/label-font-size
-                              :padding     "2px 4px"}]
-
-                    [:.active-tx ui/css-dock-details-container]
-                    [:.active-container ui/css-dock-details-item-container]
-                    [:.active-tools ui/css-dock-details-tools]
-                    [:.icon-close ui/css-icon-close]])
-  (include-children [_] [Transaction TransactionRow])
+                                     :overflow "auto"}]])
+  (include-children [_] [Transaction TransactionRow ui/CSS])
 
   Object
   (render [this]
@@ -237,18 +214,14 @@
                     (filter #(str/includes? (-> % :tx pr-str) tx-filter) tx-list)
                     tx-list)]
       (dom/div #js {:className (:container css)}
-        (dom/div #js {:className (:tools css)}
-          (dom/div #js {:className (:icon css)
-                        :title     "Clear transactions"
-                        :style     #js {:fontSize "15px"}
-                        :onClick   #(om/transact! this [`(clear-transactions {})])}
-            "🚫")
-          (dom/div #js {:className (css :tool-separator)})
-          (dom/input #js {:className   (:input css)
-                          :type        "text"
-                          :placeholder "Filter"
-                          :value       tx-filter
-                          :onChange    #(mutations/set-string! this ::tx-filter :event %)}))
+        (ui/toolbar {}
+          (ui/toolbar-action {:title   "Clear transactions"
+                              :onClick #(om/transact! this [`(clear-transactions {})])}
+            (ui/icon :do_not_disturb))
+          (ui/toolbar-separator)
+          (ui/toolbar-text-field {:placeholder "Filter"
+                                  :value       tx-filter
+                                  :onChange    #(mutations/set-string! this ::tx-filter :event %)}))
         (dom/div #js {:className (:transactions css)}
           (if (seq tx-list)
             (->> tx-list
@@ -261,14 +234,13 @@
                            ::selected?
                            (= (::tx-id active-tx) (::tx-id %))})))))
         (if active-tx
-          (dom/div #js {:className (:active-tx css)}
-            (dom/div #js {:className (:active-tools css)}
-              (dom/div #js {:style #js {:flex 1}})
-              (dom/div #js {:className (str (css :icon) " " (css :icon-close))
-                            :title     "Close panel"
-                            :onClick   #(mutations/set-value! this ::active-tx nil)}
-                "❌"))
-            (dom/div #js {:className (:active-container css)}
+          (ui/focus-panel {}
+            (ui/toolbar {::ui/classes [:details]}
+              (ui/toolbar-spacer)
+              (ui/toolbar-action {:title   "Close panel"
+                                  :onClick #(mutations/set-value! this ::active-tx nil)}
+                (ui/icon :clear)))
+            (ui/focus-panel-content {}
               (transaction active-tx))))))))
 
 (def transaction-list (om/factory TransactionList))

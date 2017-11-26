@@ -206,24 +206,8 @@
         [(gs/& gs/last-child) {:border-right "0"}]]
 
        [:.table-body {:flex       1
-                      :overflow-y "scroll"}]
-
-       [:.tools {:border-bottom "1px solid #dadada"
-                 :display       "flex"
-                 :align-items   "center"}]
-
-       [:.tool-separator {:background "#ccc"
-                          :width      "1px"
-                          :height     "16px"
-                          :margin     "0 6px"}]
-
-       [:.active-request ui/css-dock-details-container]
-       [:.active-container ui/css-dock-details-item-container]
-       [:.active-tools ui/css-dock-details-tools]
-       [:.icon ui/css-icon
-        [:&:hover {:text-shadow (str "0 0 0 " ui/color-icon-strong)}]]
-       [:.icon-close ui/css-icon-close]]))
-  (include-children [_] [Request RequestDetails])
+                      :overflow-y "scroll"}]]))
+  (include-children [_] [Request RequestDetails ui/CSS])
 
   Object
   (render [this]
@@ -231,16 +215,14 @@
           css          (css/get-classnames NetworkHistory)
           show-remote? (> (count remotes) 1)
           columns      {:started 100
-                        :remote 80
-                        :status 90
-                        :time 70}]
+                        :remote  80
+                        :status  90
+                        :time    70}]
       (dom/div #js {:className (:container css)}
-        (dom/div #js {:className (:tools css)}
-          (dom/div #js {:className (:icon css)
-                        :title     "Clear requests"
-                        :style     #js {:fontSize "15px"}
-                        :onClick   #(om/transact! this [`(clear-requests {})])}
-            "🚫"))
+        (ui/toolbar {}
+          (ui/toolbar-action {:title   "Clear requests"
+                              :onClick #(om/transact! this [`(clear-requests {})])}
+            (ui/icon :do_not_disturb)))
 
         (dom/div #js {:className (:table css)}
           (dom/div #js {:className (:table-header css)}
@@ -267,18 +249,16 @@
                                    (= (::request-id active-request) (::request-id %))
 
                                    ::on-select
-                                   (fn [r] (om/transact! this `[(select-request ~r)]))}))
-                     )))))
+                                   (fn [r] (om/transact! this `[(select-request ~r)]))})))))))
 
         (if active-request
-          (dom/div #js {:className (:active-request css)}
-            (dom/div #js {:className (:active-tools css)}
-              (dom/div #js {:style #js {:flex 1}})
-              (dom/div #js {:className (str (css :icon) " " (css :icon-close))
-                            :title     "Close panel"
-                            :onClick   #(mutations/set-value! this ::active-request nil)}
-                "❌"))
-            (dom/div #js {:className (:active-container css)}
+          (ui/focus-panel {}
+            (ui/toolbar {::ui/classes [:details]}
+              (ui/toolbar-spacer)
+              (ui/toolbar-action {:title   "Close panel"
+                                  :onClick #(mutations/set-value! this ::active-request nil)}
+                (ui/icon :clear)))
+            (ui/focus-panel-content {}
               (request-details active-request))))))))
 
 (def network-history (om/factory NetworkHistory))
