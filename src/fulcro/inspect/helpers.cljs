@@ -34,8 +34,9 @@
       new-path)))
 
 (defn swap-in! [{:keys [state ref]} path & args]
-  (let [path (resolve-path state (into ref path))]
-    (apply swap! state update-in path args)))
+  (let [path (resolve-path @state (into ref path))]
+    (if (and path (get-in @state path))
+      (apply swap! state update-in path args))))
 
 (defn merge-entity [state x data & named-parameters]
   "Starting from a denormalized entity map, normalizes using class x.
