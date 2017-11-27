@@ -59,14 +59,40 @@
   static css/CSS
   (local-rules [_] [[:.container {:position       "absolute"
                                   :display        "none"
-                                  :background     "rgba(0, 0, 0, 0.6)"
+                                  :background     "rgba(67, 132, 208, 0.5)"
                                   :pointer-events "none"
                                   :overflow       "hidden"
                                   :color          "#fff"
                                   :padding        "3px 5px"
                                   :box-sizing     "border-box"
                                   :font-family    "monospace"
-                                  :font-size      "12px"}]])
+                                  :font-size      "12px"
+                                  :z-index        "999999"}]
+
+                    [:.label {:position       "absolute"
+                              :display        "none"
+                              :pointer-events "none"
+                              :box-sizing     "border-box"
+                              :font-family    "sans-serif"
+                              :font-size      "10px"
+                              :z-index        "999999"
+
+                              :background     "#333740"
+                              :border-radius  "3px"
+                              :padding        "6px 8px"
+                              ;:color          "#ee78e6"
+                              :color          "#ffab66"
+                              :font-weight    "bold"
+                              :white-space    "nowrap"}
+                     [:&:before {:content      "\"\""
+                                 :position     "absolute"
+                                 :top          "24px"
+                                 :left         "9px"
+                                 :width        "0"
+                                 :height       "0"
+                                 :border-left  "8px solid transparent"
+                                 :border-right "8px solid transparent"
+                                 :border-top   "8px solid #333740"}]]])
   (include-children [_]))
 
 (defn marker-element []
@@ -74,9 +100,15 @@
     (or (js/document.getElementById id)
         (doto (js/document.createElement "div")
           (gobj/set "id" id)
-          (gobj/set "className" (-> MarkerCSS
-                                    css/get-classnames
-                                    :container))
+          (gobj/set "className" (-> MarkerCSS css/get-classnames :container))
+          (->> (gdom/appendChild js/document.body))))))
+
+(defn marker-label-element []
+  (let [id "__fulcro_inspect_marker_label"]
+    (or (js/document.getElementById id)
+        (doto (js/document.createElement "div")
+          (gobj/set "id" id)
+          (gobj/set "className" (-> MarkerCSS css/get-classnames :label))
           (->> (gdom/appendChild js/document.body))))))
 
 (defn react-instance [node]
@@ -93,6 +125,7 @@
 (defn pick-element [{::keys [on-pick]
                      :or    {on-pick identity}}]
   (let [marker       (marker-element)
+        marker-label (marker-label-element)
         current      (atom nil)
         over-handler (fn [e]
                        (let [target (.-target e)]
@@ -102,10 +135,15 @@
                                                      (ensure-reconciler))]
                            (.stopPropagation e)
                            (reset! current instance)
-                           (gdom/setTextContent marker (-> instance om/react-type (gobj/get "displayName")))
+                           (gdom/setTextContent marker-label (-> instance om/react-type (gobj/get "displayName")))
+
                            (let [target' (js/ReactDOM.findDOMNode instance)
                                  offset  (gstyle/getPageOffset target')
                                  size    (gstyle/getSize target')]
+                             (gstyle/setStyle marker-label
+                               #js {:left (str (.-x offset) "px")
+                                    :top  (str (- (.-y offset) 36) "px")})
+
                              (gstyle/setStyle marker
                                #js {:width  (str (.-width size) "px")
                                     :height (str (.-height size) "px")
@@ -114,9 +152,8 @@
         pick-handler (fn self []
                        (on-pick @current)
 
-                       (gstyle/setStyle marker #js {:display "none"
-                                                    :top     "-100000px"
-                                                    :left    "-100000px"})
+                       (gstyle/setStyle marker #js {:display "none"})
+                       (gstyle/setStyle marker-label #js {:display "none"})
 
                        (js/removeEventListener "click" self)
                        (js/removeEventListener "mouseover" over-handler))]
@@ -124,6 +161,11 @@
     (gstyle/setStyle marker #js {:display "block"
                                  :top     "-100000px"
                                  :left    "-100000px"})
+
+    (gstyle/setStyle marker-label #js {:display "block"
+                                       :top     "-100000px"
+                                       :left    "-100000px"})
+
     (js/addEventListener "mouseover" over-handler)
 
     (js/setTimeout
@@ -162,9 +204,9 @@
   static css/CSS
   (local-rules [_] [[:.container {:flex           1
                                   :display        "flex"
-                                  :flex-direction "column"}]
-                    [:.icon-active
-                     [:svg.c-icon {:fill "#4682E9"}]]])
+                                  :flex-direction "column"}
+                     [:.icon-active
+                      [:svg.c-icon {:fill "#4682E9"}]]]])
   (include-children [_] [ui/CSS MarkerCSS Details])
 
   Object

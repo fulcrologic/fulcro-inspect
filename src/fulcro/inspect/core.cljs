@@ -77,7 +77,7 @@
                                   :bottom     "0"
                                   :width      "50%"
                                   :overflow   "hidden"
-                                  :z-index    "9999"}]
+                                  :z-index    "9999999"}]
                     [:.resizer {:position    "fixed"
                                 :cursor      "ew-resize"
                                 :top         "0"
