@@ -51,10 +51,11 @@
       n)))
 
 (defn print-timestamp [date]
-  (str (add-zeros (.getHours date) 2) ":"
-       (add-zeros (.getMinutes date) 2) ":"
-       (add-zeros (.getSeconds date) 2) ":"
-       (add-zeros (.getMilliseconds date) 3)))
+  (if date
+    (str (add-zeros (.getHours date) 2) ":"
+         (add-zeros (.getMinutes date) 2) ":"
+         (add-zeros (.getSeconds date) 2) ":"
+         (add-zeros (.getMilliseconds date) 3))))
 
 ;;; elements
 
@@ -131,7 +132,19 @@
 
                     [:.info-group css-info-group
                      [(gs/& gs/first-child) {:border-top "0"}]]
-                    [:.info-label css-info-label]])
+                    [:.info-label css-info-label]
+                    [:.ident {:padding     "5px 6px"
+                              :background  "#f3f3f3"
+                              :color       "#424242"
+                              :display     "inline-block"
+                              :font-family mono-font-family
+                              :font-size   label-font-size}]
+                    [:.display-name {:background  "#e5efff"
+                                     :color       "#051d38"
+                                     :display     "inline-block"
+                                     :padding     "4px 8px"
+                                     :font-family mono-font-family
+                                     :font-size   "14px"}]])
   (include-children [_] [ToolBar]))
 
 (def scss (css/get-classnames CSS))
@@ -151,3 +164,11 @@
     (if title
       (dom/div #js {:className (:info-label scss)} title))
     children))
+
+(defn ident [props ref]
+  (dom/div (h/props->html {:className (:ident scss)} props)
+    (pr-str ref)))
+
+(defn comp-display-name [props display-name]
+  (dom/div (h/props->html {:className (:display-name scss)} props)
+    (str display-name)))

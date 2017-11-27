@@ -37,12 +37,6 @@
                      [:&:hover {:background ui/color-row-hover}]
                      [:&.selected {:background ui/color-row-selected}]]
 
-                    [:.ident {:font-family ui/label-font-family
-                              :font-size   ui/label-font-size
-                              :align-self  "flex-end"
-                              :padding     "3px 6px"
-                              :background  "#f3f3f3"
-                              :color       "#424242"}]
                     [:.timestamp ui/css-timestamp]])
   (include-children [_] [data-viewer/DataViewer])
 
@@ -93,14 +87,7 @@
      {:ui/diff-rem-view (om/get-query data-viewer/DataViewer)}])
 
   static css/CSS
-  (local-rules [_] [[:.container {:height "100%"}]
-                    [:.ident {:align-self  "flex-end"
-                              :padding     "5px 6px"
-                              :background  "#f3f3f3"
-                              :color       "#424242"
-                              :display     "inline-block"
-                              :font-family ui/mono-font-family
-                              :font-size   ui/label-font-size}]])
+  (local-rules [_] [[:.container {:height "100%"}]])
   (include-children [_] [data-viewer/DataViewer])
 
   Object
@@ -113,7 +100,7 @@
           css (css/get-classnames Transaction)]
       (dom/div #js {:className (:container css)}
         (ui/info {::ui/title "Ref"}
-          (dom/div #js {:className (:ident css)} (pr-str ref)))
+          (ui/ident {} ref))
 
         (ui/info {::ui/title "Transaction"}
           (data-viewer/data-viewer tx-view))
@@ -133,7 +120,7 @@
 
         (if component
           (ui/info {::ui/title "Component"}
-            (dom/div #js {:className (:ident css)}
+            (ui/comp-display-name {}
               (gobj/get (om/react-type component) "displayName"))))
 
         (ui/info {::ui/title "State before"}
