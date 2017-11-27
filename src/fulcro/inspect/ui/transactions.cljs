@@ -100,9 +100,7 @@
                               :color       "#424242"
                               :display     "inline-block"
                               :font-family ui/mono-font-family
-                              :font-size   ui/label-font-size}]
-                    [:.group ui/css-info-group]
-                    [:.label ui/css-info-label]])
+                              :font-size   ui/label-font-size}]])
   (include-children [_] [data-viewer/DataViewer])
 
   Object
@@ -114,43 +112,34 @@
            :as      props} (om/props this)
           css (css/get-classnames Transaction)]
       (dom/div #js {:className (:container css)}
-        (dom/div #js {:className (:group css)}
-          (dom/div #js {:className (:label css)} "Ref")
+        (ui/info {::ui/title "Ref"}
           (dom/div #js {:className (:ident css)} (pr-str ref)))
 
-        (dom/div #js {:className (:group css)}
-          (dom/div #js {:className (:label css)} "Transaction")
+        (ui/info {::ui/title "Transaction"}
           (data-viewer/data-viewer tx-view))
 
-        (dom/div #js {:className (:group css)}
-          (dom/div #js {:className (:label css)} "Response")
+        (ui/info {::ui/title "Response"}
           (data-viewer/data-viewer ret-view))
 
         (if (seq sends)
-          (dom/div #js {:className (:group css)}
-            (dom/div #js {:className (:label css)} "Sends")
+          (ui/info {::ui/title "Sends"}
             (data-viewer/data-viewer sends-view)))
 
-        (dom/div #js {:className (:group css)}
-          (dom/div #js {:className (:label css)} "Diff added")
+        (ui/info {::ui/title "Diff added"}
           (data-viewer/data-viewer diff-add-view))
 
-        (dom/div #js {:className (:group css)}
-          (dom/div #js {:className (:label css)} "Diff removed")
+        (ui/info {::ui/title "Diff removed"}
           (data-viewer/data-viewer diff-rem-view))
 
         (if component
-          (dom/div #js {:className (:group css)}
-            (dom/div #js {:className (:label css)} "Component")
+          (ui/info {::ui/title "Component"}
             (dom/div #js {:className (:ident css)}
               (gobj/get (om/react-type component) "displayName"))))
 
-        (dom/div #js {:className (:group css)}
-          (dom/div #js {:className (:label css)} "State before")
+        (ui/info {::ui/title "State before"}
           (data-viewer/data-viewer old-state-view))
 
-        (dom/div #js {:className (:group css)}
-          (dom/div #js {:className (:label css)} "State after")
+        (ui/info {::ui/title "State after"}
           (data-viewer/data-viewer new-state-view))))))
 
 (def transaction (om/factory Transaction))

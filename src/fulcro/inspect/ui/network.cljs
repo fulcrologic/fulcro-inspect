@@ -45,7 +45,7 @@
 (defmutation clear-requests [_]
   (action [env]
     (h/swap-entity! env assoc ::active-request nil ::remotes #{})
-    (h/remove-all env ::requests)))
+    (h/remove-edge! env ::requests)))
 
 (om/defui ^:once RequestDetails
   static fulcro/InitialAppState
@@ -61,8 +61,7 @@
               {:ui/error-view (om/get-query data-viewer/DataViewer)}])
 
   static css/CSS
-  (local-rules [_] [[:.group ui/css-info-group]
-                    [:.label ui/css-info-label]])
+  (local-rules [_] [])
   (include-children [_] [])
 
   Object
@@ -70,18 +69,15 @@
     (let [{:ui/keys [request-edn-view response-edn-view error-view]} (om/props this)
           css (css/get-classnames RequestDetails)]
       (dom/div #js {:className (:container css)}
-        (dom/div #js {:className (:group css)}
-          (dom/div #js {:className (:label css)} "Request")
+        (ui/info {::ui/title "Request"}
           (data-viewer/data-viewer request-edn-view))
 
         (if response-edn-view
-          (dom/div #js {:className (:group css)}
-            (dom/div #js {:className (:label css)} "Response")
+          (ui/info {::ui/title "Response"}
             (data-viewer/data-viewer response-edn-view)))
 
         (if error-view
-          (dom/div #js {:className (:group css)}
-            (dom/div #js {:className (:label css)} "Error")
+          (ui/info {::ui/title "Error"}
             (data-viewer/data-viewer error-view)))))))
 
 (def request-details (om/factory RequestDetails))
