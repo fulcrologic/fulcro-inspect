@@ -121,7 +121,9 @@
                        (js/removeEventListener "click" self)
                        (js/removeEventListener "mouseover" over-handler))]
 
-    (gstyle/setStyle marker #js {:display "block"})
+    (gstyle/setStyle marker #js {:display "block"
+                                 :top     "-100000px"
+                                 :left    "-100000px"})
     (js/addEventListener "mouseover" over-handler)
 
     (js/setTimeout

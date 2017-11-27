@@ -89,7 +89,7 @@
                     [:.frame {:width  "100%"
                               :height "100%"
                               :border "0"}]])
-  (include-children [_] [])
+  (include-children [_] [element/MarkerCSS])
 
   Object
   (componentDidMount [this]
