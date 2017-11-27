@@ -2,6 +2,11 @@
   (:require [fulcro.client.core :as fulcro]
             [om.next :as om]))
 
+(defn- om-ident? [x]
+  (and (vector? x)
+       (= 2 (count x))
+       (keyword? (first x))))
+
 (defn query-component
   ([this]
    (let [component (om/react-type this)
@@ -16,6 +21,21 @@
 
 (defn swap-entity! [{:keys [state ref]} & args]
   (apply swap! state update-in ref args))
+
+(defn resolve-path [state path]
+  (loop [[h & t] path
+         new-path []]
+    (if h
+      (let [np (conj new-path h)
+            c  (get-in state np)]
+        (if (om-ident? c)
+          (recur t c)
+          (recur t (conj new-path h))))
+      new-path)))
+
+(defn swap-in! [{:keys [state ref]} path & args]
+  (let [path (resolve-path state (into ref path))]
+    (apply swap! state update-in path args)))
 
 (defn merge-entity [state x data & named-parameters]
   "Starting from a denormalized entity map, normalizes using class x.
@@ -47,11 +67,6 @@
     (get-in m (butlast path))
     (update-in (butlast path) dissoc (last path))))
 
-(defn- om-ident? [x]
-  (and (vector? x)
-       (= 2 (count x))
-       (keyword? (first x))))
-
 (defn deep-remove-ref [state ref]
   "Remove a ref and all linked refs from it."
   (let [item   (get-in state ref)
@@ -71,9 +86,14 @@
       (dissoc-in state ref)
       idents)))
 
-(defn remove-all [{:keys [state ref]} field]
+(defn remove-edge! [{:keys [state ref]} field]
   (let [children (get-in @state (conj ref field))]
-    (if (seq children)
+    (cond
+      (om-ident? children)
+      (swap! state (comp #(update-in % ref dissoc field)
+                         #(deep-remove-ref % children)))
+
+      (seq children)
       (swap! state (comp #(assoc-in % (conj ref field) [])
                          #(reduce deep-remove-ref % children))))))
 
