@@ -117,12 +117,14 @@
                              (first))]
     (gobj/get node instance-key)))
 
-(defn ensure-reconciler [x]
+(defn ensure-reconciler [x app]
   (try
-    (if (om/get-reconciler x) x)
+    (when (some-> (om/get-reconciler x) om/app-state deref
+                  :fulcro.inspect.core/app-id (= app))
+      x)
     (catch :default _)))
 
-(defn pick-element [{::keys [on-pick]
+(defn pick-element [{::keys [on-pick app-id]
                      :or    {on-pick identity}}]
   (let [marker       (marker-element)
         marker-label (marker-label-element)
@@ -132,7 +134,7 @@
                          (when-let [instance (some-> target
                                                      (react-instance)
                                                      (gobj/getValueByKeys #js ["_currentElement" "_owner" "_instance"])
-                                                     (ensure-reconciler))]
+                                                     (ensure-reconciler app-id))]
                            (.stopPropagation e)
                            (reset! current instance)
                            (gdom/setTextContent marker-label (-> instance om/react-type (gobj/get "displayName")))
@@ -211,13 +213,14 @@
 
   Object
   (render [this]
-    (let [{:keys [ui/picking?] :as props} (om/props this)
+    (let [{:keys [ui/picking? ::panel-id] :as props} (om/props this)
           css (css/get-classnames Panel)]
       (dom/div #js {:className (:container css)}
         (ui/toolbar {}
           (ui/toolbar-action (cond-> {:onClick #(do
                                                   (mutations/set-value! this :ui/picking? true)
-                                                  (pick-element {::on-pick (fn [comp]
+                                                  (pick-element {::app-id  (second panel-id)
+                                                                 ::on-pick (fn [comp]
                                                                              (let [details (inspect-component comp)]
                                                                                (om/transact! this [`(set-element ~details)])))}))}
                                picking? (assoc :className (:icon-active css)))
