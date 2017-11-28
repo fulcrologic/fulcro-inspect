@@ -221,8 +221,10 @@
                                                   (mutations/set-value! this :ui/picking? true)
                                                   (pick-element {::app-id  (second panel-id)
                                                                  ::on-pick (fn [comp]
-                                                                             (let [details (inspect-component comp)]
-                                                                               (om/transact! this [`(set-element ~details)])))}))}
+                                                                             (if comp
+                                                                               (let [details (inspect-component comp)]
+                                                                                 (om/transact! this [`(set-element ~details)]))
+                                                                               (mutations/set-value! this :ui/picking? false)))}))}
                                picking? (assoc :className (:icon-active css)))
             (ui/icon :gps_fixed {})))
         (if (::details props)
