@@ -187,7 +187,7 @@
     (let [{::keys [tx-list active-tx tx-filter]} (om/props this)
           css     (css/get-classnames TransactionList)
           tx-list (if (seq tx-filter)
-                    (filter #(str/includes? (-> % :tx pr-str) tx-filter) tx-list)
+                    (filterv #(str/includes? (-> % :tx pr-str) tx-filter) tx-list)
                     tx-list)]
       (dom/div #js {:className (:container css)}
         (ui/toolbar {}
