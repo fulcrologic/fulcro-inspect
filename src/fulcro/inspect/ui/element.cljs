@@ -219,7 +219,7 @@
         (ui/toolbar {}
           (ui/toolbar-action (cond-> {:onClick #(do
                                                   (mutations/set-value! this :ui/picking? true)
-                                                  (pick-element {::app-id  (second panel-id)
+                                                  (pick-element {::app-id  (try (second panel-id) (catch :default _))
                                                                  ::on-pick (fn [comp]
                                                                              (if comp
                                                                                (let [details (inspect-component comp)]

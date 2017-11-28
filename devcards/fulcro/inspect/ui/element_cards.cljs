@@ -15,7 +15,8 @@
   (initial-state [_ _] {:ui/react-key (random-uuid)
                         :ui/network   (assoc (fulcro/get-initial-state network/NetworkHistory {})
                                         ::network/history-id "main")
-                        :ui/element   (fulcro/get-initial-state element/Panel {})})
+                        :ui/element   (-> (fulcro/get-initial-state element/Panel {})
+                                          (assoc ::element/panel-id ["panel" `ElementRoot]))})
 
   static om/IQuery
   (query [_] [{:ui/network (om/get-query network/NetworkHistory)}
