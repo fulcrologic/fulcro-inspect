@@ -156,7 +156,7 @@
             (str (- (.getTime request-finished-at) (.getTime request-started-at)) " ms")
             (dom/span #js {:className (:pending css)} "(pending...)")))))))
 
-(def request (fp/factory Request))
+(def request (fp/factory Request {:keyfn ::request-id}))
 
 (fp/defui ^:once NetworkHistory
   static fp/InitialAppState
