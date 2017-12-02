@@ -5,7 +5,7 @@
 
 (defn make-root [Root app-id]
   (fp/ui
-    static om/InitialAppState
+    static fp/InitialAppState
     (initial-state [_ params] {:fulcro.inspect.core/app-id app-id
                                :ui/react-key (random-uuid)
                                :ui/root      (fp/get-initial-state Root params)})
