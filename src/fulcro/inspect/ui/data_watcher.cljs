@@ -1,11 +1,10 @@
 (ns fulcro.inspect.ui.data-watcher
-  (:require [fulcro.client.core :as fulcro]
-            [fulcro.client.mutations :as mutations :refer-macros [defmutation]]
+  (:require [fulcro.client.mutations :as mutations :refer-macros [defmutation]]
             [fulcro.inspect.ui.data-viewer :as f.data-viewer]
             [fulcro.inspect.helpers :as h]
             [fulcro-css.css :as css]
-            [om.dom :as dom]
-            [om.next :as om]))
+            [fulcro.client.dom :as dom]
+            [fulcro.client.primitives :as fp]))
 
 (declare WatchPin)
 
@@ -43,20 +42,20 @@
       (swap! state h/deep-remove-ref watch-ref)
       (swap! state update-in (conj ref ::watches) #(h/vec-remove-index index %)))))
 
-(om/defui ^:once WatchPin
-  static fulcro/InitialAppState
+(fp/defui ^:once WatchPin
+  static fp/InitialAppState
   (initial-state [_ {:keys [path content]}]
     {:ui/expanded? true
      ::watch-id    (random-uuid)
      ::watch-path  path
-     ::data-viewer (fulcro/get-initial-state f.data-viewer/DataViewer content)})
+     ::data-viewer (fp/get-initial-state f.data-viewer/DataViewer content)})
 
-  static om/Ident
+  static fp/Ident
   (ident [_ props] [::watch-id (::watch-id props)])
 
-  static om/IQuery
+  static fp/IQuery
   (query [_] [:ui/expanded? ::watch-id ::watch-path
-              {::data-viewer (om/get-query f.data-viewer/DataViewer)}])
+              {::data-viewer (fp/get-query f.data-viewer/DataViewer)}])
 
   static css/CSS
   (local-rules [_] [[:.container {:margin "6px 0"}]
@@ -78,9 +77,9 @@
   (render [this]
     (let [{::keys   [watch-path data-viewer]
            :ui/keys [expanded?]
-           :as      props} (om/props this)
+           :as      props} (fp/props this)
           {::keys               [delete-item]
-           ::f.data-viewer/keys [path-action]} (om/get-computed props)
+           ::f.data-viewer/keys [path-action]} (fp/get-computed props)
           css (css/get-classnames WatchPin)]
       (dom/div #js {:className (:container css)}
         (dom/div #js {:className (:toggle-row css)}
@@ -94,21 +93,21 @@
           (f.data-viewer/data-viewer data-viewer
             {::f.data-viewer/path-action path-action}))))))
 
-(def watch-pin (om/factory WatchPin))
+(def watch-pin (fp/factory WatchPin))
 
-(om/defui ^:once DataWatcher
-  static fulcro/InitialAppState
+(fp/defui ^:once DataWatcher
+  static fp/InitialAppState
   (initial-state [_ state] {::id        (random-uuid)
-                            ::root-data (fulcro/get-initial-state f.data-viewer/DataViewer state)
+                            ::root-data (fp/get-initial-state f.data-viewer/DataViewer state)
                             ::watches   []})
 
-  static om/Ident
+  static fp/Ident
   (ident [_ props] [::id (::id props)])
 
-  static om/IQuery
+  static fp/IQuery
   (query [_] [::id
-              {::root-data (om/get-query f.data-viewer/DataViewer)}
-              {::watches (om/get-query WatchPin)}])
+              {::root-data (fp/get-query f.data-viewer/DataViewer)}
+              {::watches (fp/get-query WatchPin)}])
 
   static css/CSS
   (local-rules [_] [])
@@ -116,23 +115,23 @@
 
   Object
   (render [this]
-    (let [{::keys [root-data watches]} (om/props this)
+    (let [{::keys [root-data watches]} (fp/props this)
           content (::f.data-viewer/content root-data)]
       (dom/div nil
         (mapv (comp watch-pin
                     (fn [[x i]]
                       (-> (assoc x ::content content)
-                          (om/computed {::delete-item
+                          (fp/computed {::delete-item
                                         (fn [_]
-                                          (om/transact! this [`(remove-data-watch {:index ~i})]))
+                                          (fp/transact! this [`(remove-data-watch {:index ~i})]))
 
                                         ::f.data-viewer/path-action
-                                        #(om/transact! this [`(add-data-watch {:path ~(vec (concat (::watch-path x) %))})])})))
+                                        #(fp/transact! this [`(add-data-watch {:path ~(vec (concat (::watch-path x) %))})])})))
                     vector)
           watches
           (range))
         (f.data-viewer/data-viewer root-data
           {::f.data-viewer/path-action
-           #(om/transact! this [`(add-data-watch {:path ~%})])})))))
+           #(fp/transact! this [`(add-data-watch {:path ~%})])})))))
 
-(def data-watcher (om/factory DataWatcher))
+(def data-watcher (fp/factory DataWatcher))

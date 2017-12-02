@@ -4,10 +4,9 @@
     [fulcro-css.css :as css]
     [fulcro.client.cards :refer-macros [defcard-fulcro]]
     [fulcro.inspect.ui.network :as network]
-    [om.next :as om]
-    [fulcro.client.core :as fulcro]
+    [fulcro.client.primitives :as fp]
     [clojure.test.check.generators :as gen]
-    [om.dom :as dom]))
+    [fulcro.client.dom :as dom]))
 
 (def request-samples
   [{:in  [:hello :world]
@@ -131,31 +130,31 @@
 
 (defn gen-request [this]
   (let [id         (random-uuid)
-        reconciler (om/get-reconciler this)
+        reconciler (fp/get-reconciler this)
         remote     (gen-remote)
         {:keys [in out]} (rand-nth request-samples)]
-    (om/transact! reconciler [::network/history-id "main"]
+    (fp/transact! reconciler [::network/history-id "main"]
       [`(network/request-start ~{::network/remote      remote
                                  ::network/request-id  id
                                  ::network/request-edn in})])
     (js/setTimeout
       (fn []
         (let [suc? (success?)]
-          (om/transact! reconciler [::network/history-id "main"]
+          (fp/transact! reconciler [::network/history-id "main"]
             [`(network/request-finish ~(cond-> {::network/remote     remote
                                                 ::network/request-id id}
                                          suc? (assoc ::network/response-edn out)
                                          (not suc?) (assoc ::network/error {:error "bad"})))])))
       (gen/generate (gen/large-integer* {:min 30 :max 7000})))))
 
-(om/defui ^:once NetworkRoot
-  static fulcro/InitialAppState
+(fp/defui ^:once NetworkRoot
+  static fp/InitialAppState
   (initial-state [_ _] {:ui/react-key (random-uuid)
-                        :ui/root      (assoc (fulcro/get-initial-state network/NetworkHistory {})
+                        :ui/root      (assoc (fp/get-initial-state network/NetworkHistory {})
                                         ::network/history-id "main")})
 
-  static om/IQuery
-  (query [_] [{:ui/root (om/get-query network/NetworkHistory)}
+  static fp/IQuery
+  (query [_] [{:ui/root (fp/get-query network/NetworkHistory)}
               :ui/react-key])
 
   static css/CSS
@@ -166,7 +165,7 @@
 
   Object
   (render [this]
-    (let [{:keys [ui/react-key ui/root]} (om/props this)
+    (let [{:keys [ui/react-key ui/root]} (fp/props this)
           css (css/get-classnames NetworkRoot)]
       (dom/div #js {:key react-key :className (:container css)}
         (dom/button #js {:onClick #(gen-request this)}

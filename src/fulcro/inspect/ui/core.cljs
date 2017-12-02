@@ -1,10 +1,10 @@
 (ns fulcro.inspect.ui.core
-  (:require [om.next :as om]
+  (:require [fulcro.client.primitives :as fp]
             [fulcro-css.css :as css]
             [fulcro.ui.icons :as icons]
             [fulcro.inspect.ui.helpers :as h]
             [garden.selectors :as gs]
-            [om.dom :as dom]))
+            [fulcro.client.dom :as dom]))
 
 (def mono-font-family "monospace")
 
@@ -65,7 +65,7 @@
    (let [defaults {}]
      (apply icons/icon name (apply concat (merge defaults props))))))
 
-(om/defui ^:once ToolBar
+(fp/defui ^:once ToolBar
   static css/CSS
   (local-rules [_] [[:.container {:border-bottom "1px solid #dadada"
                                   :display       "flex"
@@ -99,10 +99,10 @@
 
   Object
   (render [this]
-    (let [{:keys []} (om/props this)
+    (let [{:keys []} (fp/props this)
           css (css/get-classnames ToolBar)]
       (dom/div (h/props+classes this {:className (:container css)})
-        (om/children this)))))
+        (fp/children this)))))
 
 (def toolbar (h/container-factory ToolBar))
 
@@ -120,7 +120,7 @@
   (dom/input (h/props->html {:className (:input (css/get-classnames ToolBar))
                              :type      "text"} props)))
 
-(om/defui ^:once CSS
+(fp/defui ^:once CSS
   static css/CSS
   (local-rules [_] [[:.focused-panel {:border-top     "1px solid #a3a3a3"
                                       :display        "flex"

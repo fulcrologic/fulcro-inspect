@@ -1,11 +1,10 @@
 (ns fulcro.inspect.ui.data-viewer
-  (:require [fulcro.client.core :as fulcro]
-            [fulcro.client.mutations :as mutations]
+  (:require [fulcro.client.mutations :as mutations]
             [fulcro-css.css :as css]
             [fulcro.inspect.ui.core :as ui]
             [fulcro.inspect.helpers :as h]
-            [om.dom :as dom]
-            [om.next :as om]))
+            [fulcro.client.dom :as dom]
+            [fulcro.client.primitives :as fp]))
 
 (declare DataViewer)
 
@@ -51,7 +50,7 @@
       (boolean? x)
       (symbol? x)
       (uuid? x)
-      (om/tempid? x)
+      (fp/tempid? x)
       (and (vector? x)
            (<= (count x) vec-max-inline))))
 
@@ -211,16 +210,16 @@
    :font-size   "12px"
    :white-space "nowrap"})
 
-(om/defui ^:once DataViewer
-  static fulcro/InitialAppState
+(fp/defui ^:once DataViewer
+  static fp/InitialAppState
   (initial-state [_ content] {::id       (random-uuid)
                               ::content  content
                               ::expanded {}})
 
-  static om/Ident
+  static fp/Ident
   (ident [_ props] [::id (::id props)])
 
-  static om/IQuery
+  static fp/IQuery
   (query [_] [::id ::content ::expanded])
 
   static css/CSS
@@ -276,20 +275,20 @@
 
   Object
   (render [this]
-    (let [{::keys [content expanded elide-one? static?] :as props} (om/props this)
-          {::keys [path-action]} (om/get-computed props)
+    (let [{::keys [content expanded elide-one? static?] :as props} (fp/props this)
+          {::keys [path-action]} (fp/get-computed props)
           css (css/get-classnames DataViewer)]
       (dom/div #js {:className (:container css)}
         (render-data {:expanded    expanded
                       :static?     static?
                       :elide-one?  elide-one?
-                      :toggle      #(om/transact! this [`(toggle {::path       ~%2
+                      :toggle      #(fp/transact! this [`(toggle {::path       ~%2
                                                                   ::propagate? ~(.-metaKey %)})])
                       :css         css
                       :path        []
                       :path-action path-action}
           content)))))
 
-(let [factory (om/factory DataViewer)]
+(let [factory (fp/factory DataViewer)]
   (defn data-viewer [props & [computed]]
-    (factory (om/computed props computed))))
+    (factory (fp/computed props computed))))

@@ -1,6 +1,5 @@
 (ns fulcro.inspect.ui.inspector
   (:require [fulcro-css.css :as css]
-            [fulcro.client.core :as fulcro]
             [fulcro.client.mutations :as mutations]
             [fulcro.inspect.ui.core :as ui]
             [fulcro.inspect.ui.data-viewer :as data-viewer]
@@ -8,29 +7,29 @@
             [fulcro.inspect.ui.element :as element]
             [fulcro.inspect.ui.network :as network]
             [fulcro.inspect.ui.transactions :as transactions]
-            [om.dom :as dom]
-            [om.next :as om]))
+            [fulcro.client.dom :as dom]
+            [fulcro.client.primitives :as fp]))
 
-(om/defui ^:once Inspector
-  static fulcro/InitialAppState
+(fp/defui ^:once Inspector
+  static fp/InitialAppState
   (initial-state [_ state]
     {::id           (random-uuid)
      ::tab          ::page-db
-     ::app-state    (-> (fulcro/get-initial-state data-watcher/DataWatcher state)
+     ::app-state    (-> (fp/get-initial-state data-watcher/DataWatcher state)
                         (assoc-in [::data-watcher/root-data ::data-viewer/expanded] {[] true}))
-     ::element      (fulcro/get-initial-state element/Panel nil)
-     ::network      (fulcro/get-initial-state network/NetworkHistory nil)
-     ::transactions (fulcro/get-initial-state transactions/TransactionList [])})
+     ::element      (fp/get-initial-state element/Panel nil)
+     ::network      (fp/get-initial-state network/NetworkHistory nil)
+     ::transactions (fp/get-initial-state transactions/TransactionList [])})
 
-  static om/Ident
+  static fp/Ident
   (ident [_ props] [::id (::id props)])
 
-  static om/IQuery
+  static fp/IQuery
   (query [_] [::tab ::id
-              {::app-state (om/get-query data-watcher/DataWatcher)}
-              {::element (om/get-query element/Panel)}
-              {::network (om/get-query network/NetworkHistory)}
-              {::transactions (om/get-query transactions/TransactionList)}])
+              {::app-state (fp/get-query data-watcher/DataWatcher)}
+              {::element (fp/get-query element/Panel)}
+              {::network (fp/get-query network/NetworkHistory)}
+              {::transactions (fp/get-query transactions/TransactionList)}])
 
   static css/CSS
   (local-rules [_] [[:.container {:display        "flex"
@@ -66,7 +65,7 @@
 
   Object
   (render [this]
-    (let [{::keys   [app-state tab element network transactions]} (om/props this)
+    (let [{::keys   [app-state tab element network transactions]} (fp/props this)
           css      (css/get-classnames Inspector)
           tab-item (fn [{:keys [title html-title disabled? page]}]
                      (dom/div #js {:className (cond-> (:tab css)
@@ -104,4 +103,4 @@
           (dom/div #js {:className (:tab-content css)}
             "Invalid page " (pr-str tab)))))))
 
-(def inspector (om/factory Inspector))
+(def inspector (fp/factory Inspector))

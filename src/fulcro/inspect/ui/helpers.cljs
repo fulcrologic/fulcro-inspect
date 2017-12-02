@@ -2,9 +2,9 @@
   (:require [fulcro-css.css :as css]
             [clojure.string :as str]
             [goog.object :as gobj]
-            [om.next :as om]
-            [om.next.protocols :as p]
-            [om.util :as util]))
+            [fulcro.client.primitives :as fp]
+            [fulcro.client.impl.protocols :as p]
+            [fulcro.util :as util]))
 
 (defn js-get-in [x path]
   (gobj/getValueByKeys x (clj->js path)))
@@ -27,34 +27,34 @@
 
 (defn props
   [comp defaults]
-  (props->html defaults (om/props comp)))
+  (props->html defaults (fp/props comp)))
 
 (defn props+classes [comp defaults]
-  (let [props (om/props comp)
-        css   (-> comp om/react-type css/get-classnames)]
+  (let [props (fp/props comp)
+        css   (-> comp fp/react-type css/get-classnames)]
     (props->html defaults
                  (expand-classes css (:fulcro.inspect.ui.core/classes props))
                  props)))
 
 (defn computed-factory [class]
-  (let [factory (om/factory class)]
+  (let [factory (fp/factory class)]
     (fn [props computed]
-      (factory (om/computed props computed)))))
+      (factory (fp/computed props computed)))))
 
 ;;;; container factory
 
-(def ^:dynamic *instrument* (deref #'om/*instrument*))
-(def ^:dynamic *reconciler* (deref #'om/*reconciler*))
-(def ^:dynamic *parent* (deref #'om/*parent*))
-(def ^:dynamic *shared* (deref #'om/*shared*))
-(def ^:dynamic *depth* (deref #'om/*depth*))
+(def ^:dynamic *instrument* (deref #'fp/*instrument*))
+(def ^:dynamic *reconciler* (deref #'fp/*reconciler*))
+(def ^:dynamic *parent* (deref #'fp/*parent*))
+(def ^:dynamic *shared* (deref #'fp/*shared*))
+(def ^:dynamic *depth* (deref #'fp/*depth*))
 
-(def compute-react-key (deref #'om/compute-react-key))
-(def om-props (deref #'om/om-props))
+(def compute-react-key (deref #'fp/compute-react-key))
+(def om-props (deref #'fp/om-props))
 
 (defn container-factory
   "Create a factory constructor from a component class created with
-   om.next/defui. Different from the default Om.next one, this will expand
+   fulcro.client.primitives/defui. Different from the default Om.next one, this will expand
    the children, this enables the children to be present without requiring
    each of then to specify a react key to avoid react key warnings."
   ([class] (container-factory class nil))

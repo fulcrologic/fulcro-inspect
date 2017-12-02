@@ -1,13 +1,12 @@
 (ns fulcro.inspect.ui.network
   (:require [garden.selectors :as gs]
-            [fulcro.client.core :as fulcro :refer-macros [defsc]]
             [fulcro.client.mutations :as mutations :refer-macros [defmutation]]
             [fulcro-css.css :as css]
             [fulcro.inspect.helpers :as h]
             [fulcro.inspect.ui.core :as ui]
             [fulcro.inspect.ui.data-viewer :as data-viewer]
-            [om.dom :as dom]
-            [om.next :as om]))
+            [fulcro.client.dom :as dom]
+            [fulcro.client.primitives :as fp]))
 
 (declare Request)
 
@@ -20,7 +19,7 @@
 (defmutation request-finish [{::keys [response-edn error] :as request}]
   (action [env]
     (let [{:keys [ref state] :as env} env]
-      (when (get-in @state (om/ident Request request)) ; prevent adding back a done request
+      (when (get-in @state (fp/ident Request request)) ; prevent adding back a done request
         (when (get-in @state (conj ref :ui/request-edn-view))
           (if response-edn
             (h/create-entity! env data-viewer/DataViewer response-edn :set :ui/response-edn-view))
@@ -32,7 +31,7 @@
 (defmutation select-request [{::keys [request-edn response-edn error] :as request}]
   (action [env]
     (let [{:keys [state] :as env} env
-          req-ref (om/ident Request request)]
+          req-ref (fp/ident Request request)]
       (if-not (get-in @state (conj req-ref :ui/request-edn-view))
         (let [env' (assoc env :ref req-ref)]
           (h/create-entity! env' data-viewer/DataViewer request-edn :set :ui/request-edn-view)
@@ -47,18 +46,18 @@
     (h/swap-entity! env assoc ::active-request nil ::remotes #{})
     (h/remove-edge! env ::requests)))
 
-(om/defui ^:once RequestDetails
-  static fulcro/InitialAppState
+(fp/defui ^:once RequestDetails
+  static fp/InitialAppState
   (initial-state [_ _] {})
 
-  static om/Ident
+  static fp/Ident
   (ident [_ props] [::request-id (::request-id props)])
 
-  static om/IQuery
+  static fp/IQuery
   (query [_] [::request-id ::request-edn ::response-edn ::request-started-at ::request-finished-at ::error
-              {:ui/request-edn-view (om/get-query data-viewer/DataViewer)}
-              {:ui/response-edn-view (om/get-query data-viewer/DataViewer)}
-              {:ui/error-view (om/get-query data-viewer/DataViewer)}])
+              {:ui/request-edn-view (fp/get-query data-viewer/DataViewer)}
+              {:ui/response-edn-view (fp/get-query data-viewer/DataViewer)}
+              {:ui/error-view (fp/get-query data-viewer/DataViewer)}])
 
   static css/CSS
   (local-rules [_] [])
@@ -66,7 +65,7 @@
 
   Object
   (render [this]
-    (let [{:ui/keys [request-edn-view response-edn-view error-view]} (om/props this)
+    (let [{:ui/keys [request-edn-view response-edn-view error-view]} (fp/props this)
           css (css/get-classnames RequestDetails)]
       (dom/div #js {:className (:container css)}
         (ui/info {::ui/title "Request"}
@@ -80,21 +79,21 @@
           (ui/info {::ui/title "Error"}
             (data-viewer/data-viewer error-view)))))))
 
-(def request-details (om/factory RequestDetails))
+(def request-details (fp/factory RequestDetails))
 
-(om/defui ^:once Request
-  static fulcro/InitialAppState
+(fp/defui ^:once Request
+  static fp/InitialAppState
   (initial-state [_ {::keys [request-edn] :as props}]
     (merge (cond-> {::request-id         (random-uuid)
                     ::request-started-at (js/Date.)}
              request-edn
-             (assoc ::request-edn-row-view (fulcro/get-initial-state data-viewer/DataViewer request-edn)))
+             (assoc ::request-edn-row-view (fp/get-initial-state data-viewer/DataViewer request-edn)))
            props))
 
-  static om/Ident
+  static fp/Ident
   (ident [_ props] [::request-id (::request-id props)])
 
-  static om/IQuery
+  static fp/IQuery
   (query [_] [::request-id ::request-edn ::request-edn-row-view ::response-edn ::remote
               ::request-started-at ::request-finished-at ::error])
 
@@ -123,8 +122,8 @@
   Object
   (render [this]
     (let [{::keys [request-edn-row-view response-edn error remote
-                   request-started-at request-finished-at] :as props} (om/props this)
-          {::keys [columns on-select selected? show-remote?]} (om/get-computed props)
+                   request-started-at request-finished-at] :as props} (fp/props this)
+          {::keys [columns on-select selected? show-remote?]} (fp/get-computed props)
           css (css/get-classnames Request)]
       (dom/div (cond-> {:className (cond-> (:row css)
                                      error (str " " (:error css))
@@ -157,22 +156,22 @@
             (str (- (.getTime request-finished-at) (.getTime request-started-at)) " ms")
             (dom/span #js {:className (:pending css)} "(pending...)")))))))
 
-(def request (om/factory Request))
+(def request (fp/factory Request))
 
-(om/defui ^:once NetworkHistory
-  static fulcro/InitialAppState
+(fp/defui ^:once NetworkHistory
+  static fp/InitialAppState
   (initial-state [_ _]
     {::history-id (random-uuid)
      ::remotes    #{}
      ::requests   []})
 
-  static om/Ident
+  static fp/Ident
   (ident [_ props] [::history-id (::history-id props)])
 
-  static om/IQuery
+  static fp/IQuery
   (query [_] [::history-id ::remotes
-              {::requests (om/get-query Request)}
-              {::active-request (om/get-query RequestDetails)}])
+              {::requests (fp/get-query Request)}
+              {::active-request (fp/get-query RequestDetails)}])
 
   static css/CSS
   (local-rules [_]
@@ -207,7 +206,7 @@
 
   Object
   (render [this]
-    (let [{::keys [requests active-request remotes]} (om/props this)
+    (let [{::keys [requests active-request remotes]} (fp/props this)
           css          (css/get-classnames NetworkHistory)
           show-remote? (> (count remotes) 1)
           columns      {:started 100
@@ -217,7 +216,7 @@
       (dom/div #js {:className (:container css)}
         (ui/toolbar {}
           (ui/toolbar-action {:title   "Clear requests"
-                              :onClick #(om/transact! this [`(clear-requests {})])}
+                              :onClick #(fp/transact! this [`(clear-requests {})])}
             (ui/icon :do_not_disturb)))
 
         (dom/div #js {:className (:table css)}
@@ -234,7 +233,7 @@
               (->> requests
                    rseq
                    (mapv (comp request
-                               #(om/computed %
+                               #(fp/computed %
                                   {::show-remote?
                                    show-remote?
 
@@ -245,7 +244,7 @@
                                    (= (::request-id active-request) (::request-id %))
 
                                    ::on-select
-                                   (fn [r] (om/transact! this `[(select-request ~r)]))})))))))
+                                   (fn [r] (fp/transact! this `[(select-request ~r)]))})))))))
 
         (if active-request
           (ui/focus-panel {}
@@ -257,4 +256,4 @@
             (ui/focus-panel-content {}
               (request-details active-request))))))))
 
-(def network-history (om/factory NetworkHistory))
+(def network-history (fp/factory NetworkHistory))

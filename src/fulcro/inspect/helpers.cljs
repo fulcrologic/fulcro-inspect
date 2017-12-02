@@ -1,6 +1,6 @@
 (ns fulcro.inspect.helpers
-  (:require [fulcro.client.core :as fulcro]
-            [om.next :as om]))
+  (:require [fulcro.client.primitives :as fp]
+            [fulcro.client :as fulcro]))
 
 (defn- om-ident? [x]
   (and (vector? x)
@@ -9,14 +9,14 @@
 
 (defn query-component
   ([this]
-   (let [component (om/react-type this)
-         ref       (om/get-ident this)]
-     (-> (om/transact! this [{ref (om/get-query component)}])
+   (let [component (fp/react-type this)
+         ref       (fp/get-ident this)]
+     (-> (fp/transact! this [{ref (fp/get-query component)}])
          (get ref))))
   ([this focus-path]
-   (let [component (om/react-type this)
-         ref       (om/get-ident this)]
-     (-> (om/transact! this [{ref (om/focus-query (om/get-query component) focus-path)}])
+   (let [component (fp/react-type this)
+         ref       (fp/get-ident this)]
+     (-> (fp/transact! this [{ref (fp/focus-query (fp/get-query component) focus-path)}])
          (get-in (concat [ref] focus-path))))))
 
 (defn swap-entity! [{:keys [state ref]} & args]
@@ -42,13 +42,13 @@
   "Starting from a denormalized entity map, normalizes using class x.
    It assumes the entity is going to be normalized too, then get all
    normalized data and merge back into the app state and idents."
-  (let [idents     (-> (om/tree->db
+  (let [idents     (-> (fp/tree->db
                          (reify
-                           om/IQuery
-                           (query [_] [{::root (om/get-query x)}]))
+                           fp/IQuery
+                           (query [_] [{::root (fp/get-query x)}]))
                          {::root data} true)
-                       (dissoc ::root ::om/tables))
-        root-ident (om/ident x data)
+                       (dissoc ::root ::fp/tables))
+        root-ident (fp/ident x data)
         state      (merge-with (partial merge-with merge) state idents)]
     (if (seq named-parameters)
       (apply fulcro/integrate-ident state root-ident named-parameters)
@@ -60,7 +60,7 @@
                               (apply concat))
         data'            (if (-> data meta ::initialized)
                            data
-                           (fulcro/get-initial-state x data))]
+                           (fp/get-initial-state x data))]
     (apply swap! state merge-entity x data' named-parameters)))
 
 (defn- dissoc-in [m path]

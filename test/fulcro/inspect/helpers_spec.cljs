@@ -1,9 +1,9 @@
 (ns fulcro.inspect.helpers-spec
   (:require
-    [fulcro.client.core :as fulcro]
+    [fulcro.client :as fulcro]
     [fulcro-spec.core :refer [specification behavior component assertions]]
     [fulcro.inspect.helpers :as h]
-    [om.next :as om]))
+    [fulcro.client.primitives :as om]))
 
 (om/defui ^:once Child
   static om/Ident
