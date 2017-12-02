@@ -2,19 +2,19 @@
   (:require
     [cljs.reader :refer [read-string]]
     [fulcro-css.css :as css]
-    [fulcro.client :as fulcro]
     [fulcro.client.mutations :as mutations]
     [fulcro.inspect.ui.core :as ui]
     [fulcro.inspect.ui.inspector :as inspector]
     [fulcro.client.dom :as dom]
-    [fulcro.client.primitives :as fp]))
+    [fulcro.client.primitives :as fp]
+    [fulcro.inspect.helpers :as h]))
 
 (mutations/defmutation add-inspector [inspector]
   (action [env]
-    (let [{:keys [ref state reconciler]} env
+    (let [{:keys [ref state]} env
           inspector-ref (fp/ident inspector/Inspector inspector)
           current       (get-in @state (conj ref ::current-app))]
-      (fulcro/merge-state! reconciler inspector/Inspector inspector :append (conj ref ::inspectors))
+      (swap! state h/merge-entity inspector/Inspector inspector :append (conj ref ::inspectors))
       (if (nil? current)
         (swap! state update-in ref assoc ::current-app inspector-ref)))))
 
@@ -78,4 +78,4 @@
                                  :value app-id}
                   app-id)))))))))
 
-(def multi-inspector (fp/factory MultiInspector))
+(def multi-inspector (fp/factory MultiInspector {:keyfn ::multi-inspector}))
