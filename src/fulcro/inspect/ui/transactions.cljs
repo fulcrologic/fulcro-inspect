@@ -52,7 +52,7 @@
         (dom/div #js {:className (:timestamp css)} (ui/print-timestamp timestamp))
         (data-viewer/data-viewer (assoc tx-row-view ::data-viewer/static? true))))))
 
-(let [factory (fp/factory TransactionRow)]
+(let [factory (fp/factory TransactionRow {:keyfn ::tx-id})]
   (defn transaction-row [props computed]
     (factory (fp/computed props computed))))
 
@@ -128,7 +128,7 @@
         (ui/info {::ui/title "State after"}
           (data-viewer/data-viewer new-state-view))))))
 
-(def transaction (fp/factory Transaction))
+(def transaction (fp/factory Transaction {:keyfn ::tx-id}))
 
 (defmutation add-tx [tx]
   (action [env]
@@ -218,4 +218,4 @@
             (ui/focus-panel-content {}
               (transaction active-tx))))))))
 
-(def transaction-list (fp/factory TransactionList))
+(def transaction-list (fp/factory TransactionList {:keyfn ::tx-list-id}))
