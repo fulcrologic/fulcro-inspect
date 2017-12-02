@@ -3,6 +3,7 @@
             [fulcro-css.css :as css]
             [fulcro.ui.icons :as icons]
             [fulcro.inspect.ui.helpers :as h]
+            [garden.selectors :as gs]
             [om.dom :as dom]))
 
 (def mono-font-family "monospace")
@@ -50,10 +51,11 @@
       n)))
 
 (defn print-timestamp [date]
-  (str (add-zeros (.getHours date) 2) ":"
-       (add-zeros (.getMinutes date) 2) ":"
-       (add-zeros (.getSeconds date) 2) ":"
-       (add-zeros (.getMilliseconds date) 3)))
+  (if date
+    (str (add-zeros (.getHours date) 2) ":"
+         (add-zeros (.getMinutes date) 2) ":"
+         (add-zeros (.getSeconds date) 2) ":"
+         (add-zeros (.getMilliseconds date) 3))))
 
 ;;; elements
 
@@ -118,17 +120,32 @@
   (dom/input (h/props->html {:className (:input (css/get-classnames ToolBar))
                              :type      "text"} props)))
 
-(def CSS
-  (reify
-    css/CSS
-    (local-rules [_] [[:.focused-panel {:border-top     "1px solid #a3a3a3"
-                                        :display        "flex"
-                                        :flex-direction "column"
-                                        :height         "50%"}]
-                      [:.focused-container {:flex     "1"
-                                            :overflow "auto"
-                                            :padding  "0 10px"}]])
-    (include-children [_] [ToolBar])))
+(om/defui ^:once CSS
+  static css/CSS
+  (local-rules [_] [[:.focused-panel {:border-top     "1px solid #a3a3a3"
+                                      :display        "flex"
+                                      :flex-direction "column"
+                                      :height         "50%"}]
+                    [:.focused-container {:flex     "1"
+                                          :overflow "auto"
+                                          :padding  "0 10px"}]
+
+                    [:.info-group css-info-group
+                     [(gs/& gs/first-child) {:border-top "0"}]]
+                    [:.info-label css-info-label]
+                    [:.ident {:padding     "5px 6px"
+                              :background  "#f3f3f3"
+                              :color       "#424242"
+                              :display     "inline-block"
+                              :font-family mono-font-family
+                              :font-size   label-font-size}]
+                    [:.display-name {:background  "#e5efff"
+                                     :color       "#051d38"
+                                     :display     "inline-block"
+                                     :padding     "4px 8px"
+                                     :font-family mono-font-family
+                                     :font-size   "14px"}]])
+  (include-children [_] [ToolBar]))
 
 (def scss (css/get-classnames CSS))
 
@@ -141,3 +158,17 @@
   (apply dom/div (h/props->html {:className (:focused-container scss)}
                                 props)
     children))
+
+(defn info [{::keys [title] :as props} & children]
+  (apply dom/div (h/props->html {:className (:info-group scss)} props)
+    (if title
+      (dom/div #js {:className (:info-label scss)} title))
+    children))
+
+(defn ident [props ref]
+  (dom/div (h/props->html {:className (:ident scss)} props)
+    (pr-str ref)))
+
+(defn comp-display-name [props display-name]
+  (dom/div (h/props->html {:className (:display-name scss)} props)
+    (str display-name)))

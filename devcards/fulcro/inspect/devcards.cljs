@@ -4,6 +4,7 @@
             [fulcro.inspect.core]
             [fulcro.inspect.ui.data-viewer-cards]
             [fulcro.inspect.ui.data-watcher-cards]
+            [fulcro.inspect.ui.element-cards]
             [fulcro.inspect.ui.network-cards]
             [fulcro.inspect.ui.transactions-cards]
             [fulcro-css.css :as css]))

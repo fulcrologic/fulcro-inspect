@@ -37,12 +37,6 @@
                      [:&:hover {:background ui/color-row-hover}]
                      [:&.selected {:background ui/color-row-selected}]]
 
-                    [:.ident {:font-family ui/label-font-family
-                              :font-size   ui/label-font-size
-                              :align-self  "flex-end"
-                              :padding     "3px 6px"
-                              :background  "#f3f3f3"
-                              :color       "#424242"}]
                     [:.timestamp ui/css-timestamp]])
   (include-children [_] [data-viewer/DataViewer])
 
@@ -93,16 +87,7 @@
      {:ui/diff-rem-view (om/get-query data-viewer/DataViewer)}])
 
   static css/CSS
-  (local-rules [_] [[:.container {:height "100%"}]
-                    [:.ident {:align-self  "flex-end"
-                              :padding     "5px 6px"
-                              :background  "#f3f3f3"
-                              :color       "#424242"
-                              :display     "inline-block"
-                              :font-family ui/mono-font-family
-                              :font-size   ui/label-font-size}]
-                    [:.group ui/css-info-group]
-                    [:.label ui/css-info-label]])
+  (local-rules [_] [[:.container {:height "100%"}]])
   (include-children [_] [data-viewer/DataViewer])
 
   Object
@@ -114,43 +99,34 @@
            :as      props} (om/props this)
           css (css/get-classnames Transaction)]
       (dom/div #js {:className (:container css)}
-        (dom/div #js {:className (:group css)}
-          (dom/div #js {:className (:label css)} "Ref")
-          (dom/div #js {:className (:ident css)} (pr-str ref)))
+        (ui/info {::ui/title "Ref"}
+          (ui/ident {} ref))
 
-        (dom/div #js {:className (:group css)}
-          (dom/div #js {:className (:label css)} "Transaction")
+        (ui/info {::ui/title "Transaction"}
           (data-viewer/data-viewer tx-view))
 
-        (dom/div #js {:className (:group css)}
-          (dom/div #js {:className (:label css)} "Response")
+        (ui/info {::ui/title "Response"}
           (data-viewer/data-viewer ret-view))
 
         (if (seq sends)
-          (dom/div #js {:className (:group css)}
-            (dom/div #js {:className (:label css)} "Sends")
+          (ui/info {::ui/title "Sends"}
             (data-viewer/data-viewer sends-view)))
 
-        (dom/div #js {:className (:group css)}
-          (dom/div #js {:className (:label css)} "Diff added")
+        (ui/info {::ui/title "Diff added"}
           (data-viewer/data-viewer diff-add-view))
 
-        (dom/div #js {:className (:group css)}
-          (dom/div #js {:className (:label css)} "Diff removed")
+        (ui/info {::ui/title "Diff removed"}
           (data-viewer/data-viewer diff-rem-view))
 
         (if component
-          (dom/div #js {:className (:group css)}
-            (dom/div #js {:className (:label css)} "Component")
-            (dom/div #js {:className (:ident css)}
+          (ui/info {::ui/title "Component"}
+            (ui/comp-display-name {}
               (gobj/get (om/react-type component) "displayName"))))
 
-        (dom/div #js {:className (:group css)}
-          (dom/div #js {:className (:label css)} "State before")
+        (ui/info {::ui/title "State before"}
           (data-viewer/data-viewer old-state-view))
 
-        (dom/div #js {:className (:group css)}
-          (dom/div #js {:className (:label css)} "State after")
+        (ui/info {::ui/title "State after"}
           (data-viewer/data-viewer new-state-view))))))
 
 (def transaction (om/factory Transaction))
@@ -211,7 +187,7 @@
     (let [{::keys [tx-list active-tx tx-filter]} (om/props this)
           css     (css/get-classnames TransactionList)
           tx-list (if (seq tx-filter)
-                    (filter #(str/includes? (-> % :tx pr-str) tx-filter) tx-list)
+                    (filterv #(str/includes? (-> % :tx pr-str) tx-filter) tx-list)
                     tx-list)]
       (dom/div #js {:className (:container css)}
         (ui/toolbar {}

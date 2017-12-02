@@ -250,7 +250,6 @@
                    :align-items "flex-start"}]
      [:.list-item-index {:background    "#dddddd"
                          :border-right  "2px solid rgba(100, 100, 100, 0.2)"
-                         :text-align    "right"
                          :min-width     "35px"
                          :margin-bottom "1px"
                          :margin-right  "5px"

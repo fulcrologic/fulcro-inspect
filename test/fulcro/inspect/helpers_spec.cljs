@@ -23,6 +23,26 @@
   (query [_] [:container/id
               {:child (om/get-query Child)}]))
 
+(specification "resolve-path"
+  (assertions
+    (h/resolve-path {:id {123 {:other [:id 456]}
+                          456 {:a "x"}}}
+      [:id])
+    => [:id]
+    (h/resolve-path {:id {123 {:other [:id 456]}
+                          456 {:a "x"}}}
+      [:id 123])
+    => [:id 123]
+    (h/resolve-path {:id {123 {:other [:id 456]}
+                          456 {:a "x"}}}
+      [:id 123 :other])
+    => [:id 456]
+    (h/resolve-path {:id {123 {:other [:id 456]}
+                          456 {:a "x"
+                               :b [:id2 333]}}}
+      [:id 123 :other :b :done])
+    => [:id2 333 :done]))
+
 (specification "merge-entity"
   (assertions
     (h/merge-entity {} Container {:container/id "cont"
