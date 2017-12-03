@@ -3,30 +3,29 @@
     [clojure.data :as data]
     [clojure.string :as str]
     [fulcro-css.css :as css]
-    [fulcro.client.core :as fulcro]
     [fulcro.client.mutations :as mutations :refer-macros [defmutation]]
     [fulcro.inspect.helpers :as h]
     [fulcro.inspect.ui.core :as ui]
     [fulcro.inspect.ui.data-viewer :as data-viewer]
     [goog.object :as gobj]
-    [om.dom :as dom]
-    [om.next :as om]))
+    [fulcro.client.dom :as dom]
+    [fulcro.client.primitives :as fp]))
 
-(om/defui ^:once TransactionRow
-  static fulcro/InitialAppState
+(fp/defui ^:once TransactionRow
+  static fp/InitialAppState
   (initial-state [_ {:keys [tx] :as transaction}]
     (merge {::tx-id         (random-uuid)
             ::timestamp     (js/Date.)
-            :ui/tx-row-view (fulcro/get-initial-state data-viewer/DataViewer tx)}
+            :ui/tx-row-view (fp/get-initial-state data-viewer/DataViewer tx)}
            transaction))
 
-  static om/Ident
+  static fp/Ident
   (ident [_ props] [::tx-id (::tx-id props)])
 
-  static om/IQuery
+  static fp/IQuery
   (query [_]
-    [::tx-id ::timestamp :ref :tx
-     {:ui/tx-row-view (om/get-query data-viewer/DataViewer)}])
+    [::tx-id :ref :tx :fulcro.history/client-time
+     {:ui/tx-row-view (fp/get-query data-viewer/DataViewer)}])
 
   static css/CSS
   (local-rules [_] [[:.container {:display       "flex"
@@ -42,94 +41,84 @@
 
   Object
   (render [this]
-    (let [{:ui/keys [tx-row-view]
-           ::keys   [timestamp]
-           :as      props} (om/props this)
-          {::keys [on-select selected?]} (om/get-computed props)
+    (let [{:ui/keys             [tx-row-view]
+           :fulcro.history/keys [client-time]
+           :as                  props} (fp/props this)
+          {::keys [on-select selected?]} (fp/get-computed props)
           css (css/get-classnames TransactionRow)]
       (dom/div #js {:className (cond-> (:container css)
                                  selected? (str " " (:selected css)))
                     :onClick   #(if on-select (on-select props))}
-        (dom/div #js {:className (:timestamp css)} (ui/print-timestamp timestamp))
+        (dom/div #js {:className (:timestamp css)} (ui/print-timestamp client-time))
         (data-viewer/data-viewer (assoc tx-row-view ::data-viewer/static? true))))))
 
-(let [factory (om/factory TransactionRow)]
+(let [factory (fp/factory TransactionRow {:keyfn ::tx-id})]
   (defn transaction-row [props computed]
-    (factory (om/computed props computed))))
+    (factory (fp/computed props computed))))
 
-(om/defui ^:once Transaction
-  static fulcro/InitialAppState
-  (initial-state [_ {:keys [tx ret sends old-state new-state] :as transaction}]
-    (merge {::tx-id            (random-uuid)
-            ::timestamp        (js/Date.)
-            :ui/tx-view        (-> (fulcro/get-initial-state data-viewer/DataViewer tx)
-                                   (assoc ::data-viewer/expanded {[] true}))
-            :ui/tx-row-view    (fulcro/get-initial-state data-viewer/DataViewer tx)
-            :ui/ret-view       (fulcro/get-initial-state data-viewer/DataViewer ret)
-            :ui/sends-view     (fulcro/get-initial-state data-viewer/DataViewer sends)
-            :ui/old-state-view (fulcro/get-initial-state data-viewer/DataViewer old-state)
-            :ui/new-state-view (fulcro/get-initial-state data-viewer/DataViewer new-state)}
-           transaction))
+(fp/defsc Transaction
+  [this {:keys    [sends ref component]
+         :ui/keys [tx-view ret-view sends-view
+                   old-state-view new-state-view
+                   diff-add-view diff-rem-view]} computed children]
+  {:initial-state (fn [{:keys                [sends]
+                        :fulcro.history/keys [tx tx-result db-before db-after]
+                        :as                  transaction}]
+                    (merge (fp/get-initial-state TransactionRow transaction)
+                           transaction
+                           {::tx-id            (random-uuid)
+                            :ui/tx-view        (-> (fp/get-initial-state data-viewer/DataViewer tx)
+                                                   (assoc ::data-viewer/expanded {[] true}))
+                            :ui/ret-view       (fp/get-initial-state data-viewer/DataViewer tx-result)
+                            :ui/sends-view     (fp/get-initial-state data-viewer/DataViewer sends)
+                            :ui/old-state-view (fp/get-initial-state data-viewer/DataViewer db-before)
+                            :ui/new-state-view (fp/get-initial-state data-viewer/DataViewer db-after)}))
+   :ident         [::tx-id ::tx-id]
+   :query         [::tx-id ::timestamp :tx :ret :sends :old-state :new-state :ref :component
 
-  static om/Ident
-  (ident [_ props] [::tx-id (::tx-id props)])
+                   {:ui/tx-view (fp/get-query data-viewer/DataViewer)}
+                   {:ui/ret-view (fp/get-query data-viewer/DataViewer)}
+                   {:ui/tx-row-view (fp/get-query data-viewer/DataViewer)}
+                   {:ui/sends-view (fp/get-query data-viewer/DataViewer)}
+                   {:ui/old-state-view (fp/get-query data-viewer/DataViewer)}
+                   {:ui/new-state-view (fp/get-query data-viewer/DataViewer)}
+                   {:ui/diff-add-view (fp/get-query data-viewer/DataViewer)}
+                   {:ui/diff-rem-view (fp/get-query data-viewer/DataViewer)}]
+   :css           [[:.container {:height "100%"}]]
+   :css-include   [data-viewer/DataViewer]}
+  (let [css (css/get-classnames Transaction)]
+    (dom/div #js {:className (:container css)}
+      (ui/info {::ui/title "Ref"}
+        (ui/ident {} ref))
 
-  static om/IQuery
-  (query [_]
-    [::tx-id ::timestamp :tx :ret :sends :old-state :new-state :ref :component
-     {:ui/tx-view (om/get-query data-viewer/DataViewer)}
-     {:ui/ret-view (om/get-query data-viewer/DataViewer)}
-     {:ui/tx-row-view (om/get-query data-viewer/DataViewer)}
-     {:ui/sends-view (om/get-query data-viewer/DataViewer)}
-     {:ui/old-state-view (om/get-query data-viewer/DataViewer)}
-     {:ui/new-state-view (om/get-query data-viewer/DataViewer)}
-     {:ui/diff-add-view (om/get-query data-viewer/DataViewer)}
-     {:ui/diff-rem-view (om/get-query data-viewer/DataViewer)}])
+      (ui/info {::ui/title "Transaction"}
+        (data-viewer/data-viewer tx-view))
 
-  static css/CSS
-  (local-rules [_] [[:.container {:height "100%"}]])
-  (include-children [_] [data-viewer/DataViewer])
+      (ui/info {::ui/title "Response"}
+        (data-viewer/data-viewer ret-view))
 
-  Object
-  (render [this]
-    (let [{:keys    [sends ref component]
-           :ui/keys [tx-view ret-view sends-view
-                     old-state-view new-state-view
-                     diff-add-view diff-rem-view]
-           :as      props} (om/props this)
-          css (css/get-classnames Transaction)]
-      (dom/div #js {:className (:container css)}
-        (ui/info {::ui/title "Ref"}
-          (ui/ident {} ref))
+      (if (seq sends)
+        (ui/info {::ui/title "Sends"}
+          (data-viewer/data-viewer sends-view)))
 
-        (ui/info {::ui/title "Transaction"}
-          (data-viewer/data-viewer tx-view))
+      (ui/info {::ui/title "Diff added"}
+        (data-viewer/data-viewer diff-add-view))
 
-        (ui/info {::ui/title "Response"}
-          (data-viewer/data-viewer ret-view))
+      (ui/info {::ui/title "Diff removed"}
+        (data-viewer/data-viewer diff-rem-view))
 
-        (if (seq sends)
-          (ui/info {::ui/title "Sends"}
-            (data-viewer/data-viewer sends-view)))
+      (if component
+        (ui/info {::ui/title "Component"}
+          (ui/comp-display-name {}
+            (gobj/get (fp/react-type component) "displayName"))))
 
-        (ui/info {::ui/title "Diff added"}
-          (data-viewer/data-viewer diff-add-view))
+      (ui/info {::ui/title "State before"}
+        (data-viewer/data-viewer old-state-view))
 
-        (ui/info {::ui/title "Diff removed"}
-          (data-viewer/data-viewer diff-rem-view))
+      (ui/info {::ui/title "State after"}
+        (data-viewer/data-viewer new-state-view)))))
 
-        (if component
-          (ui/info {::ui/title "Component"}
-            (ui/comp-display-name {}
-              (gobj/get (om/react-type component) "displayName"))))
-
-        (ui/info {::ui/title "State before"}
-          (data-viewer/data-viewer old-state-view))
-
-        (ui/info {::ui/title "State after"}
-          (data-viewer/data-viewer new-state-view))))))
-
-(def transaction (om/factory Transaction))
+(def transaction (fp/factory Transaction {:keyfn ::tx-id}))
 
 (defmutation add-tx [tx]
   (action [env]
@@ -139,7 +128,7 @@
 (defmutation select-tx [tx]
   (action [env]
     (let [{:keys [state ref] :as env} env
-          tx-ref (om/ident Transaction tx)
+          tx-ref (fp/ident Transaction tx)
           {:keys [ui/diff-computed? old-state new-state]} (get-in @state tx-ref)]
       (if-not diff-computed?
         (let [[add rem] (data/diff new-state old-state)
@@ -157,20 +146,20 @@
       (if (seq tx-refs)
         (swap! state #(reduce h/deep-remove-ref % tx-refs))))))
 
-(om/defui ^:once TransactionList
-  static fulcro/InitialAppState
+(fp/defui ^:once TransactionList
+  static fp/InitialAppState
   (initial-state [_ _]
     {::tx-list-id (random-uuid)
      ::tx-list    []
      ::tx-filter  ""})
 
-  static om/Ident
+  static fp/Ident
   (ident [_ props] [::tx-list-id (::tx-list-id props)])
 
-  static om/IQuery
+  static fp/IQuery
   (query [_] [::tx-list-id ::tx-filter
-              {::active-tx (om/get-query Transaction)}
-              {::tx-list (om/get-query TransactionRow)}])
+              {::active-tx (fp/get-query Transaction)}
+              {::tx-list (fp/get-query TransactionRow)}])
 
   static css/CSS
   (local-rules [_] [[:.container {:display        "flex"
@@ -184,7 +173,7 @@
 
   Object
   (render [this]
-    (let [{::keys [tx-list active-tx tx-filter]} (om/props this)
+    (let [{::keys [tx-list active-tx tx-filter]} (fp/props this)
           css     (css/get-classnames TransactionList)
           tx-list (if (seq tx-filter)
                     (filterv #(str/includes? (-> % :tx pr-str) tx-filter) tx-list)
@@ -192,7 +181,7 @@
       (dom/div #js {:className (:container css)}
         (ui/toolbar {}
           (ui/toolbar-action {:title   "Clear transactions"
-                              :onClick #(om/transact! this [`(clear-transactions {})])}
+                              :onClick #(fp/transact! this [`(clear-transactions {})])}
             (ui/icon :do_not_disturb))
           (ui/toolbar-separator)
           (ui/toolbar-text-field {:placeholder "Filter"
@@ -205,7 +194,7 @@
                  (mapv #(transaction-row %
                           {::on-select
                            (fn [tx]
-                             (om/transact! this [`(select-tx ~tx)]))
+                             (fp/transact! this [`(select-tx ~tx)]))
 
                            ::selected?
                            (= (::tx-id active-tx) (::tx-id %))})))))
@@ -219,4 +208,4 @@
             (ui/focus-panel-content {}
               (transaction active-tx))))))))
 
-(def transaction-list (om/factory TransactionList))
+(def transaction-list (fp/factory TransactionList {:keyfn ::tx-list-id}))

@@ -3,7 +3,7 @@
     [cljs.reader :refer [read-string]]
     [goog.functions :as gfun]
     [goog.object :as gobj]
-    [fulcro.client.core :as fulcro]
+    [fulcro.client :as fulcro]
     [fulcro.client.mutations :as mutations :refer-macros [defmutation]]
     [fulcro.client.network :as f.network]
     [fulcro.inspect.ui.data-viewer :as data-viewer]
@@ -15,8 +15,8 @@
     [fulcro.inspect.ui.network :as network]
     [fulcro.inspect.ui.transactions :as transactions]
     [fulcro-css.css :as css]
-    [om.dom :as dom]
-    [om.next :as om]
+    [fulcro.client.dom :as dom]
+    [fulcro.client.primitives :as fp]
     [garden.core :as g]))
 
 (defn set-style! [node prop value]
@@ -29,43 +29,43 @@
 
 (defn start-frame [this]
   (let [frame-body (.-body (.-contentDocument (js/ReactDOM.findDOMNode this)))
-        {:keys [child]} (om/props this)
+        {:keys [child]} (fp/props this)
         e1         (.createElement js/document "div")]
     (when (= 0 (gobj/getValueByKeys frame-body #js ["children" "length"]))
       (.appendChild frame-body e1)
       (gobj/set this "frame-component" e1)
       (update-frame-content this child))))
 
-(om/defui IFrame
+(fp/defui IFrame
   Object
   (componentDidMount [this] (start-frame this))
 
   (componentDidUpdate [this _ _]
-    (let [child (:child (om/props this))]
+    (let [child (:child (fp/props this))]
       (update-frame-content this child)))
 
   (render [this]
     (dom/iframe
-      (-> (om/props this)
+      (-> (fp/props this)
           (dissoc :child)
           (assoc :onLoad #(start-frame this))
           clj->js))))
 
-(let [factory (om/factory IFrame)]
+(let [factory (fp/factory IFrame)]
   (defn ui-iframe [props child]
     (factory (assoc props :child child))))
 
-(om/defui ^:once GlobalInspector
-  static fulcro/InitialAppState
+(fp/defui ^:once GlobalInspector
+  static fp/InitialAppState
   (initial-state [_ params] {:ui/size      50
                              :ui/visible?  false
-                             :ui/inspector (fulcro/get-initial-state multi-inspector/MultiInspector params)})
+                             :ui/inspector (fp/get-initial-state multi-inspector/MultiInspector params)})
 
-  static om/Ident
+  static fp/Ident
   (ident [_ props] [::floating-panel "main"])
 
-  static om/IQuery
-  (query [_] [{:ui/inspector (om/get-query multi-inspector/MultiInspector)}
+  static fp/IQuery
+  (query [_] [{:ui/inspector (fp/get-query multi-inspector/MultiInspector)}
               :ui/size :ui/visible?])
 
   static css/CSS
@@ -101,8 +101,8 @@
     (gobj/set this "frame-dom" (js/ReactDOM.findDOMNode (gobj/get this "frame-node"))))
 
   (render [this]
-    (let [{:ui/keys [size visible? inspector]} (om/props this)
-          keystroke (or (om/shared this [:options :launch-keystroke]) "ctrl-f")
+    (let [{:ui/keys [size visible? inspector]} (fp/props this)
+          keystroke (or (fp/shared this [:options :launch-keystroke]) "ctrl-f")
           size      (or size 50)
           css       (css/get-classnames GlobalInspector)]
       (dom/div #js {:className (:reset css)
@@ -141,15 +141,15 @@
               (dom/style #js {:dangerouslySetInnerHTML #js {:__html (g/css (css/get-css multi-inspector/MultiInspector))}})
               (multi-inspector/multi-inspector inspector))))))))
 
-(def global-inspector-view (om/factory GlobalInspector))
+(def global-inspector-view (fp/factory GlobalInspector))
 
-(om/defui ^:once GlobalRoot
-  static fulcro/InitialAppState
+(fp/defui ^:once GlobalRoot
+  static fp/InitialAppState
   (initial-state [_ _] {:ui/react-key (random-uuid)
-                        :ui/root      (fulcro/get-initial-state GlobalInspector {})})
+                        :ui/root      (fp/get-initial-state GlobalInspector {})})
 
-  static om/IQuery
-  (query [_] [{:ui/root (om/get-query GlobalInspector)}
+  static fp/IQuery
+  (query [_] [{:ui/root (fp/get-query GlobalInspector)}
               :ui/react-key])
 
   static css/CSS
@@ -158,7 +158,7 @@
 
   Object
   (render [this]
-    (let [{:keys [ui/react-key ui/root]} (om/props this)]
+    (let [{:keys [ui/react-key ui/root]} (fp/props this)]
       (dom/div #js {:key react-key}
         (global-inspector-view root)))))
 
@@ -178,7 +178,7 @@
        (reset! global-inspector* (start-global-inspector options)))))
 
 (defn update-inspect-state [reconciler app-id state]
-  (om/transact! reconciler [::data-watcher/id [::app-id app-id]]
+  (fp/transact! reconciler [::data-watcher/id [::app-id app-id]]
     [`(data-watcher/update-state ~state) ::data-viewer/content]))
 
 (defn inspect-network-init [network app]
@@ -187,14 +187,14 @@
 (defn inspect-app [app-id target-app]
   (let [inspector     (global-inspector)
         state*        (some-> target-app :reconciler :config :state)
-        new-inspector (-> (fulcro/get-initial-state inspector/Inspector @state*)
+        new-inspector (-> (fp/get-initial-state inspector/Inspector @state*)
                           (assoc ::inspector/id app-id)
                           (assoc-in [::inspector/app-state ::data-watcher/id] [::app-id app-id])
                           (assoc-in [::inspector/network ::network/history-id] [::app-id app-id])
                           (assoc-in [::inspector/element ::element/panel-id] [::app-id app-id])
                           (assoc-in [::inspector/element ::element/target-reconciler] (:reconciler target-app))
                           (assoc-in [::inspector/transactions ::transactions/tx-list-id] [::app-id app-id]))]
-    (om/transact! (:reconciler inspector) [::multi-inspector/multi-inspector "main"]
+    (fp/transact! (:reconciler inspector) [::multi-inspector/multi-inspector "main"]
       [`(multi-inspector/add-inspector ~new-inspector)
        ::inspectors])
 
@@ -241,8 +241,8 @@
   (->TransformNetwork network (assoc options ::app* (atom nil))))
 
 (defn app-id [reconciler]
-  (or (some-> reconciler om/app-state deref ::app-id)
-      (some-> reconciler om/app-root om/react-type (gobj/get "displayName") symbol)))
+  (or (some-> reconciler fp/app-state deref ::app-id)
+      (some-> reconciler fp/app-root fp/react-type (gobj/get "displayName") symbol)))
 
 (defn inspect-network
   ([remote network]
@@ -251,7 +251,7 @@
       (fn [{::keys [request-id app]} edn]
         (let [{:keys [inspector app]} app
               app-id (app-id (:reconciler app))]
-          (om/transact! (:reconciler inspector) [::network/history-id [::app-id app-id]]
+          (fp/transact! (:reconciler inspector) [::network/history-id [::app-id app-id]]
             [`(network/request-start ~{::network/remote      remote
                                        ::network/request-id  request-id
                                        ::network/request-edn edn})]))
@@ -261,7 +261,7 @@
       (fn [{::keys [request-id app]} response]
         (let [{:keys [inspector app]} app
               app-id (app-id (:reconciler app))]
-          (om/transact! (:reconciler inspector) [::network/history-id [::app-id app-id]]
+          (fp/transact! (:reconciler inspector) [::network/history-id [::app-id app-id]]
             [`(network/request-finish ~{::network/request-id   request-id
                                         ::network/response-edn response})]))
         response)
@@ -270,7 +270,7 @@
       (fn [{::keys [request-id app]} error]
         (let [{:keys [inspector app]} app
               app-id (app-id (:reconciler app))]
-          (om/transact! (:reconciler inspector) [::network/history-id [::app-id app-id]]
+          (fp/transact! (:reconciler inspector) [::network/history-id [::app-id app-id]]
             [`(network/request-finish ~{::network/request-id request-id
                                         ::network/error      error})]))
         error)})))
@@ -287,7 +287,7 @@
       :else new-id)))
 
 (defn dedupe-id [id]
-  (let [ids-in-use (some-> (global-inspector) :reconciler om/app-state deref ::inspector/id)]
+  (let [ids-in-use (some-> (global-inspector) :reconciler fp/app-state deref ::inspector/id)]
     (loop [new-id id]
       (if (contains? ids-in-use new-id)
         (recur (inc-id new-id))
@@ -297,7 +297,7 @@
   (let [inspector (global-inspector)
         tx        (merge info (select-keys env [:old-state :new-state :ref :component]))
         app-id    (app-id reconciler)]
-    (om/transact! (:reconciler inspector) [::transactions/tx-list-id [::app-id app-id]]
+    (fp/transact! (:reconciler inspector) [::transactions/tx-list-id [::app-id app-id]]
       [`(transactions/add-tx ~tx) ::transactions/tx-list])))
 
 (defn install [options]
@@ -312,7 +312,7 @@
        ::fulcro/app-started
        (fn [{:keys [reconciler] :as app}]
          (let [id (-> reconciler app-id dedupe-id)]
-           (swap! (-> reconciler om/app-state) assoc ::app-id id)
+           (swap! (-> reconciler fp/app-state) assoc ::app-id id)
            (inspect-app id app))
          app)
 

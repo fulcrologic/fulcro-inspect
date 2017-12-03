@@ -2,8 +2,8 @@
   (:require [cljs.spec.alpha :as s]
             [clojure.string :as str]
             [goog.object :as gobj]
-            [om.dom :as dom]
-            [om.next :as om]))
+            [fulcro.client.dom :as dom]
+            [fulcro.client.primitives :as fp]))
 
 (def KEYS
   {"backspace" 8
@@ -64,18 +64,18 @@
   (= (gobj/get e "keyCode") key-code))
 
 (defn handle-event [this e]
-  (let [{::keys [action]} (om/props this)
+  (let [{::keys [action]} (fp/props this)
         {:keys [matcher]} (gobj/get this "matcher")]
     (if (and (match-key? e matcher)
              (match-modifiers? e matcher))
       (action e))))
 
-(om/defui ^:once KeyListener
+(fp/defui ^:once KeyListener
   Object
   (componentDidMount [this]
-    (if-let [matcher (parse-keystroke (-> this om/props ::keystroke))]
+    (if-let [matcher (parse-keystroke (-> this fp/props ::keystroke))]
       (let [handler #(handle-event this %)
-            {::keys [target event]} (om/props this)
+            {::keys [target event]} (fp/props this)
             target (or target js/document.body)
             event  (or event "keydown")]
         (gobj/set this "matcher" {:handler handler
@@ -84,7 +84,7 @@
 
   (componentWillUnmount [this]
     (if-let [{:keys [handler]} (gobj/get this "matcher")]
-      (let [{::keys [target event]} (om/props this)
+      (let [{::keys [target event]} (fp/props this)
             target (or target js/document.body)
             event  (or event "keydown")]
         (.removeEventListener target event handler))))
@@ -92,4 +92,4 @@
   (render [_]
     (dom/noscript nil)))
 
-(def key-listener (om/factory KeyListener))
+(def key-listener (fp/factory KeyListener))

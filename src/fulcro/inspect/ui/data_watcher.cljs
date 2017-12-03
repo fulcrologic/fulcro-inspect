@@ -1,11 +1,10 @@
 (ns fulcro.inspect.ui.data-watcher
-  (:require [fulcro.client.core :as fulcro]
-            [fulcro.client.mutations :as mutations :refer-macros [defmutation]]
+  (:require [fulcro.client.mutations :as mutations :refer-macros [defmutation]]
             [fulcro.inspect.ui.data-viewer :as f.data-viewer]
             [fulcro.inspect.helpers :as h]
             [fulcro-css.css :as css]
-            [om.dom :as dom]
-            [om.next :as om]))
+            [fulcro.client.dom :as dom]
+            [fulcro.client.primitives :as fp]))
 
 (declare WatchPin)
 
@@ -43,96 +42,75 @@
       (swap! state h/deep-remove-ref watch-ref)
       (swap! state update-in (conj ref ::watches) #(h/vec-remove-index index %)))))
 
-(om/defui ^:once WatchPin
-  static fulcro/InitialAppState
-  (initial-state [_ {:keys [path content]}]
-    {:ui/expanded? true
-     ::watch-id    (random-uuid)
-     ::watch-path  path
-     ::data-viewer (fulcro/get-initial-state f.data-viewer/DataViewer content)})
+(fp/defsc WatchPin
+  [this {::keys   [watch-path data-viewer]
+         :ui/keys [expanded?]}
+   {::keys               [delete-item]
+    ::f.data-viewer/keys [path-action]}
+   _]
+  {:initial-state (fn [{:keys [path content]}]
+                    {:ui/expanded? true
+                     ::watch-id    (random-uuid)
+                     ::watch-path  path
+                     ::data-viewer (fp/get-initial-state f.data-viewer/DataViewer content)})
+   :ident         [::watch-id ::watch-id]
+   :query         [:ui/expanded? ::watch-id ::watch-path
+                   {::data-viewer (fp/get-query f.data-viewer/DataViewer)}]
+   :css           [[:.container {:margin "6px 0"}]
+                   [:.toggle-row {:display       "flex"
+                                  :align-items   "center"
+                                  :margin-bottom "10px"}]
+                   [:.toggle-button f.data-viewer/css-triangle]
+                   [:.path (merge f.data-viewer/css-code-font
+                                  {:background "#fafafa"
+                                   :border     "1px solid #efeef1"
+                                   :margin     "0 5px"
+                                   :padding    "3px 3px 1px"
+                                   :color      "#222"
+                                   :cursor     "pointer"})
+                    [:&:hover {:text-decoration "line-through"}]]]
+   :css-include   [f.data-viewer/DataViewer]}
+  (let [css (css/get-classnames WatchPin)]
+    (dom/div #js {:className (:container css)}
+      (dom/div #js {:className (:toggle-row css)}
+        (dom/div #js {:className (:toggle-button css)
+                      :onClick   #(mutations/set-value! this :ui/expanded? (not expanded?))}
+          (if expanded? "▼" "▶"))
+        (dom/div #js {:className (:path css)
+                      :onClick   #(if delete-item (delete-item %))}
+          (pr-str watch-path)))
+      (if expanded?
+        (f.data-viewer/data-viewer data-viewer
+          {::f.data-viewer/path-action path-action})))))
 
-  static om/Ident
-  (ident [_ props] [::watch-id (::watch-id props)])
+(def watch-pin (fp/factory WatchPin {:keyfn ::watch-id}))
 
-  static om/IQuery
-  (query [_] [:ui/expanded? ::watch-id ::watch-path
-              {::data-viewer (om/get-query f.data-viewer/DataViewer)}])
+(fp/defsc DataWatcher
+  [this {::keys [root-data watches]} _ _]
+  {:initial-state (fn [state] {::id        (random-uuid)
+                               ::root-data (fp/get-initial-state f.data-viewer/DataViewer state)
+                               ::watches   []})
+   :ident         [::id ::id]
+   :query         [::id
+                   {::root-data (fp/get-query f.data-viewer/DataViewer)}
+                   {::watches (fp/get-query WatchPin)}]
+   :css-include   [f.data-viewer/DataViewer WatchPin]}
+  (let [content (::f.data-viewer/content root-data)]
+    (dom/div nil
+      (mapv (comp watch-pin
+                  (fn [[x i]]
+                    (-> (assoc x ::content content)
+                        (fp/computed {::delete-item
+                                      (fn [_]
+                                        (fp/transact! this [`(remove-data-watch {:index ~i})]))
 
-  static css/CSS
-  (local-rules [_] [[:.container {:margin "6px 0"}]
-                    [:.toggle-row {:display       "flex"
-                                   :align-items   "center"
-                                   :margin-bottom "10px"}]
-                    [:.toggle-button f.data-viewer/css-triangle]
-                    [:.path (merge f.data-viewer/css-code-font
-                                   {:background "#fafafa"
-                                    :border     "1px solid #efeef1"
-                                    :margin     "0 5px"
-                                    :padding    "3px 3px 1px"
-                                    :color      "#222"
-                                    :cursor     "pointer"})
-                     [:&:hover {:text-decoration "line-through"}]]])
-  (include-children [_] [f.data-viewer/DataViewer])
+                                      ::f.data-viewer/path-action
+                                      #(fp/transact! this [`(add-data-watch {:path ~(vec (concat (::watch-path x) %))})])})))
+                  vector)
+        watches
+        (range))
+      (f.data-viewer/data-viewer root-data
+        {::f.data-viewer/path-action
+         #(fp/transact! this [`(add-data-watch {:path ~%})])}))))
 
-  Object
-  (render [this]
-    (let [{::keys   [watch-path data-viewer]
-           :ui/keys [expanded?]
-           :as      props} (om/props this)
-          {::keys               [delete-item]
-           ::f.data-viewer/keys [path-action]} (om/get-computed props)
-          css (css/get-classnames WatchPin)]
-      (dom/div #js {:className (:container css)}
-        (dom/div #js {:className (:toggle-row css)}
-          (dom/div #js {:className (:toggle-button css)
-                        :onClick   #(mutations/set-value! this :ui/expanded? (not expanded?))}
-            (if expanded? "▼" "▶"))
-          (dom/div #js {:className (:path css)
-                        :onClick   #(if delete-item (delete-item %))}
-            (pr-str watch-path)))
-        (if expanded?
-          (f.data-viewer/data-viewer data-viewer
-            {::f.data-viewer/path-action path-action}))))))
-
-(def watch-pin (om/factory WatchPin))
-
-(om/defui ^:once DataWatcher
-  static fulcro/InitialAppState
-  (initial-state [_ state] {::id        (random-uuid)
-                            ::root-data (fulcro/get-initial-state f.data-viewer/DataViewer state)
-                            ::watches   []})
-
-  static om/Ident
-  (ident [_ props] [::id (::id props)])
-
-  static om/IQuery
-  (query [_] [::id
-              {::root-data (om/get-query f.data-viewer/DataViewer)}
-              {::watches (om/get-query WatchPin)}])
-
-  static css/CSS
-  (local-rules [_] [])
-  (include-children [_] [f.data-viewer/DataViewer WatchPin])
-
-  Object
-  (render [this]
-    (let [{::keys [root-data watches]} (om/props this)
-          content (::f.data-viewer/content root-data)]
-      (dom/div nil
-        (mapv (comp watch-pin
-                    (fn [[x i]]
-                      (-> (assoc x ::content content)
-                          (om/computed {::delete-item
-                                        (fn [_]
-                                          (om/transact! this [`(remove-data-watch {:index ~i})]))
-
-                                        ::f.data-viewer/path-action
-                                        #(om/transact! this [`(add-data-watch {:path ~(vec (concat (::watch-path x) %))})])})))
-                    vector)
-          watches
-          (range))
-        (f.data-viewer/data-viewer root-data
-          {::f.data-viewer/path-action
-           #(om/transact! this [`(add-data-watch {:path ~%})])})))))
-
-(def data-watcher (om/factory DataWatcher))
+(def data-watcher (fp/factory DataWatcher))

@@ -1,9 +1,7 @@
 (ns fulcro.inspect.ui.element
   (:require
-    [clojure.data :as data]
     [clojure.string :as str]
     [fulcro-css.css :as css]
-    [fulcro.client.core :as fulcro :refer-macros [defsc]]
     [fulcro.client.mutations :as mutations]
     [fulcro.inspect.helpers :as h]
     [fulcro.inspect.ui.core :as ui]
@@ -11,25 +9,25 @@
     [goog.object :as gobj]
     [goog.dom :as gdom]
     [goog.style :as gstyle]
-    [om.dom :as dom]
-    [om.next :as om :refer [get-query]]))
+    [fulcro.client.dom :as dom]
+    [fulcro.client.primitives :as fp :refer [get-query]]))
 
-(om/defui ^:once Details
-  static fulcro/InitialAppState
+(fp/defui ^:once Details
+  static fp/InitialAppState
   (initial-state [_ {::keys [props query] :as params}]
     (merge
       {::detail-id  (random-uuid)
-       ::props-view (fulcro/get-initial-state data-viewer/DataViewer props)
-       ::query-view (fulcro/get-initial-state data-viewer/DataViewer query)}
+       ::props-view (fp/get-initial-state data-viewer/DataViewer props)
+       ::query-view (fp/get-initial-state data-viewer/DataViewer query)}
       params))
 
-  static om/Ident
+  static fp/Ident
   (ident [_ props] [::detail-id (::detail-id props)])
 
-  static om/IQuery
+  static fp/IQuery
   (query [_] [::detail-id ::display-name ::ident
-              {::props-view (om/get-query data-viewer/DataViewer)}
-              {::query-view (om/get-query data-viewer/DataViewer)}])
+              {::props-view (fp/get-query data-viewer/DataViewer)}
+              {::query-view (fp/get-query data-viewer/DataViewer)}])
 
   static css/CSS
   (local-rules [_] [[:.container {:flex     "1"
@@ -39,7 +37,7 @@
 
   Object
   (render [this]
-    (let [{::keys [display-name ident props-view query-view]} (om/props this)
+    (let [{::keys [display-name ident props-view query-view]} (fp/props this)
           css (css/get-classnames Details)]
       (dom/div #js {:className (:container css)}
         (ui/info {::ui/title "Display Name"}
@@ -51,11 +49,11 @@
         (ui/info {::ui/title "Query"}
           (data-viewer/data-viewer query-view))))))
 
-(def details (om/factory Details))
+(def details (fp/factory Details))
 
 ;; picker
 
-(om/defui ^:once MarkerCSS
+(fp/defui ^:once MarkerCSS
   static css/CSS
   (local-rules [_] [[:.container {:position       "absolute"
                                   :display        "none"
@@ -119,7 +117,7 @@
 
 (defn ensure-reconciler [x app]
   (try
-    (when (some-> (om/get-reconciler x) om/app-state deref
+    (when (some-> (fp/get-reconciler x) fp/app-state deref
                   :fulcro.inspect.core/app-id (= app))
       x)
     (catch :default _)))
@@ -137,7 +135,7 @@
                                                      (ensure-reconciler app-id))]
                            (.stopPropagation e)
                            (reset! current instance)
-                           (gdom/setTextContent marker-label (-> instance om/react-type (gobj/get "displayName")))
+                           (gdom/setTextContent marker-label (-> instance fp/react-type (gobj/get "displayName")))
 
                            (let [target' (js/ReactDOM.findDOMNode instance)
                                  offset  (gstyle/getPageOffset target')
@@ -175,13 +173,13 @@
       10)))
 
 (defn inspect-component [comp]
-  {::display-name (some-> comp om/react-type (gobj/get "displayName"))
-   ::props        (om/props comp)
+  {::display-name (some-> comp fp/react-type (gobj/get "displayName"))
+   ::props        (fp/props comp)
    ::ident        (try
-                    (om/get-ident comp)
+                    (fp/get-ident comp)
                     (catch :default _ nil))
    ::query        (try
-                    (some-> comp om/react-type om/get-query)
+                    (some-> comp fp/react-type fp/get-query)
                     (catch :default _ nil))})
 
 (mutations/defmutation set-element [details]
@@ -191,17 +189,17 @@
     (h/remove-edge! env ::details)
     (h/create-entity! env Details details :set ::details)))
 
-(om/defui ^:once Panel
-  static fulcro/InitialAppState
+(fp/defui ^:once Panel
+  static fp/InitialAppState
   (initial-state [this _]
     {::panel-id (random-uuid)})
 
-  static om/Ident
+  static fp/Ident
   (ident [_ props] [::panel-id (::panel-id props)])
 
-  static om/IQuery
+  static fp/IQuery
   (query [_] [::panel-id :ui/picking?
-              {::details (om/get-query Details)}])
+              {::details (fp/get-query Details)}])
 
   static css/CSS
   (local-rules [_] [[:.container {:flex           1
@@ -213,7 +211,7 @@
 
   Object
   (render [this]
-    (let [{:keys [ui/picking? ::panel-id] :as props} (om/props this)
+    (let [{:keys [ui/picking? ::panel-id] :as props} (fp/props this)
           css (css/get-classnames Panel)]
       (dom/div #js {:className (:container css)}
         (ui/toolbar {}
@@ -223,11 +221,11 @@
                                                                  ::on-pick (fn [comp]
                                                                              (if comp
                                                                                (let [details (inspect-component comp)]
-                                                                                 (om/transact! this [`(set-element ~details)]))
+                                                                                 (fp/transact! this [`(set-element ~details)]))
                                                                                (mutations/set-value! this :ui/picking? false)))}))}
                                picking? (assoc :className (:icon-active css)))
             (ui/icon :gps_fixed {})))
         (if (::details props)
           (details (::details props)))))))
 
-(def panel (om/factory Panel))
+(def panel (fp/factory Panel))

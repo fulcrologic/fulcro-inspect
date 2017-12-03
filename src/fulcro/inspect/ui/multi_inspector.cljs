@@ -2,19 +2,19 @@
   (:require
     [cljs.reader :refer [read-string]]
     [fulcro-css.css :as css]
-    [fulcro.client.core :as fulcro]
     [fulcro.client.mutations :as mutations]
     [fulcro.inspect.ui.core :as ui]
     [fulcro.inspect.ui.inspector :as inspector]
-    [om.dom :as dom]
-    [om.next :as om]))
+    [fulcro.client.dom :as dom]
+    [fulcro.client.primitives :as fp]
+    [fulcro.inspect.helpers :as h]))
 
 (mutations/defmutation add-inspector [inspector]
   (action [env]
-    (let [{:keys [ref state reconciler]} env
-          inspector-ref (om/ident inspector/Inspector inspector)
+    (let [{:keys [ref state]} env
+          inspector-ref (fp/ident inspector/Inspector inspector)
           current       (get-in @state (conj ref ::current-app))]
-      (fulcro/merge-state! reconciler inspector/Inspector inspector :append (conj ref ::inspectors))
+      (swap! state h/merge-entity inspector/Inspector inspector :append (conj ref ::inspectors))
       (if (nil? current)
         (swap! state update-in ref assoc ::current-app inspector-ref)))))
 
@@ -23,16 +23,16 @@
     (let [{:keys [ref state]} env]
       (swap! state update-in ref assoc ::current-app [::inspector/id id]))))
 
-(om/defui ^:once MultiInspector
-  static fulcro/InitialAppState
+(fp/defui ^:once MultiInspector
+  static fp/InitialAppState
   (initial-state [_ _] {::inspectors  []
                         ::current-app nil})
 
-  static om/Ident
+  static fp/Ident
   (ident [_ props] [::multi-inspector "main"])
 
-  static om/IQuery
-  (query [_] [::inspectors {::current-app (om/get-query inspector/Inspector)}])
+  static fp/IQuery
+  (query [_] [::inspectors {::current-app (fp/get-query inspector/Inspector)}])
 
   static css/CSS
   (local-rules [_] [[:.container {:display        "flex"
@@ -61,7 +61,7 @@
 
   Object
   (render [this]
-    (let [{::keys [inspectors current-app]} (om/props this)
+    (let [{::keys [inspectors current-app]} (fp/props this)
           css (css/get-classnames MultiInspector)]
       (dom/div #js {:className (:container css)}
         (if current-app
@@ -72,10 +72,10 @@
           (dom/div #js {:className (:selector css)}
             (dom/div #js {:className (:label css)} "App")
             (dom/select #js {:value    (str (::inspector/id current-app))
-                             :onChange #(om/transact! this `[(set-app {::inspector/id ~(read-string (.. % -target -value))})])}
+                             :onChange #(fp/transact! this `[(set-app {::inspector/id ~(read-string (.. % -target -value))})])}
               (for [app-id (->> (map (comp pr-str second) inspectors) sort)]
                 (dom/option #js {:key   app-id
                                  :value app-id}
                   app-id)))))))))
 
-(def multi-inspector (om/factory MultiInspector))
+(def multi-inspector (fp/factory MultiInspector {:keyfn ::multi-inspector}))

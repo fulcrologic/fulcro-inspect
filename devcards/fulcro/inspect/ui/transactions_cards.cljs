@@ -5,7 +5,7 @@
     [fulcro.client.cards :refer-macros [defcard-fulcro]]
     [fulcro.inspect.ui.transactions :as transactions]
     [fulcro.inspect.card-helpers :as card-helpers]
-    [om.next :as om]))
+    [fulcro.client.primitives :as fp]))
 
 (def tx
   '{:tx        [(fulcro.client.mutations/set-props
@@ -25,7 +25,7 @@
                                     :fulcro.inspect.ui.data-viewer/content
                                                                             {:a 3 :b 10 :foo {:barr ["baz" "there"]}}
                                     :fulcro.inspect.ui.data-viewer/expanded {[] true [:foo] true}}}
-                  :om.next/tables #{:fulcro.inspect.ui.data-viewer/id}
+                  :fulcro.client.primitives/tables #{:fulcro.inspect.ui.data-viewer/id}
                   :ui/locale      :en}}}
     :old-state {:id {123 {:a 1}}}
     :new-state {:id {123 {:b 2}}}
@@ -46,9 +46,9 @@
   {}
   {:fulcro {:started-callback
             (fn [{:keys [reconciler]}]
-              (let [ref (-> reconciler om/app-state deref :ui/root)]
+              (let [ref (-> reconciler fp/app-state deref :ui/root)]
                 (doseq [x (repeat 5 tx)]
-                  (om/transact! reconciler ref [`(transactions/add-tx ~x)]))))}})
+                  (fp/transact! reconciler ref [`(transactions/add-tx ~x)]))))}})
 
 (defcard-fulcro transaction-list-empty
   transactions/TransactionList)

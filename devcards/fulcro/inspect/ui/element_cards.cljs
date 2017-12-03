@@ -6,21 +6,20 @@
     [fulcro.client.cards :refer-macros [defcard-fulcro]]
     [fulcro.inspect.ui.network :as network]
     [fulcro.inspect.ui.element :as element]
-    [om.next :as om]
-    [fulcro.client.core :as fulcro]
-    [om.dom :as dom]))
+    [fulcro.client.primitives :as fp]
+    [fulcro.client.dom :as dom]))
 
-(om/defui ^:once ElementRoot
-  static fulcro/InitialAppState
+(fp/defui ^:once ElementRoot
+  static fp/InitialAppState
   (initial-state [_ _] {:ui/react-key (random-uuid)
-                        :ui/network   (assoc (fulcro/get-initial-state network/NetworkHistory {})
+                        :ui/network   (assoc (fp/get-initial-state network/NetworkHistory {})
                                         ::network/history-id "main")
-                        :ui/element   (-> (fulcro/get-initial-state element/Panel {})
+                        :ui/element   (-> (fp/get-initial-state element/Panel {})
                                           (assoc ::element/panel-id ["panel" `ElementRoot]))})
 
-  static om/IQuery
-  (query [_] [{:ui/network (om/get-query network/NetworkHistory)}
-              {:ui/element (om/get-query element/Panel)}
+  static fp/IQuery
+  (query [_] [{:ui/network (fp/get-query network/NetworkHistory)}
+              {:ui/element (fp/get-query element/Panel)}
               :ui/react-key])
 
   static css/CSS
@@ -29,7 +28,7 @@
 
   Object
   (render [this]
-    (let [{:ui/keys [react-key network element]} (om/props this)
+    (let [{:ui/keys [react-key network element]} (fp/props this)
           css (css/get-classnames ElementRoot)]
       (dom/div #js {:key react-key :className (:container css)}
         (dom/button #js {:onClick #(net.cards/gen-request this)}
