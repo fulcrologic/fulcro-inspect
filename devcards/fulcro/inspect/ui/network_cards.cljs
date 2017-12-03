@@ -5,8 +5,12 @@
     [fulcro.client.cards :refer-macros [defcard-fulcro]]
     [fulcro.inspect.ui.network :as network]
     [fulcro.client.primitives :as fp]
+    [fulcro.client.network :as f.network]
+    [fulcro.client.data-fetch :as fetch]
+    [fulcro.client.mutations :as mutations]
     [clojure.test.check.generators :as gen]
-    [fulcro.client.dom :as dom]))
+    [fulcro.client.dom :as dom]
+    [cljs.spec.alpha :as s]))
 
 (def request-samples
   [{:in  [:hello :world]
@@ -175,5 +179,57 @@
 (defcard-fulcro network
   NetworkRoot
   {})
+
+(s/def ::name #{"Arnold" "Bea" "Dude" "Girl"})
+
+(mutations/defmutation send-something [_]
+  (action [_] (js/console.log "send something"))
+  (remote [_] true))
+
+(fp/defsc NameLoader
+  [this {::keys [name]} computed children]
+  {:initial-state {::id "name-loader"}
+   :ident         [::id ::id]
+   :query         [::id ::name]}
+  (let [css (css/get-classnames NameLoader)]
+    (dom/div nil
+      (dom/button #js {:onClick #(fetch/load-field this ::name)}
+        "Load name")
+      (if name
+        (str "The name is: " name))
+      (dom/div nil
+        (dom/button #js {:onClick #(fp/transact! this [`(send-something {})])}
+          "Send")))))
+
+(def name-loader (fp/factory NameLoader))
+
+(fp/defui ^:once NameLoaderRoot
+  static fp/InitialAppState
+  (initial-state [_ _] {:ui/react-key (random-uuid)
+                        :ui/root      (fp/get-initial-state NameLoader {})})
+
+  static fp/IQuery
+  (query [_] [{:ui/root (fp/get-query NameLoader)}
+              :ui/react-key])
+
+  static css/CSS
+  (local-rules [_] [])
+  (include-children [_] [NameLoader])
+
+  Object
+  (render [this]
+    (let [{:keys [ui/react-key ui/root]} (fp/props this)]
+      (dom/div #js {:key react-key}
+        (name-loader root)))))
+
+(defcard-fulcro network-sampler
+  NameLoaderRoot
+  {}
+  {:fulcro {:networking
+            (reify
+              f.network/FulcroNetwork
+              (send [this edn ok error]
+                (ok {[::id "name-loader"] {::name (gen/generate (s/gen ::name))}}))
+              (start [_]))}})
 
 (css/upsert-css "network" NetworkRoot)
