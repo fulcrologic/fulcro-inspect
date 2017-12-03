@@ -8,11 +8,11 @@
                  [org.clojure/clojurescript "1.9.946" :scope "provided"]
                  [clojure-future-spec "1.9.0-beta4"]
                  [fulcrologic/fulcro "2.0.0-alpha7-SNAPSHOT"]
-                 [fulcrologic/fulcro-css "1.0.0"]
+                 [fulcrologic/fulcro-css "2.0.0-beta1"]
 
                  [org.clojure/tools.namespace "0.3.0-alpha4" :scope "test"]
                  [lein-doo "0.1.7" :scope "test"]
-                 [fulcrologic/fulcro-spec "1.0.0" :scope "test" :exclusions [fulcrologic/fulcro]]]
+                 [fulcrologic/fulcro-spec "2.0.0-beta1" :scope "test" :exclusions [fulcrologic/fulcro]]]
 
   :source-paths ["src"]
 
