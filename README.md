@@ -14,6 +14,8 @@ Add the latest version of this library (see above) as a dependency:
 [fulcrologic/fulcro-inspect "x.x.x"]
 ```
 
+Note: for Fulcro 1.2.x use version `0.1.0-SNAPSHOT`, use newer numbers for Fulcro 2.x
+
 Add a preload to your compiler options:
 
 ```clojure
