@@ -57,25 +57,25 @@
     (factory (fp/computed props computed))))
 
 (fp/defsc Transaction
-  [this {:keys    [sends ref component]
+  [this {:keys    [ref component]
+         :fulcro.history/keys [network-sends]
          :ui/keys [tx-view ret-view sends-view
                    old-state-view new-state-view
                    diff-add-view diff-rem-view]} computed children]
-  {:initial-state (fn [{:keys                [sends]
-                        :fulcro.history/keys [tx tx-result db-before db-after]
+  {:initial-state (fn [{:keys                [ret]
+                        :fulcro.history/keys [tx network-sends db-before db-after]
                         :as                  transaction}]
                     (merge (fp/get-initial-state TransactionRow transaction)
                            transaction
                            {::tx-id            (random-uuid)
                             :ui/tx-view        (-> (fp/get-initial-state data-viewer/DataViewer tx)
                                                    (assoc ::data-viewer/expanded {[] true}))
-                            :ui/ret-view       (fp/get-initial-state data-viewer/DataViewer tx-result)
-                            :ui/sends-view     (fp/get-initial-state data-viewer/DataViewer sends)
+                            :ui/ret-view       (fp/get-initial-state data-viewer/DataViewer ret)
+                            :ui/sends-view     (fp/get-initial-state data-viewer/DataViewer network-sends)
                             :ui/old-state-view (fp/get-initial-state data-viewer/DataViewer db-before)
                             :ui/new-state-view (fp/get-initial-state data-viewer/DataViewer db-after)}))
    :ident         [::tx-id ::tx-id]
-   :query         [::tx-id ::timestamp :tx :ret :sends :old-state :new-state :ref :component
-
+   :query         [::tx-id ::timestamp :tx :ret :old-state :new-state :ref :component :fulcro.history/network-sends
                    {:ui/tx-view (fp/get-query data-viewer/DataViewer)}
                    {:ui/ret-view (fp/get-query data-viewer/DataViewer)}
                    {:ui/tx-row-view (fp/get-query data-viewer/DataViewer)}
@@ -97,7 +97,7 @@
       (ui/info {::ui/title "Response"}
         (data-viewer/data-viewer ret-view))
 
-      (if (seq sends)
+      (if (seq network-sends)
         (ui/info {::ui/title "Sends"}
           (data-viewer/data-viewer sends-view)))
 
