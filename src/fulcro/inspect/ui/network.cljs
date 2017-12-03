@@ -178,7 +178,8 @@
     (let [border (str "1px solid " ui/color-bg-medium-border)]
       [[:.container {:flex           1
                      :display        "flex"
-                     :flex-direction "column"}
+                     :flex-direction "column"
+                     :width          "100%"}
         [:* {:box-sizing "border-box"}]]
        [:.table {:font-family     ui/label-font-family
                  :font-size       ui/label-font-size
