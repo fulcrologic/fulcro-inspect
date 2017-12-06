@@ -41,4 +41,4 @@
     {:some    "data"
      :integer 34}))
 
-(css/upsert-css "data-watcher" data-history/DataHistory)
+(css/upsert-css "data-history" data-history/DataHistory)
