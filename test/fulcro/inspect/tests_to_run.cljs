@@ -2,5 +2,6 @@
   (:require
     ; require all of your tests namespaces here...
     fulcro.inspect.helpers-spec
+    fulcro.inspect.ui.data-history-spec
     fulcro.inspect.ui.data-viewer-spec
     fulcro.inspect.ui.transactions-spec))

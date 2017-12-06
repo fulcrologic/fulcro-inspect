@@ -17,7 +17,7 @@
     state
     watches))
 
-(defmutation update-state [new-state]
+(defmutation ^:intern update-state [new-state]
   (action [env]
     (let [{:keys [ref state]} env
           watches     (get-in @state (conj ref ::watches))
