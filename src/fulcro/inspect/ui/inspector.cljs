@@ -2,6 +2,7 @@
   (:require [fulcro-css.css :as css]
             [fulcro.client.mutations :as mutations]
             [fulcro.inspect.ui.core :as ui]
+            [fulcro.inspect.ui.data-history :as data-history]
             [fulcro.inspect.ui.data-viewer :as data-viewer]
             [fulcro.inspect.ui.data-watcher :as data-watcher]
             [fulcro.inspect.ui.element :as element]
@@ -15,8 +16,9 @@
   (initial-state [_ state]
     {::id           (random-uuid)
      ::tab          ::page-db
-     ::app-state    (-> (fp/get-initial-state data-watcher/DataWatcher state)
-                        (assoc-in [::data-watcher/root-data ::data-viewer/expanded] {[] true}))
+     ::app-state    (-> (fp/get-initial-state data-history/DataHistory state)
+                        (assoc-in [::data-history/watcher ::data-watcher/root-data ::data-viewer/expanded]
+                          {[] true}))
      ::element      (fp/get-initial-state element/Panel nil)
      ::network      (fp/get-initial-state network/NetworkHistory nil)
      ::transactions (fp/get-initial-state transactions/TransactionList [])})
@@ -26,7 +28,7 @@
 
   static fp/IQuery
   (query [_] [::tab ::id
-              {::app-state (fp/get-query data-watcher/DataWatcher)}
+              {::app-state (fp/get-query data-history/DataHistory)}
               {::element (fp/get-query element/Panel)}
               {::network (fp/get-query network/NetworkHistory)}
               {::transactions (fp/get-query transactions/TransactionList)}])
@@ -58,7 +60,7 @@
                                     :overflow "auto"
                                     :display  "flex"}
                      [:&.spaced {:padding "10px"}]]])
-  (include-children [_] [data-watcher/DataWatcher
+  (include-children [_] [data-history/DataHistory
                          network/NetworkHistory
                          transactions/TransactionList
                          element/Panel])
@@ -86,7 +88,7 @@
         (case tab
           ::page-db
           (dom/div #js {:className (str (:tab-content css) " " (:spaced css))}
-            (data-watcher/data-watcher app-state))
+            (data-history/data-history app-state))
 
           ::page-element
           (dom/div #js {:className (:tab-content css)}

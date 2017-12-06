@@ -6,6 +6,7 @@
     [fulcro.client :as fulcro]
     [fulcro.client.mutations :as mutations :refer-macros [defmutation]]
     [fulcro.client.network :as f.network]
+    [fulcro.inspect.ui.data-history :as data-history]
     [fulcro.inspect.ui.data-viewer :as data-viewer]
     [fulcro.inspect.ui.data-watcher :as data-watcher]
     [fulcro.inspect.ui.inspector :as inspector]
@@ -178,8 +179,8 @@
        (reset! global-inspector* (start-global-inspector options)))))
 
 (defn update-inspect-state [reconciler app-id state]
-  (fp/transact! reconciler [::data-watcher/id [::app-id app-id]]
-    [`(data-watcher/update-state ~state) ::data-viewer/content]))
+  (fp/transact! reconciler [::data-history/history-id [::app-id app-id]]
+    [`(data-history/set-content ~state) ::data-history/history]))
 
 (defn inspect-network-init [network app]
   (some-> network :options ::app* (reset! app)))
@@ -189,7 +190,7 @@
         state*        (some-> target-app :reconciler :config :state)
         new-inspector (-> (fp/get-initial-state inspector/Inspector @state*)
                           (assoc ::inspector/id app-id)
-                          (assoc-in [::inspector/app-state ::data-watcher/id] [::app-id app-id])
+                          (assoc-in [::inspector/app-state ::data-history/history-id] [::app-id app-id])
                           (assoc-in [::inspector/network ::network/history-id] [::app-id app-id])
                           (assoc-in [::inspector/element ::element/panel-id] [::app-id app-id])
                           (assoc-in [::inspector/element ::element/target-reconciler] (:reconciler target-app))
