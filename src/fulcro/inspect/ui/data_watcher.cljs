@@ -46,8 +46,7 @@
   [this {::keys   [watch-path data-viewer]
          :ui/keys [expanded?]}
    {::keys               [delete-item]
-    ::f.data-viewer/keys [path-action]}
-   _]
+    ::f.data-viewer/keys [path-action]}]
   {:initial-state (fn [{:keys [path content]}]
                     {:ui/expanded? true
                      ::watch-id    (random-uuid)
@@ -86,7 +85,7 @@
 (def watch-pin (fp/factory WatchPin {:keyfn ::watch-id}))
 
 (fp/defsc DataWatcher
-  [this {::keys [root-data watches]} _ _]
+  [this {::keys [root-data watches]} _]
   {:initial-state (fn [state] {::id        (random-uuid)
                                ::root-data (fp/get-initial-state f.data-viewer/DataViewer state)
                                ::watches   []})

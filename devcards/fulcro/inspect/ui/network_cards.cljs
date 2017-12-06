@@ -187,7 +187,7 @@
   (remote [_] true))
 
 (fp/defsc NameLoader
-  [this {::keys [name]} computed children]
+  [this {::keys [name]} computed]
   {:initial-state {::id "name-loader"}
    :ident         [::id ::id]
    :query         [::id ::name]}

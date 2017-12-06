@@ -37,7 +37,7 @@
           (watcher/update-state (assoc env :ref (::watcher history)) content))))))
 
 (fp/defsc DataHistory
-  [this {::keys [history watcher current-index]} computed children]
+  [this {::keys [history watcher current-index]} computed]
   {:initial-state (fn [content]
                     {::history-id    (random-uuid)
                      ::history       [content]

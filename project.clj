@@ -7,7 +7,7 @@
   :dependencies [[org.clojure/clojure "1.8.0" :scope "provided"]
                  [org.clojure/clojurescript "1.9.946" :scope "provided"]
                  [clojure-future-spec "1.9.0-beta4"]
-                 [fulcrologic/fulcro "2.0.0-beta2"]
+                 [fulcrologic/fulcro "2.0.0-beta4"]
                  [fulcrologic/fulcro-css "2.0.0-beta1"]
 
                  [org.clojure/tools.namespace "0.3.0-alpha4" :scope "test"]

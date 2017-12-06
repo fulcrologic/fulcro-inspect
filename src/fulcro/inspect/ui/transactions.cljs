@@ -61,7 +61,7 @@
          :fulcro.history/keys [network-sends]
          :ui/keys [tx-view ret-view sends-view
                    old-state-view new-state-view
-                   diff-add-view diff-rem-view]} computed children]
+                   diff-add-view diff-rem-view]} computed]
   {:initial-state (fn [{:keys                [ret]
                         :fulcro.history/keys [tx network-sends db-before db-after]
                         :as                  transaction}]
