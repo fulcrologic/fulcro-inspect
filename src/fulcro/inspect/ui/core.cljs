@@ -113,8 +113,9 @@
   (dom/div #js {:style #js {:flex 1}}))
 
 (defn toolbar-action [props & children]
-  (apply dom/div (h/props->html {:className (:action (css/get-classnames ToolBar))} props)
-    children))
+  (let [props (cond-> props (:disabled props) (dissoc :onClick))]
+    (apply dom/div (h/props->html {:className (:action (css/get-classnames ToolBar))} props)
+      children)))
 
 (defn toolbar-text-field [props]
   (dom/input (h/props->html {:className (:input (css/get-classnames ToolBar))
