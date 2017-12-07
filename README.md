@@ -27,6 +27,9 @@ Add a preload to your compiler options:
 
 The inspector will find the running Fulcro application, and be ready to inspect it!
 
+To launch the inspector, use the `ctrl-f` keystroke on your keyboard (unless you changed the
+configuration to something else).
+
 ### DB Tab
 
 The DB tab contains the state of the app.
