@@ -9,6 +9,10 @@
 
 (def ^:dynamic *max-history* 100)
 
+(defn new-state [content]
+  {::state     content
+   ::timestamp (js/Date.)})
+
 (mutations/defmutation ^:intern set-content [content]
   (action [env]
     (let [{:keys [state ref]} env
@@ -23,7 +27,7 @@
         (if (= *max-history* (count history))
           (h/swap-entity! env update ::current-index dec)))
 
-      (h/swap-entity! env update ::history #(->> (conj % content)
+      (h/swap-entity! env update ::history #(->> (conj % (new-state content))
                                                  (take-last *max-history*)
                                                  (vec))))))
 
@@ -32,7 +36,7 @@
     (let [{:keys [state ref]} env
           history (get-in @state ref)]
       (when (not= current-index (::current-index history))
-        (let [content (get-in history [::history current-index])]
+        (let [content (get-in history [::history current-index ::state])]
           (h/swap-entity! env assoc ::current-index current-index)
           (watcher/update-state (assoc env :ref (::watcher history)) content))))))
 
@@ -40,7 +44,7 @@
   [this {::keys [history watcher current-index]} computed]
   {:initial-state (fn [content]
                     {::history-id    (random-uuid)
-                     ::history       [content]
+                     ::history       [(new-state content)]
                      ::current-index 0
                      ::watcher       (fp/get-initial-state watcher/DataWatcher content)})
    :ident         [::history-id ::history-id]
