@@ -1,10 +1,11 @@
 (ns fulcro.inspect.ui.data-watcher
   (:require [fulcro.client.mutations :as mutations :refer-macros [defmutation]]
             [fulcro.inspect.ui.data-viewer :as f.data-viewer]
-            [fulcro.inspect.helpers :as h]
+            [fulcro.inspect.helpers :as db.h]
             [fulcro-css.css :as css]
             [fulcro.client.dom :as dom]
-            [fulcro.client.primitives :as fp]))
+            [fulcro.client.primitives :as fp]
+            [fulcro.inspect.ui.helpers :as h]))
 
 (declare WatchPin)
 
@@ -32,15 +33,15 @@
           content (as-> (get-in @state (conj ref ::root-data)) <>
                     (get-in @state (conj <> ::f.data-viewer/content))
                     (get-in <> path))]
-      (h/create-entity! env WatchPin {:path path :content content}
+      (db.h/create-entity! env WatchPin {:path path :content content}
         :prepend ::watches))))
 
 (defmutation remove-data-watch [{:keys [index]}]
   (action [env]
     (let [{:keys [ref state]} env
           watch-ref (get-in @state (conj ref ::watches index))]
-      (swap! state h/deep-remove-ref watch-ref)
-      (swap! state update-in (conj ref ::watches) #(h/vec-remove-index index %)))))
+      (swap! state db.h/deep-remove-ref watch-ref)
+      (swap! state update-in (conj ref ::watches) #(db.h/vec-remove-index index %)))))
 
 (fp/defsc WatchPin
   [this {::keys   [watch-path data-viewer]
@@ -85,7 +86,7 @@
 (def watch-pin (fp/factory WatchPin {:keyfn ::watch-id}))
 
 (fp/defsc DataWatcher
-  [this {::keys [root-data watches]} _]
+  [this {::keys [root-data watches] :as props} _]
   {:initial-state (fn [state] {::id        (random-uuid)
                                ::root-data (fp/get-initial-state f.data-viewer/DataViewer state)
                                ::watches   []})
@@ -95,7 +96,7 @@
                    {::watches (fp/get-query WatchPin)}]
    :css-include   [f.data-viewer/DataViewer WatchPin]}
   (let [content (::f.data-viewer/content root-data)]
-    (dom/div nil
+    (dom/div (h/props->html props)
       (mapv (comp watch-pin
                   (fn [[x i]]
                     (-> (assoc x ::content content)

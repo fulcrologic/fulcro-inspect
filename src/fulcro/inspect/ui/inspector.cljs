@@ -87,7 +87,7 @@
 
         (case tab
           ::page-db
-          (dom/div #js {:className (str (:tab-content css) " " (:spaced css))}
+          (dom/div #js {:className (:tab-content css)}
             (data-history/data-history app-state))
 
           ::page-element

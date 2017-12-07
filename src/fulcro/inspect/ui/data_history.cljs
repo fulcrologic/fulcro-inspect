@@ -41,7 +41,7 @@
           (watcher/update-state (assoc env :ref (::watcher history)) content))))))
 
 (fp/defsc DataHistory
-  [this {::keys [history watcher current-index]} computed]
+  [this {::keys [history watcher current-index]} _]
   {:initial-state (fn [content]
                     {::history-id    (random-uuid)
                      ::history       [(new-state content)]
@@ -50,22 +50,32 @@
    :ident         [::history-id ::history-id]
    :query         [::history-id ::history ::current-index
                    {::watcher (fp/get-query watcher/DataWatcher)}]
-   :css           [[:.container {:width "100%"
-                                 :flex  "1"}]
-                   [:.slider {:display "flex"}]]
+   :css           [[:.container {:width          "100%"
+                                 :flex           "1"
+                                 :display        "flex"
+                                 :flex-direction "column"}]
+                   [:.slider {:display "flex"}]
+                   [:.watcher {:flex "1"
+                               :overflow "auto"
+                               :padding "10px"}]]
    :css-include   [ui/CSS watcher/DataWatcher]}
   (let [css (css/get-classnames DataHistory)]
     (dom/div #js {:className (:container css)}
-      (dom/div #js {:className (:slider css)}
-        (dom/button #js {:onClick  #(fp/transact! this [`(navigate-history ~{::current-index (dec current-index)})])
-                         :disabled (= 0 current-index)}
-          "<")
-        (dom/div nil (dom/input #js {:type     "range" :min "0" :max (dec (count history))
-                                     :value    (str current-index)
-                                     :onChange #(fp/transact! this [`(navigate-history {::current-index ~(js/parseInt (.. % -target -value))})])}))
-        (dom/button #js {:onClick  #(fp/transact! this [`(navigate-history ~{::current-index (inc current-index)})])
-                         :disabled (= (dec (count history)) current-index)}
-          ">"))
-      (watcher/data-watcher watcher))))
+      (ui/toolbar {}
+        (ui/toolbar-action {:title   "Back one version"
+                            :disabled (= 0 current-index)
+                            :onClick #(fp/transact! this [`(navigate-history ~{::current-index (dec current-index)})])}
+          (ui/icon :chevron_left))
+
+        (dom/input #js {:type     "range" :min "0" :max (dec (count history))
+                        :value    (str current-index)
+                        :onChange #(fp/transact! this [`(navigate-history {::current-index ~(js/parseInt (.. % -target -value))})])})
+
+        (ui/toolbar-action {:title   "Foward one version"
+                            :disabled (= (dec (count history)) current-index)
+                            :onClick #(fp/transact! this [`(navigate-history ~{::current-index (inc current-index)})])}
+          (ui/icon :chevron_right)))
+      (dom/div #js {:className (:watcher css)}
+        (watcher/data-watcher watcher)))))
 
 (def data-history (fp/factory DataHistory))
