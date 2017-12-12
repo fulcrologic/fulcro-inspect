@@ -295,11 +295,12 @@
         new-id))))
 
 (defn inspect-tx [{:keys [reconciler] :as env} info]
-  (let [inspector (global-inspector)
-        tx        (merge info (select-keys env [:old-state :new-state :ref :component]))
-        app-id    (app-id reconciler)]
-    (fp/transact! (:reconciler inspector) [::transactions/tx-list-id [::app-id app-id]]
-      [`(transactions/add-tx ~tx) ::transactions/tx-list])))
+  (if (fp/app-root reconciler) ; ensure app is initialized
+    (let [inspector (global-inspector)
+          tx        (merge info (select-keys env [:old-state :new-state :ref :component]))
+          app-id    (app-id reconciler)]
+      (fp/transact! (:reconciler inspector) [::transactions/tx-list-id [::app-id app-id]]
+        [`(transactions/add-tx ~tx) ::transactions/tx-list]))))
 
 (defn install [options]
   (when-not @global-inspector*
