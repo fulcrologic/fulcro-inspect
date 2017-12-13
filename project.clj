@@ -44,7 +44,7 @@
                                        ;:preloads      [fulcro.inspect.preload]
                                        :optimizations :none}}
                        {:id           "test"
-                        :source-paths ["src" "devcards" "test"]
+                        :source-paths ["src" "test"]
                         :figwheel     {:on-jsload cljs.user/on-load}
                         :compiler     {:main          cljs.user
                                        :output-to     "resources/public/js/compiled/test/test.js"
