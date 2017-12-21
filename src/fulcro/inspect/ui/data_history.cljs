@@ -5,6 +5,7 @@
             [fulcro.client.mutations :as mutations]
             [fulcro.inspect.ui.data-watcher :as watcher]
             [fulcro.inspect.ui.core :as ui]
+            [fulcro.inspect.ui.dom-history-viewer :as domv]
             [fulcro.inspect.helpers :as h]))
 
 (def ^:dynamic *max-history* 100)
@@ -32,16 +33,23 @@
                                                  (vec))))))
 
 (mutations/defmutation ^:intern navigate-history [{::keys [current-index]}]
-  (action [env]
-    (let [{:keys [state ref]} env
-          history (get-in @state ref)]
+  (action [{:keys [state ref] :as env}]
+    (let [history (get-in @state ref)]
       (when (not= current-index (::current-index history))
-        (let [content (get-in history [::history current-index ::state])]
+        (let [content                 (get-in history [::history current-index ::state])
+              history-view-state-path (conj (fp/get-ident domv/DOMHistoryView {}) :app-state)]
+          (swap! state assoc-in history-view-state-path content)
           (h/swap-entity! env assoc ::current-index current-index)
-          (watcher/update-state (assoc env :ref (::watcher history)) content))))))
+          (watcher/update-state (assoc env :ref (::watcher history)) content)))))
+  (refresh [env] [:ui/historical-dom-view]))
+
+(mutations/defmutation reset-app [{:keys [app target-state]}]
+  (action [{:keys [state]}]
+    (let [state-atom (some-> app (:reconciler) (fp/app-state))]
+      (reset! state-atom target-state))))
 
 (fp/defsc DataHistory
-  [this {::keys [history watcher current-index]} _]
+  [this {::keys [history watcher current-index]} {:keys [target-app]}]
   {:initial-state (fn [content]
                     {::history-id    (random-uuid)
                      ::history       [(new-state content)]
@@ -58,23 +66,30 @@
                    [:.watcher {:flex "1"
                                :overflow "auto"
                                :padding "10px"}]]
-   :css-include   [ui/CSS watcher/DataWatcher]}
-  (let [css (css/get-classnames DataHistory)]
+   :css-include   [ui/CSS watcher/DataWatcher domv/DOMHistoryView]}
+  (let [css       (css/get-classnames DataHistory)
+        at-end?   (= (dec (count history)) current-index)
+        app-state (-> watcher ::watcher/root-data :fulcro.inspect.ui.data-viewer/content)]
     (dom/div #js {:className (:container css)}
       (ui/toolbar {}
         (ui/toolbar-action {:title   "Back one version"
                             :disabled (= 0 current-index)
-                            :onClick #(fp/transact! this [`(navigate-history ~{::current-index (dec current-index)})])}
+                            :onClick  #(fp/transact! this `[(domv/show-dom-preview {})
+                                                            (navigate-history ~{::current-index (dec current-index)})])}
           (ui/icon :chevron_left))
 
         (dom/input #js {:type     "range" :min "0" :max (dec (count history))
                         :value    (str current-index)
-                        :onChange #(fp/transact! this [`(navigate-history {::current-index ~(js/parseInt (.. % -target -value))})])})
+                        :onMouseUp (fn [] (fp/transact! this `[(domv/hide-dom-preview {})]))
+                        :onChange  #(fp/transact! this `[(domv/show-dom-preview {})
+                                                         (navigate-history {::current-index ~(js/parseInt (.. % -target -value))})])})
 
         (ui/toolbar-action {:title   "Foward one version"
-                            :disabled (= (dec (count history)) current-index)
-                            :onClick #(fp/transact! this [`(navigate-history ~{::current-index (inc current-index)})])}
-          (ui/icon :chevron_right)))
+                            :disabled at-end?
+                            :onClick  #(fp/transact! this `[(domv/show-dom-preview {})
+                                                            (navigate-history ~{::current-index (inc current-index)})])}
+          (ui/icon :chevron_right))
+        (dom/button #js {:onClick #(fp/transact! this `[(reset-app ~{:app target-app :target-state app-state})])} "Reset App To This State"))
       (dom/div #js {:className (:watcher css)}
         (watcher/data-watcher watcher)))))
 

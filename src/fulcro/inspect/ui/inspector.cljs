@@ -28,6 +28,7 @@
 
   static fp/IQuery
   (query [_] [::tab ::id
+              ::target-app
               {::app-state (fp/get-query data-history/DataHistory)}
               {::element (fp/get-query element/Panel)}
               {::network (fp/get-query network/NetworkHistory)}
@@ -67,7 +68,7 @@
 
   Object
   (render [this]
-    (let [{::keys   [app-state tab element network transactions]} (fp/props this)
+    (let [{::keys   [target-app app-state tab element network transactions]} (fp/props this)
           css      (css/get-classnames Inspector)
           tab-item (fn [{:keys [title html-title disabled? page]}]
                      (dom/div #js {:className (cond-> (:tab css)
@@ -88,7 +89,7 @@
         (case tab
           ::page-db
           (dom/div #js {:className (:tab-content css)}
-            (data-history/data-history app-state))
+            (data-history/data-history (fp/computed app-state {:target-app target-app})))
 
           ::page-element
           (dom/div #js {:className (:tab-content css)}

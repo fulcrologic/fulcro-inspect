@@ -9,6 +9,7 @@
     [fulcro.inspect.ui.data-history :as data-history]
     [fulcro.inspect.ui.data-viewer :as data-viewer]
     [fulcro.inspect.ui.data-watcher :as data-watcher]
+    [fulcro.inspect.ui.dom-history-viewer :as domv]
     [fulcro.inspect.ui.inspector :as inspector]
     [fulcro.inspect.ui.multi-inspector :as multi-inspector]
     [fulcro.inspect.ui.events :as events]
@@ -60,6 +61,7 @@
   static fp/InitialAppState
   (initial-state [_ params] {:ui/size      50
                              :ui/visible?  false
+                             :ui/historical-dom-view (fp/get-initial-state domv/DOMHistoryView {})
                              :ui/inspector (fp/get-initial-state multi-inspector/MultiInspector params)})
 
   static fp/Ident
@@ -67,6 +69,7 @@
 
   static fp/IQuery
   (query [_] [{:ui/inspector (fp/get-query multi-inspector/MultiInspector)}
+              {:ui/historical-dom-view (fp/get-query domv/DOMHistoryView)}
               :ui/size :ui/visible?])
 
   static css/CSS
@@ -102,7 +105,9 @@
     (gobj/set this "frame-dom" (js/ReactDOM.findDOMNode (gobj/get this "frame-node"))))
 
   (render [this]
-    (let [{:ui/keys [size visible? inspector]} (fp/props this)
+    (let [{:ui/keys [size visible? inspector historical-dom-view]} (fp/props this)
+          {:keys [::multi-inspector/current-app]} inspector
+          app             (::inspector/target-app current-app)
           keystroke (or (fp/shared this [:options :launch-keystroke]) "ctrl-f")
           size      (or size 50)
           css       (css/get-classnames GlobalInspector)]
@@ -110,6 +115,7 @@
                     :style     (if visible? nil #js {:display "none"})}
         (events/key-listener {::events/action    #(mutations/set-value! this :ui/visible? (not visible?))
                               ::events/keystroke keystroke})
+        (domv/ui-dom-history-view (fp/computed historical-dom-view {:target-app app}))
         (dom/div #js {:className   (:resizer css)
                       :ref         #(gobj/set this "resizer" %)
                       :style       #js {:left (str size "%")}
@@ -150,8 +156,7 @@
                         :ui/root      (fp/get-initial-state GlobalInspector {})})
 
   static fp/IQuery
-  (query [_] [{:ui/root (fp/get-query GlobalInspector)}
-              :ui/react-key])
+  (query [_] [:ui/react-key {:ui/root (fp/get-query GlobalInspector)}])
 
   static css/CSS
   (local-rules [_] [])
@@ -190,6 +195,7 @@
         state*        (some-> target-app :reconciler :config :state)
         new-inspector (-> (fp/get-initial-state inspector/Inspector @state*)
                           (assoc ::inspector/id app-id)
+                          (assoc ::inspector/target-app target-app)
                           (assoc-in [::inspector/app-state ::data-history/history-id] [::app-id app-id])
                           (assoc-in [::inspector/network ::network/history-id] [::app-id app-id])
                           (assoc-in [::inspector/element ::element/panel-id] [::app-id app-id])
