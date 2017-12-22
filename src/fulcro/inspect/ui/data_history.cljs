@@ -44,7 +44,7 @@
   (refresh [env] [:ui/historical-dom-view]))
 
 (mutations/defmutation reset-app [{:keys [app target-state]}]
-  (action [{:keys [state]}]
+  (action [_]
     (let [state-atom (some-> app (:reconciler) (fp/app-state))]
       (reset! state-atom target-state))))
 
@@ -63,33 +63,37 @@
                                  :display        "flex"
                                  :flex-direction "column"}]
                    [:.slider {:display "flex"}]
-                   [:.watcher {:flex "1"
+                   [:.watcher {:flex     "1"
                                :overflow "auto"
-                               :padding "10px"}]]
+                               :padding  "10px"}]]
    :css-include   [ui/CSS watcher/DataWatcher domv/DOMHistoryView]}
   (let [css       (css/get-classnames DataHistory)
         at-end?   (= (dec (count history)) current-index)
         app-state (-> watcher ::watcher/root-data :fulcro.inspect.ui.data-viewer/content)]
     (dom/div #js {:className (:container css)}
       (ui/toolbar {}
-        (ui/toolbar-action {:title   "Back one version"
+        (ui/toolbar-action {:title    "Back one version"
                             :disabled (= 0 current-index)
                             :onClick  #(fp/transact! this `[(domv/show-dom-preview {})
                                                             (navigate-history ~{::current-index (dec current-index)})])}
           (ui/icon :chevron_left))
 
-        (dom/input #js {:type     "range" :min "0" :max (dec (count history))
-                        :value    (str current-index)
+        (dom/input #js {:type      "range" :min "0" :max (dec (count history))
+                        :value     (str current-index)
                         :onMouseUp (fn [] (fp/transact! this `[(domv/hide-dom-preview {})]))
                         :onChange  #(fp/transact! this `[(domv/show-dom-preview {})
                                                          (navigate-history {::current-index ~(js/parseInt (.. % -target -value))})])})
 
-        (ui/toolbar-action {:title   "Foward one version"
+        (ui/toolbar-action {:title    "Foward one version"
                             :disabled at-end?
                             :onClick  #(fp/transact! this `[(domv/show-dom-preview {})
                                                             (navigate-history ~{::current-index (inc current-index)})])}
           (ui/icon :chevron_right))
-        (dom/button #js {:onClick #(fp/transact! this `[(reset-app ~{:app target-app :target-state app-state})])} "Reset App To This State"))
+
+        (ui/toolbar-action {:title    "Reset App To This State"
+                            :disabled at-end?
+                            :onClick  #(fp/transact! this `[(reset-app ~{:app target-app :target-state app-state})])}
+          (ui/icon :settings_backup_restore)))
       (dom/div #js {:className (:watcher css)}
         (watcher/data-watcher watcher)))))
 
