@@ -93,7 +93,7 @@
                     [:.frame {:width  "100%"
                               :height "100%"
                               :border "0"}]])
-  (include-children [_] [element/MarkerCSS])
+  (include-children [_] [element/MarkerCSS domv/DOMHistoryView])
 
   Object
   (componentDidMount [this]
