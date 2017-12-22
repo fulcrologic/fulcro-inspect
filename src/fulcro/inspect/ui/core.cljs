@@ -82,7 +82,9 @@
 
                     [:.action {:cursor      "pointer"
                                :display     "flex"
-                               :align-items "center"}]
+                               :align-items "center"}
+                     [(gs/& (gs/attr "disabled")) {:cursor "default"}
+                      [:$c-icon {:fill color-icon-normal}]]]
 
                     [:.separator {:background "#ccc"
                                   :width      "1px"
