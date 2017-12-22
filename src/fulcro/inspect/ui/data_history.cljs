@@ -43,9 +43,11 @@
   (refresh [env] [:ui/historical-dom-view]))
 
 (mutations/defmutation reset-app [{:keys [app target-state]}]
-  (action [_]
+  (action [{:keys [state ref] :as env}]
     (let [state-atom (some-> app (:reconciler) (fp/app-state))]
-      (reset! state-atom target-state))))
+      (reset! state-atom target-state)
+      (h/swap-entity! env assoc ::current-index (-> (get-in @state ref) ::history count dec))))
+  (refresh [_] [::current-index]))
 
 (fp/defsc DataHistory
   [this {::keys [history watcher current-index show-dom-preview?]} {:keys [target-app]} css]
