@@ -1,6 +1,5 @@
 (ns fulcro.inspect.ui.data-history
   (:require [fulcro.client.primitives :as fp]
-            [fulcro-css.css :as css]
             [fulcro.client.dom :as dom]
             [fulcro.client.mutations :as mutations]
             [fulcro.inspect.ui.data-watcher :as watcher]
@@ -49,14 +48,15 @@
       (reset! state-atom target-state))))
 
 (fp/defsc DataHistory
-  [this {::keys [history watcher current-index]} {:keys [target-app]}]
+  [this {::keys [history watcher current-index show-dom-preview?]} {:keys [target-app]} css]
   {:initial-state (fn [content]
-                    {::history-id    (random-uuid)
-                     ::history       [(new-state content)]
-                     ::current-index 0
-                     ::watcher       (fp/get-initial-state watcher/DataWatcher content)})
+                    {::history-id        (random-uuid)
+                     ::history           [(new-state content)]
+                     ::current-index     0
+                     ::show-dom-preview? true
+                     ::watcher           (fp/get-initial-state watcher/DataWatcher content)})
    :ident         [::history-id ::history-id]
-   :query         [::history-id ::history ::current-index
+   :query         [::history-id ::history ::current-index ::show-dom-preview?
                    {::watcher (fp/get-query watcher/DataWatcher)}]
    :css           [[:.container {:width          "100%"
                                  :flex           "1"
@@ -65,29 +65,35 @@
                    [:.slider {:display "flex"}]
                    [:.watcher {:flex     "1"
                                :overflow "auto"
-                               :padding  "10px"}]]
+                               :padding  "10px"}]
+                   [:.toolbar {:padding-left "4px"}]]
    :css-include   [ui/CSS watcher/DataWatcher domv/DOMHistoryView]}
-  (let [css       (css/get-classnames DataHistory)
-        at-end?   (= (dec (count history)) current-index)
+  (let [at-end?   (= (dec (count history)) current-index)
         app-state (-> watcher ::watcher/root-data :fulcro.inspect.ui.data-viewer/content)]
     (dom/div #js {:className (:container css)}
-      (ui/toolbar {}
+      (ui/toolbar {:className (:toolbar css)}
+        (ui/toolbar-action {}
+          (dom/input #js {:title    "Show DOM preview."
+                          :checked  show-dom-preview?
+                          :onChange #(mutations/toggle! this ::show-dom-preview?)
+                          :type     "checkbox"}))
+
         (ui/toolbar-action {:title    "Back one version"
                             :disabled (= 0 current-index)
-                            :onClick  #(fp/transact! this `[(domv/show-dom-preview {})
-                                                            (navigate-history ~{::current-index (dec current-index)})])}
+                            :onClick  #(fp/transact! this (cond-> `[(navigate-history ~{::current-index (dec current-index)})]
+                                                            show-dom-preview? (conj `(domv/show-dom-preview {}))))}
           (ui/icon :chevron_left))
 
         (dom/input #js {:type      "range" :min "0" :max (dec (count history))
                         :value     (str current-index)
                         :onMouseUp (fn [] (fp/transact! this `[(domv/hide-dom-preview {})]))
-                        :onChange  #(fp/transact! this `[(domv/show-dom-preview {})
-                                                         (navigate-history {::current-index ~(js/parseInt (.. % -target -value))})])})
+                        :onChange  #(fp/transact! this (cond-> `[(navigate-history {::current-index ~(js/parseInt (.. % -target -value))})]
+                                                         show-dom-preview? (conj `(domv/show-dom-preview {}))))})
 
         (ui/toolbar-action {:title    "Foward one version"
                             :disabled at-end?
-                            :onClick  #(fp/transact! this `[(domv/show-dom-preview {})
-                                                            (navigate-history ~{::current-index (inc current-index)})])}
+                            :onClick  #(fp/transact! this (cond-> `[(navigate-history ~{::current-index (inc current-index)})]
+                                                            show-dom-preview? (conj `(domv/show-dom-preview {}))))}
           (ui/icon :chevron_right))
 
         (ui/toolbar-action {:title    "Reset App To This State"
