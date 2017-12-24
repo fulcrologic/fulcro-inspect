@@ -82,7 +82,9 @@
 
                     [:.action {:cursor      "pointer"
                                :display     "flex"
-                               :align-items "center"}]
+                               :align-items "center"}
+                     [(gs/& (gs/attr "disabled")) {:cursor "not-allowed"}
+                      [:$c-icon {:fill color-icon-normal}]]]
 
                     [:.separator {:background "#ccc"
                                   :width      "1px"
@@ -99,12 +101,11 @@
 
   Object
   (render [this]
-    (let [{:keys []} (fp/props this)
-          css (css/get-classnames ToolBar)]
+    (let [css (css/get-classnames ToolBar)]
       (dom/div (h/props+classes this {:className (:container css)})
         (fp/children this)))))
 
-(def toolbar (h/container-factory ToolBar))
+(def toolbar (fp/factory ToolBar))
 
 (defn toolbar-separator []
   (dom/div #js {:className (:separator (css/get-classnames ToolBar))}))
@@ -152,12 +153,12 @@
 
 (defn focus-panel [props & children]
   (apply dom/div (h/props->html {:className (:focused-panel scss)}
-                                props)
+                   props)
     children))
 
 (defn focus-panel-content [props & children]
   (apply dom/div (h/props->html {:className (:focused-container scss)}
-                                props)
+                   props)
     children))
 
 (defn info [{::keys [title] :as props} & children]
