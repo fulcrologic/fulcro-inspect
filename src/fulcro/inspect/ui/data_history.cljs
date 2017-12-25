@@ -37,7 +37,8 @@
       (when (not= current-index (::current-index history))
         (let [content                 (get-in history [::history current-index ::state])
               history-view-state-path (conj (fp/get-ident domv/DOMHistoryView {}) :app-state)]
-          (swap! state assoc-in history-view-state-path content)
+          (if (::show-dom-preview? history)
+            (swap! state assoc-in history-view-state-path content))
           (h/swap-entity! env assoc ::current-index current-index)
           (watcher/update-state (assoc env :ref (::watcher history)) content)))))
   (refresh [env] [:ui/historical-dom-view]))
@@ -83,19 +84,19 @@
         (ui/toolbar-action {:title    "Back one version"
                             :disabled (= 0 current-index)
                             :onClick  #(fp/transact! this (cond-> `[(navigate-history ~{::current-index (dec current-index)})]
-                                                            show-dom-preview? (conj `(domv/show-dom-preview {}))))}
+                                                            (-> this fp/props ::show-dom-preview?) (conj `(domv/show-dom-preview {}))))}
           (ui/icon :chevron_left))
 
         (dom/input #js {:type      "range" :min "0" :max (dec (count history))
                         :value     (str current-index)
                         :onMouseUp (fn [] (fp/transact! this `[(domv/hide-dom-preview {})]))
                         :onChange  #(fp/transact! this (cond-> `[(navigate-history {::current-index ~(js/parseInt (.. % -target -value))})]
-                                                         show-dom-preview? (conj `(domv/show-dom-preview {}))))})
+                                                         (-> this fp/props ::show-dom-preview?) (conj `(domv/show-dom-preview {}))))})
 
         (ui/toolbar-action {:title    "Foward one version"
                             :disabled at-end?
                             :onClick  #(fp/transact! this (cond-> `[(navigate-history ~{::current-index (inc current-index)})]
-                                                            show-dom-preview? (conj `(domv/show-dom-preview {}))))}
+                                                            (-> this fp/props ::show-dom-preview?) (conj `(domv/show-dom-preview {}))))}
           (ui/icon :chevron_right))
 
         (ui/toolbar-action {:title    "Reset App To This State"
