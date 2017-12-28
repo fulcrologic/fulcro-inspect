@@ -45,8 +45,10 @@
 
 (mutations/defmutation reset-app [{:keys [app target-state]}]
   (action [{:keys [state ref] :as env}]
-    (let [state-atom (some-> app (:reconciler) (fp/app-state))]
+    (let [reconciler (some-> app :reconciler)
+          state-atom (some-> reconciler fp/app-state)]
       (reset! state-atom target-state)
+      (fp/force-root-render! reconciler)
       (h/swap-entity! env assoc ::current-index (-> (get-in @state ref) ::history count dec))))
   (refresh [_] [::current-index]))
 
