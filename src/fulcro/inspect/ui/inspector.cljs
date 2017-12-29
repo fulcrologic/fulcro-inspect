@@ -76,23 +76,31 @@
                    :right         "0"
                    :top           "26px"
                    :background    "#f3f3f3"
-                   :padding       "20px"
+                   :padding       "14px"
                    :border        "1px solid #C8C8C8"
                    :border-radius "4px"
                    :box-shadow    ui/box-shadow}]
-    [:.dock-side {:display "flex"}]]
+    [:.dock-side {:display     "flex"
+                  :align-items "center"}]
+    [:.dock-title {:margin-right "10px"
+                   :font-family  ui/label-font-family
+                   :font-size    ui/label-font-size}]
+    [:.dock-icon {:cursor "pointer"
+                  :width  "14px"
+                  :height "12px"
+                  :margin "0 5px"}]]
 
    :css-include
    [data-history/DataHistory network/NetworkHistory transactions/TransactionList element/Panel]}
 
-  (let [tab-item (fn [{:keys [title html-title disabled? page]}]
-                   (dom/div #js {:className (cond-> (:tab css)
-                                              disabled? (str " " (:tab-disabled css))
-                                              (= tab page) (str " " (:tab-selected css)))
-                                 :title     html-title
-                                 :onClick   #(if-not disabled?
-                                               (mutations/set-value! this ::tab page))}
-                     title))
+  (let [tab-item  (fn [{:keys [title html-title disabled? page]}]
+                    (dom/div #js {:className (cond-> (:tab css)
+                                               disabled? (str " " (:tab-disabled css))
+                                               (= tab page) (str " " (:tab-selected css)))
+                                  :title     html-title
+                                  :onClick   #(if-not disabled?
+                                                (mutations/set-value! this ::tab page))}
+                      title))
         {:keys [ui/dock-side]} (get props [:fulcro.inspect.core/floating-panel "main"])
         set-dock! #(fp/transact! (fp/get-reconciler this) [:fulcro.inspect.core/floating-panel "main"]
                      `[(mutations/set-props {:ui/dock-side ~%}) :ui/dock-side])]
@@ -115,11 +123,15 @@
         (dom/div #js {:className (:more-panel css)
                       :onClick   #(.stopPropagation %)}
           (dom/div #js {:className (:dock-side css)}
-            (dom/div nil "Dock side")
-            (dom/div #js {:onClick #(set-dock! :fulcro.inspect.core/dock-right)}
-              "Right")
-            (dom/div #js {:onClick #(set-dock! :fulcro.inspect.core/dock-bottom)}
-              "Bottom"))))
+            (dom/div #js {:className (:dock-title css)} "Dock side")
+            (ui/icon {:className (:dock-icon css)
+                      :title     "Dock to bottom"
+                      :onClick   #(set-dock! :fulcro.inspect.core/dock-bottom)}
+              (if (= dock-side :fulcro.inspect.core/dock-bottom) :dock-bottom-blue :dock-bottom))
+            (ui/icon {:className (:dock-icon css)
+                      :title     "Dock to right"
+                      :onClick   #(set-dock! :fulcro.inspect.core/dock-right)}
+              (if (= dock-side :fulcro.inspect.core/dock-right) :dock-right-blue :dock-right)))))
 
       (case tab
         ::page-db

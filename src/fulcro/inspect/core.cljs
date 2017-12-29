@@ -7,8 +7,6 @@
     [fulcro.client.mutations :as mutations :refer-macros [defmutation]]
     [fulcro.client.network :as f.network]
     [fulcro.inspect.ui.data-history :as data-history]
-    [fulcro.inspect.ui.data-viewer :as data-viewer]
-    [fulcro.inspect.ui.data-watcher :as data-watcher]
     [fulcro.inspect.ui.dom-history-viewer :as domv]
     [fulcro.inspect.ui.inspector :as inspector]
     [fulcro.inspect.ui.multi-inspector :as multi-inspector]
