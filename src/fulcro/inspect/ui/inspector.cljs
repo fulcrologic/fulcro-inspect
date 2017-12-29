@@ -102,8 +102,10 @@
                                                 (mutations/set-value! this ::tab page))}
                       title))
         {:keys [ui/dock-side]} (get props [:fulcro.inspect.core/floating-panel "main"])
-        set-dock! #(fp/transact! (fp/get-reconciler this) [:fulcro.inspect.core/floating-panel "main"]
-                     `[(mutations/set-props {:ui/dock-side ~%}) :ui/dock-side])]
+        set-dock! #(do
+                     (fp/transact! (fp/get-reconciler this) [:fulcro.inspect.core/floating-panel "main"]
+                       `[(mutations/set-props {:ui/dock-side ~%}) :ui/dock-side])
+                     (mutations/set-value! this :ui/more-open? false))]
     (dom/div #js {:className (:container css)
                   :onClick   #(if more-open? (mutations/set-value! this :ui/more-open? false))}
       (dom/div #js {:className (:tabs css)}
