@@ -25,6 +25,8 @@
 (def color-row-hover "#eef3fa")
 (def color-row-selected "#e6e6e6")
 
+(def box-shadow "0 6px 6px rgba(0, 0, 0, 0.26), 0 9px 20px rgba(0, 0, 0, 0.19)")
+
 (def css-info-group
   {:border-top "1px solid #eee"
    :padding    "7px 0"})

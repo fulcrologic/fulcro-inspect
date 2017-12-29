@@ -11,23 +11,28 @@
             [fulcro.client.dom :as dom]
             [fulcro.client.primitives :as fp]))
 
-(fp/defsc Inspector [this {::keys [target-app app-state tab element network transactions]} _ css]
+(fp/defsc Inspector [this {::keys   [target-app app-state tab element network transactions]
+                           :ui/keys [more-open?]
+                           :as      props} _ css]
   {:initial-state
-   (fn [state] {::id           (random-uuid)
-                ::tab          ::page-db
-                ::app-state    (-> (fp/get-initial-state data-history/DataHistory state)
-                                   (assoc-in [::data-history/watcher ::data-watcher/root-data ::data-viewer/expanded]
-                                     {[] true}))
-                ::element      (fp/get-initial-state element/Panel nil)
-                ::network      (fp/get-initial-state network/NetworkHistory nil)
-                ::transactions (fp/get-initial-state transactions/TransactionList [])})
+   (fn [state]
+     {::id           (random-uuid)
+      ::tab          ::page-db
+      ::app-state    (-> (fp/get-initial-state data-history/DataHistory state)
+                         (assoc-in [::data-history/watcher ::data-watcher/root-data ::data-viewer/expanded]
+                           {[] true}))
+      ::element      (fp/get-initial-state element/Panel nil)
+      ::network      (fp/get-initial-state network/NetworkHistory nil)
+      ::transactions (fp/get-initial-state transactions/TransactionList [])
+      :ui/more-open? false})
 
    :ident
    [::id ::id]
 
    :query
-   [::tab ::id
+   [::tab ::id :ui/more-open?
     ::target-app
+    {[:fulcro.inspect.core/floating-panel "main"] [:ui/dock-side]}
     {::app-state (fp/get-query data-history/DataHistory)}
     {::element (fp/get-query element/Panel)}
     {::network (fp/get-query network/NetworkHistory)}
@@ -45,9 +50,12 @@
              :background    "#f3f3f3"
              :color         ui/color-text-normal
              :border-bottom "1px solid #ccc"
+             :position      "relative"
              :user-select   "none"}]
+    [:.flex {:flex "1"}]
     [:.tab {:cursor  "pointer"
             :padding "6px 10px 5px"}
+
      [:&:hover {:background "#e5e5e5"
                 :color      ui/color-text-strong}]
      [:&.tab-selected {:border-bottom "2px solid #5c7ebb"
@@ -59,7 +67,20 @@
     [:.tab-content {:flex     "1"
                     :overflow "auto"
                     :display  "flex"}
-     [:&.spaced {:padding "10px"}]]]
+     [:&.spaced {:padding "10px"}]]
+
+    [:.more {:cursor        "pointer"
+             :transform     "scale(0.8)"
+             :padding-right "3px"}]
+    [:.more-panel {:position      "absolute"
+                   :right         "0"
+                   :top           "26px"
+                   :background    "#f3f3f3"
+                   :padding       "20px"
+                   :border        "1px solid #C8C8C8"
+                   :border-radius "4px"
+                   :box-shadow    ui/box-shadow}]
+    [:.dock-side {:display "flex"}]]
 
    :css-include
    [data-history/DataHistory network/NetworkHistory transactions/TransactionList element/Panel]}
@@ -71,14 +92,34 @@
                                  :title     html-title
                                  :onClick   #(if-not disabled?
                                                (mutations/set-value! this ::tab page))}
-                     title))]
-    (dom/div #js {:className (:container css)}
+                     title))
+        {:keys [ui/dock-side]} (get props [:fulcro.inspect.core/floating-panel "main"])
+        set-dock! #(fp/transact! (fp/get-reconciler this) [:fulcro.inspect.core/floating-panel "main"]
+                     `[(mutations/set-props {:ui/dock-side ~%}) :ui/dock-side])]
+    (dom/div #js {:className (:container css)
+                  :onClick   #(if more-open? (mutations/set-value! this :ui/more-open? false))}
       (dom/div #js {:className (:tabs css)}
         (tab-item {:title "DB" :page ::page-db})
         (tab-item {:title "Element" :page ::page-element})
         (tab-item {:title "Transactions" :page ::page-transactions})
         (tab-item {:title "Network" :page ::page-network})
-        (tab-item {:title "OgE" :disabled? true}))
+        (tab-item {:title "OgE" :disabled? true})
+        (dom/div #js {:className (:flex css)})
+        (dom/div #js {:className (:more css)
+                      :onClick   (fn [e]
+                                   (.stopPropagation e)
+                                   (mutations/toggle! this :ui/more-open?))}
+          (ui/icon :more_vert)))
+
+      (if more-open?
+        (dom/div #js {:className (:more-panel css)
+                      :onClick   #(.stopPropagation %)}
+          (dom/div #js {:className (:dock-side css)}
+            (dom/div nil "Dock side")
+            (dom/div #js {:onClick #(set-dock! :fulcro.inspect.core/dock-right)}
+              "Right")
+            (dom/div #js {:onClick #(set-dock! :fulcro.inspect.core/dock-bottom)}
+              "Bottom"))))
 
       (case tab
         ::page-db

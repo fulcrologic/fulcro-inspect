@@ -59,10 +59,11 @@
 
 (fp/defui ^:once GlobalInspector
   static fp/InitialAppState
-  (initial-state [_ params] {:ui/size      50
-                             :ui/visible?  false
+  (initial-state [_ params] {:ui/size                50
+                             :ui/dock-side           ::dock-right
+                             :ui/visible?            false
                              :ui/historical-dom-view (fp/get-initial-state domv/DOMHistoryView {})
-                             :ui/inspector (fp/get-initial-state multi-inspector/MultiInspector params)})
+                             :ui/inspector           (fp/get-initial-state multi-inspector/MultiInspector params)})
 
   static fp/Ident
   (ident [_ props] [::floating-panel "main"])
@@ -70,26 +71,36 @@
   static fp/IQuery
   (query [_] [{:ui/inspector (fp/get-query multi-inspector/MultiInspector)}
               {:ui/historical-dom-view (fp/get-query domv/DOMHistoryView)}
-              :ui/size :ui/visible?])
+              :ui/size :ui/visible? :ui/dock-side])
 
   static css/CSS
   (local-rules [_] [[:.container {:background "#fff"
                                   :box-shadow "rgba(0, 0, 0, 0.3) 0px 0px 4px"
                                   :position   "fixed"
-                                  :top        "0"
-                                  :right      "0"
-                                  :bottom     "0"
-                                  :width      "50%"
                                   :overflow   "hidden"
                                   :z-index    "9999999"}]
+                    [:.container-right {:top    "0"
+                                        :right  "0"
+                                        :bottom "0"
+                                        :width  "50%"}]
+                    [:.container-bottom {:left   "0"
+                                         :right  "0"
+                                         :bottom "0"
+                                         :height "50%"}]
                     [:.resizer {:position    "fixed"
-                                :cursor      "ew-resize"
-                                :top         "0"
-                                :left        "50%"
-                                :margin-left "-5px"
-                                :width       "10px"
-                                :bottom      "0"
                                 :z-index     "99999"}]
+                    [:.resizer-horizontal {:cursor      "ew-resize"
+                                           :top         "0"
+                                           :left        "50%"
+                                           :margin-left "-5px"
+                                           :width       "10px"
+                                           :bottom      "0"}]
+                    [:.resizer-vertical {:cursor     "ns-resize"
+                                         :left       "0"
+                                         :top        "50%"
+                                         :margin-top "-5px"
+                                         :height     "10px"
+                                         :right      "0"}]
                     [:.frame {:width  "100%"
                               :height "100%"
                               :border "0"}]])
@@ -105,9 +116,9 @@
     (gobj/set this "frame-dom" (js/ReactDOM.findDOMNode (gobj/get this "frame-node"))))
 
   (render [this]
-    (let [{:ui/keys [size visible? inspector historical-dom-view]} (fp/props this)
+    (let [{:ui/keys [size visible? inspector historical-dom-view dock-side]} (fp/props this)
           {:keys [::multi-inspector/current-app]} inspector
-          app             (::inspector/target-app current-app)
+          app       (::inspector/target-app current-app)
           keystroke (or (fp/shared this [:options :launch-keystroke]) "ctrl-f")
           size      (or size 50)
           css       (css/get-classnames GlobalInspector)]
@@ -116,37 +127,78 @@
         (events/key-listener {::events/action    #(mutations/set-value! this :ui/visible? (not visible?))
                               ::events/keystroke keystroke})
         (domv/ui-dom-history-view (fp/computed historical-dom-view {:target-app app}))
-        (dom/div #js {:className   (:resizer css)
-                      :ref         #(gobj/set this "resizer" %)
-                      :style       #js {:left (str size "%")}
-                      :onMouseDown (fn [_]
-                                     (let [handler (fn [e]
-                                                     (let [mouse (.-clientX e)
-                                                           vw    js/document.body.clientWidth
-                                                           pos   (* (/ mouse vw) 100)]
-                                                       (when (pos? pos)
-                                                         (set-style! (gobj/get this "resizer") "left" (str pos "%"))
-                                                         (set-style! (gobj/get this "container") "width" (str (- 100 pos) "%"))
-                                                         ((gobj/get this "resize-debouncer") pos))))
-                                           frame   (js/ReactDOM.findDOMNode (gobj/get this "frame-node"))]
-                                       (set-style! frame "pointerEvents" "none")
-                                       (js/document.addEventListener "mousemove" handler)
-                                       (js/document.addEventListener "mouseup"
-                                         (fn [e]
-                                           (gobj/set (.-style frame) "pointerEvents" "initial")
-                                           (js/document.removeEventListener "mousemove" handler)))))})
-        (dom/div #js {:className (:container css)
-                      :style     #js {:width (str (- 100 size) "%")}
-                      :ref       #(gobj/set this "container" %)}
-          (ui-iframe {:className (:frame css) :ref #(gobj/set this "frame-node" %)}
-            (dom/div nil
-              (when-let [frame (gobj/get this "frame-dom")]
-                (events/key-listener {::events/action    #(mutations/set-value! this :ui/visible? (not visible?))
-                                      ::events/keystroke keystroke
-                                      ::events/target    (gobj/getValueByKeys frame #js ["contentDocument" "body"])}))
-              (dom/style #js {:dangerouslySetInnerHTML #js {:__html (g/css [[:body {:margin "0" :padding "0" :box-sizing "border-box"}]])}})
-              (dom/style #js {:dangerouslySetInnerHTML #js {:__html (g/css (css/get-css multi-inspector/MultiInspector))}})
-              (multi-inspector/multi-inspector inspector))))))))
+
+        (case dock-side
+          ::dock-right
+          (dom/div #js {:className   (str (:resizer css) " " (:resizer-horizontal css))
+                        :ref         #(gobj/set this "resizer" %)
+                        :style       #js {:left (str size "%")}
+                        :onMouseDown (fn [_]
+                                       (let [handler (fn [e]
+                                                       (let [mouse (.-clientX e)
+                                                             vw    js/window.innerWidth
+                                                             pos   (* (/ mouse vw) 100)]
+                                                         (when (pos? pos)
+                                                           (set-style! (gobj/get this "resizer") "left" (str pos "%"))
+                                                           (set-style! (gobj/get this "container") "width" (str (- 100 pos) "%"))
+                                                           ((gobj/get this "resize-debouncer") pos))))
+                                             frame   (js/ReactDOM.findDOMNode (gobj/get this "frame-node"))]
+                                         (set-style! frame "pointerEvents" "none")
+                                         (js/document.addEventListener "mousemove" handler)
+                                         (js/document.addEventListener "mouseup"
+                                           (fn [e]
+                                             (gobj/set (.-style frame) "pointerEvents" "initial")
+                                             (js/document.removeEventListener "mousemove" handler)))))})
+
+          ::dock-bottom
+          (dom/div #js {:className   (str (:resizer css) " " (:resizer-vertical css))
+                        :ref         #(gobj/set this "resizer" %)
+                        :style       #js {:top (str size "%")}
+                        :onMouseDown (fn [_]
+                                       (let [handler (fn [e]
+                                                       (let [mouse (.-clientY e)
+                                                             vh    js/window.innerHeight
+                                                             pos   (* (/ mouse vh) 100)]
+                                                         (when (pos? pos)
+                                                           (set-style! (gobj/get this "resizer") "top" (str pos "%"))
+                                                           (set-style! (gobj/get this "container") "height" (str (- 100 pos) "%"))
+                                                           ((gobj/get this "resize-debouncer") pos))))
+                                             frame   (js/ReactDOM.findDOMNode (gobj/get this "frame-node"))]
+                                         (set-style! frame "pointerEvents" "none")
+                                         (js/document.addEventListener "mousemove" handler)
+                                         (js/document.addEventListener "mouseup"
+                                           (fn [e]
+                                             (gobj/set (.-style frame) "pointerEvents" "initial")
+                                             (js/document.removeEventListener "mousemove" handler)))))}))
+
+        (case dock-side
+          ::dock-right
+          (dom/div #js {:className (str (:container css) " " (:container-right css))
+                        :style     #js {:width (str (- 100 size) "%")}
+                        :ref       #(gobj/set this "container" %)}
+            (ui-iframe {:className (:frame css) :ref #(gobj/set this "frame-node" %)}
+              (dom/div nil
+                (when-let [frame (gobj/get this "frame-dom")]
+                  (events/key-listener {::events/action    #(mutations/set-value! this :ui/visible? (not visible?))
+                                        ::events/keystroke keystroke
+                                        ::events/target    (gobj/getValueByKeys frame #js ["contentDocument" "body"])}))
+                (dom/style #js {:dangerouslySetInnerHTML #js {:__html (g/css [[:body {:margin "0" :padding "0" :box-sizing "border-box"}]])}})
+                (dom/style #js {:dangerouslySetInnerHTML #js {:__html (g/css (css/get-css multi-inspector/MultiInspector))}})
+                (multi-inspector/multi-inspector inspector))))
+
+          ::dock-bottom
+          (dom/div #js {:className (str (:container css) " " (:container-bottom css))
+                        :style     #js {:height (str (- 100 size) "%")}
+                        :ref       #(gobj/set this "container" %)}
+            (ui-iframe {:className (:frame css) :ref #(gobj/set this "frame-node" %)}
+              (dom/div nil
+                (when-let [frame (gobj/get this "frame-dom")]
+                  (events/key-listener {::events/action    #(mutations/set-value! this :ui/visible? (not visible?))
+                                        ::events/keystroke keystroke
+                                        ::events/target    (gobj/getValueByKeys frame #js ["contentDocument" "body"])}))
+                (dom/style #js {:dangerouslySetInnerHTML #js {:__html (g/css [[:body {:margin "0" :padding "0" :box-sizing "border-box"}]])}})
+                (dom/style #js {:dangerouslySetInnerHTML #js {:__html (g/css (css/get-css multi-inspector/MultiInspector))}})
+                (multi-inspector/multi-inspector inspector)))))))))
 
 (def global-inspector-view (fp/factory GlobalInspector))
 
@@ -301,7 +353,7 @@
         new-id))))
 
 (defn inspect-tx [{:keys [reconciler] :as env} info]
-  (if (fp/app-root reconciler) ; ensure app is initialized
+  (if (fp/app-root reconciler)                              ; ensure app is initialized
     (let [inspector (global-inspector)
           tx        (merge info (select-keys env [:old-state :new-state :ref :component]))
           app-id    (app-id reconciler)]
