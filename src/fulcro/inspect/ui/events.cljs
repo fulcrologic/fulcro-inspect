@@ -84,14 +84,16 @@
           event  (or event "keydown")]
       (gobj/set this "matcher" {:handler handler
                                 :matcher matcher})
-      (.addEventListener target event handler))))
+      (if target
+        (.addEventListener target event handler)))))
 
 (defn dispose-handler [this]
   (if-let [{:keys [handler]} (gobj/get this "matcher")]
     (let [{::keys [target event]} (fp/props this)
           target (read-target target)
           event  (or event "keydown")]
-      (.removeEventListener target event handler))))
+      (if target
+        (.removeEventListener target event handler)))))
 
 (fp/defui ^:once KeyListener
   Object
