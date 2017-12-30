@@ -9,7 +9,8 @@
             [fulcro.inspect.ui.network :as network]
             [fulcro.inspect.ui.transactions :as transactions]
             [fulcro.client.dom :as dom]
-            [fulcro.client.primitives :as fp]))
+            [fulcro.client.primitives :as fp]
+            [fulcro.inspect.helpers :as db.h]))
 
 (fp/defsc Inspector [this {::keys   [target-app app-state tab element network transactions]
                            :ui/keys [more-open?]
@@ -104,7 +105,9 @@
         {:keys [ui/dock-side]} (get props [:fulcro.inspect.core/floating-panel "main"])
         set-dock! #(do
                      (fp/transact! (fp/get-reconciler this) [:fulcro.inspect.core/floating-panel "main"]
-                       `[(mutations/set-props {:ui/dock-side ~%}) :ui/dock-side])
+                       `[(db.h/persistent-set-props {::db.h/local-key   :ui/dock-side
+                                                     ::db.h/storage-key :fulcro.inspect.core/dock-side
+                                                     ::db.h/value       ~%}) :ui/dock-side])
                      (mutations/set-value! this :ui/more-open? false))]
     (dom/div #js {:className (:container css)
                   :onClick   #(if more-open? (mutations/set-value! this :ui/more-open? false))}
