@@ -7,7 +7,10 @@
     [fulcro.inspect.ui.inspector :as inspector]
     [fulcro.client.dom :as dom]
     [fulcro.client.primitives :as fp]
-    [fulcro.inspect.helpers :as h]))
+    [fulcro.inspect.helpers :as h]
+    [fulcro.inspect.ui.events :as events]
+    [fulcro.inspect.helpers :as db.h]
+    [garden.core :as g]))
 
 (mutations/defmutation add-inspector [inspector]
   (action [env]
@@ -23,12 +26,14 @@
     (let [{:keys [ref state]} env]
       (swap! state update-in ref assoc ::current-app [::inspector/id id]))))
 
-(fp/defsc MultiInspector [this {::keys [inspectors current-app]} _ css]
+(fp/defsc MultiInspector [this {::keys [inspectors current-app] :as props} _ css]
   {:initial-state (fn [_] {::inspectors  []
                            ::current-app nil})
 
    :ident         (fn [] [::multi-inspector "main"])
-   :query         [::inspectors {::current-app (fp/get-query inspector/Inspector)}]
+   :query         [::inspectors
+                   {[:fulcro.inspect.core/floating-panel "main"] [:ui/visible?]}
+                   {::current-app (fp/get-query inspector/Inspector)}]
    :css           [[:.container {:display        "flex"
                                  :flex-direction "column"
                                  :width          "100%"
@@ -53,19 +58,29 @@
                               :justify-content "center"}]]
    :css-include   [inspector/Inspector]}
 
-  (dom/div #js {:className (:container css)}
-    (if current-app
-      (inspector/inspector current-app)
-      (dom/div #js {:className (:no-app css)}
-        (dom/div nil "No app connected.")))
-    (if (> (count inspectors) 1)
-      (dom/div #js {:className (:selector css)}
-        (dom/div #js {:className (:label css)} "App")
-        (dom/select #js {:value    (str (::inspector/id current-app))
-                         :onChange #(fp/transact! this `[(set-app {::inspector/id ~(read-string (.. % -target -value))})])}
-          (for [app-id (->> (map (comp pr-str second) inspectors) sort)]
-            (dom/option #js {:key   app-id
-                             :value app-id}
-              app-id)))))))
+  (let [keystroke (or (fp/shared this [:options :launch-keystroke]) "ctrl-f")
+        {:ui/keys [visible?]} (get props [:fulcro.inspect.core/floating-panel "main"])]
+    (dom/div #js {:className (:container css)}
+      (events/key-listener {::events/action    #(fp/transact! (fp/get-reconciler this) [:fulcro.inspect.core/floating-panel "main"]
+                                                  `[(db.h/persistent-set-props {::db.h/local-key   :ui/visible?
+                                                                                ::db.h/storage-key :fulcro.inspect.core/dock-visible?
+                                                                                ::db.h/value       ~(not visible?)}) :ui/visible?])
+                            ::events/keystroke keystroke
+                            ::events/target    #(.closest (dom/node this) "body")})
+      (dom/style #js {:dangerouslySetInnerHTML #js {:__html (g/css [[:body {:margin "0" :padding "0" :box-sizing "border-box"}]])}})
+      (dom/style #js {:dangerouslySetInnerHTML #js {:__html (g/css (css/get-css MultiInspector))}})
+      (if current-app
+        (inspector/inspector current-app)
+        (dom/div #js {:className (:no-app css)}
+          (dom/div nil "No app connected.")))
+      (if (> (count inspectors) 1)
+        (dom/div #js {:className (:selector css)}
+          (dom/div #js {:className (:label css)} "App")
+          (dom/select #js {:value    (str (::inspector/id current-app))
+                           :onChange #(fp/transact! this `[(set-app {::inspector/id ~(read-string (.. % -target -value))})])}
+            (for [app-id (->> (map (comp pr-str second) inspectors) sort)]
+              (dom/option #js {:key   app-id
+                               :value app-id}
+                app-id))))))))
 
 (def multi-inspector (fp/factory MultiInspector {:keyfn ::multi-inspector}))

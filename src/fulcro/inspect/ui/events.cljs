@@ -66,28 +66,39 @@
 (defn handle-event [this e]
   (let [{::keys [action]} (fp/props this)
         {:keys [matcher]} (gobj/get this "matcher")]
-    (if (and (match-key? e matcher)
-             (match-modifiers? e matcher))
+    (when (and (match-key? e matcher)
+               (match-modifiers? e matcher))
       (action e))))
+
+(defn read-target [target]
+  (cond
+    (fn? target) (target)
+    (nil? target) js/document.body
+    :else target))
+
+(defn start-handler [this]
+  (if-let [matcher (parse-keystroke (-> this fp/props ::keystroke))]
+    (let [handler #(handle-event this %)
+          {::keys [target event]} (fp/props this)
+          target (read-target target)
+          event  (or event "keydown")]
+      (gobj/set this "matcher" {:handler handler
+                                :matcher matcher})
+      (.addEventListener target event handler))))
+
+(defn dispose-handler [this]
+  (if-let [{:keys [handler]} (gobj/get this "matcher")]
+    (let [{::keys [target event]} (fp/props this)
+          target (read-target target)
+          event  (or event "keydown")]
+      (.removeEventListener target event handler))))
 
 (fp/defui ^:once KeyListener
   Object
-  (componentDidMount [this]
-    (if-let [matcher (parse-keystroke (-> this fp/props ::keystroke))]
-      (let [handler #(handle-event this %)
-            {::keys [target event]} (fp/props this)
-            target (or target js/document.body)
-            event  (or event "keydown")]
-        (gobj/set this "matcher" {:handler handler
-                                  :matcher matcher})
-        (.addEventListener target event handler))))
-
-  (componentWillUnmount [this]
-    (if-let [{:keys [handler]} (gobj/get this "matcher")]
-      (let [{::keys [target event]} (fp/props this)
-            target (or target js/document.body)
-            event  (or event "keydown")]
-        (.removeEventListener target event handler))))
+  (componentDidMount [this] (start-handler this))
+  (componentWillUnmount [this] (dispose-handler this))
+  (componentWillUpdate [this _ _] (dispose-handler this))
+  (componentDidUpdate [this _ _] (start-handler this))
 
   (render [_]
     (dom/noscript nil)))

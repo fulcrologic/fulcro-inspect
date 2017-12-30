@@ -18,8 +18,7 @@
     [fulcro.inspect.ui.transactions :as transactions]
     [fulcro-css.css :as css]
     [fulcro.client.dom :as dom]
-    [fulcro.client.primitives :as fp]
-    [garden.core :as g]))
+    [fulcro.client.primitives :as fp]))
 
 (defn set-style! [node prop value]
   (gobj/set (gobj/get node "style") prop value))
@@ -177,28 +176,14 @@
                         :style     #js {:width (str (- 100 size) "%")}
                         :ref       #(gobj/set this "container" %)}
             (ui-iframe {:className (:frame css) :ref #(gobj/set this "frame-node" %)}
-              (dom/div nil
-                (when-let [frame (gobj/get this "frame-dom")]
-                  (events/key-listener {::events/action    #(db.h/persistent-set! this :ui/visible? ::dock-visible? (not visible?))
-                                        ::events/keystroke keystroke
-                                        ::events/target    (gobj/getValueByKeys frame #js ["contentDocument" "body"])}))
-                (dom/style #js {:dangerouslySetInnerHTML #js {:__html (g/css [[:body {:margin "0" :padding "0" :box-sizing "border-box"}]])}})
-                (dom/style #js {:dangerouslySetInnerHTML #js {:__html (g/css (css/get-css multi-inspector/MultiInspector))}})
-                (multi-inspector/multi-inspector inspector))))
+              (multi-inspector/multi-inspector inspector)))
 
           ::dock-bottom
           (dom/div #js {:className (str (:container css) " " (:container-bottom css))
                         :style     #js {:height (str (- 100 size) "%")}
                         :ref       #(gobj/set this "container" %)}
             (ui-iframe {:className (:frame css) :ref #(gobj/set this "frame-node" %)}
-              (dom/div nil
-                (when-let [frame (gobj/get this "frame-dom")]
-                  (events/key-listener {::events/action    #(db.h/persistent-set! this :ui/visible? ::dock-visible? (not visible?))
-                                        ::events/keystroke keystroke
-                                        ::events/target    (gobj/getValueByKeys frame #js ["contentDocument" "body"])}))
-                (dom/style #js {:dangerouslySetInnerHTML #js {:__html (g/css [[:body {:margin "0" :padding "0" :box-sizing "border-box"}]])}})
-                (dom/style #js {:dangerouslySetInnerHTML #js {:__html (g/css (css/get-css multi-inspector/MultiInspector))}})
-                (multi-inspector/multi-inspector inspector)))))))))
+              (multi-inspector/multi-inspector inspector))))))))
 
 (def global-inspector-view (fp/factory GlobalInspector))
 
