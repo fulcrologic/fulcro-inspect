@@ -224,7 +224,7 @@
                                                                                  (fp/transact! this [`(set-element ~details)]))
                                                                                (mutations/set-value! this :ui/picking? false)))}))}
                                picking? (assoc :className (:icon-active css)))
-            (ui/icon :gps_fixed {})))
+            (ui/icon :gps_fixed)))
         (if (::details props)
           (details (::details props)))))))
 

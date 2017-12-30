@@ -6,6 +6,8 @@
     [fulcro.client :as fulcro]
     [fulcro.client.mutations :as mutations :refer-macros [defmutation]]
     [fulcro.client.network :as f.network]
+    [fulcro.inspect.helpers :as db.h]
+    [fulcro.inspect.lib.local-storage :as storage]
     [fulcro.inspect.ui.data-history :as data-history]
     [fulcro.inspect.ui.dom-history-viewer :as domv]
     [fulcro.inspect.ui.inspector :as inspector]
@@ -57,9 +59,9 @@
 
 (fp/defui ^:once GlobalInspector
   static fp/InitialAppState
-  (initial-state [_ params] {:ui/size                50
-                             :ui/dock-side           ::dock-right
-                             :ui/visible?            false
+  (initial-state [_ params] {:ui/size                (storage/get ::dock-size 50)
+                             :ui/dock-side           (storage/get ::dock-side ::dock-right)
+                             :ui/visible?            (storage/get ::dock-visible? false)
                              :ui/historical-dom-view (fp/get-initial-state domv/DOMHistoryView {})
                              :ui/inspector           (fp/get-initial-state multi-inspector/MultiInspector params)})
 
@@ -108,7 +110,7 @@
   (componentDidMount [this]
     (gobj/set this "frame-dom" (js/ReactDOM.findDOMNode (gobj/get this "frame-node")))
     (gobj/set this "resize-debouncer"
-      (gfun/debounce #(mutations/set-value! this :ui/size %) 300)))
+      (gfun/debounce #(db.h/persistent-set! this :ui/size ::dock-size %) 300)))
 
   (componentDidUpdate [this _ _]
     (gobj/set this "frame-dom" (js/ReactDOM.findDOMNode (gobj/get this "frame-node"))))
@@ -122,7 +124,7 @@
           css       (css/get-classnames GlobalInspector)]
       (dom/div #js {:className (:reset css)
                     :style     (if visible? nil #js {:display "none"})}
-        (events/key-listener {::events/action    #(mutations/set-value! this :ui/visible? (not visible?))
+        (events/key-listener {::events/action    #(db.h/persistent-set! this :ui/visible? ::dock-visible? (not visible?))
                               ::events/keystroke keystroke})
         (domv/ui-dom-history-view (fp/computed historical-dom-view {:target-app app}))
 
@@ -177,7 +179,7 @@
             (ui-iframe {:className (:frame css) :ref #(gobj/set this "frame-node" %)}
               (dom/div nil
                 (when-let [frame (gobj/get this "frame-dom")]
-                  (events/key-listener {::events/action    #(mutations/set-value! this :ui/visible? (not visible?))
+                  (events/key-listener {::events/action    #(db.h/persistent-set! this :ui/visible? ::dock-visible? (not visible?))
                                         ::events/keystroke keystroke
                                         ::events/target    (gobj/getValueByKeys frame #js ["contentDocument" "body"])}))
                 (dom/style #js {:dangerouslySetInnerHTML #js {:__html (g/css [[:body {:margin "0" :padding "0" :box-sizing "border-box"}]])}})
@@ -191,7 +193,7 @@
             (ui-iframe {:className (:frame css) :ref #(gobj/set this "frame-node" %)}
               (dom/div nil
                 (when-let [frame (gobj/get this "frame-dom")]
-                  (events/key-listener {::events/action    #(mutations/set-value! this :ui/visible? (not visible?))
+                  (events/key-listener {::events/action    #(db.h/persistent-set! this :ui/visible? ::dock-visible? (not visible?))
                                         ::events/keystroke keystroke
                                         ::events/target    (gobj/getValueByKeys frame #js ["contentDocument" "body"])}))
                 (dom/style #js {:dangerouslySetInnerHTML #js {:__html (g/css [[:body {:margin "0" :padding "0" :box-sizing "border-box"}]])}})

@@ -1,5 +1,7 @@
 (ns fulcro.inspect.helpers
-  (:require [fulcro.client.primitives :as fp]))
+  (:require [fulcro.client.primitives :as fp]
+            [fulcro.client.mutations :as mutations]
+            [fulcro.inspect.lib.local-storage :as storage]))
 
 (defn- om-ident? [x]
   (and (vector? x)
@@ -147,3 +149,13 @@
   (->> (concat (subvec v 0 i)
                (subvec v (inc i) (count v)))
        (vec)))
+
+(mutations/defmutation persistent-set-props [{::keys [local-key storage-key value]}]
+  (action [env]
+    (storage/set! storage-key value)
+    (swap-entity! env assoc local-key value)))
+
+(defn persistent-set! [comp local-key storage-key value]
+  (fp/transact! comp [(list `persistent-set-props {::local-key local-key
+                                                   ::storage-key storage-key
+                                                   ::value value}) local-key]))
