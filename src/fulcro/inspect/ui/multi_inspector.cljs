@@ -76,7 +76,7 @@
       (if (> (count inspectors) 1)
         (dom/div #js {:className (:selector css)}
           (dom/div #js {:className (:label css)} "App")
-          (dom/select #js {:value    (str (::inspector/id current-app))
+          (dom/select #js {:value    (pr-str (::inspector/id current-app))
                            :onChange #(fp/transact! this `[(set-app {::inspector/id ~(read-string (.. % -target -value))})])}
             (for [app-id (->> (map (comp pr-str second) inspectors) sort)]
               (dom/option #js {:key   app-id

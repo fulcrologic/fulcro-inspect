@@ -1,5 +1,8 @@
 # Change Log
 
+## [2.0.0-alpha6-dev]
+- Fix multi-app selector bug related to normalization.
+
 ## [2.0.0-alpha5]
 - Fix a new issue on inspect-tx being called before app-id is ready
 
