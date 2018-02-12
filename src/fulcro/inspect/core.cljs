@@ -45,6 +45,10 @@
     (let [child (:child (fp/props this))]
       (update-frame-content this child)))
 
+  (componentWillUnmount [this]
+    (let [frame-component (gobj/get this "frame-component")]
+      (js/ReactDOM.unmountComponentAtNode frame-component)))
+
   (render [this]
     (dom/iframe
       (-> (fp/props this)
