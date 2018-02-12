@@ -121,69 +121,70 @@
           keystroke (or (fp/shared this [:options :launch-keystroke]) "ctrl-f")
           size      (or size 50)
           css       (css/get-classnames GlobalInspector)]
-      (dom/div #js {:className (:reset css)
-                    :style     (if visible? nil #js {:display "none"})}
+      (dom/div #js {:className (:reset css)}
         (events/key-listener {::events/action    #(db.h/persistent-set! this :ui/visible? ::dock-visible? (not visible?))
                               ::events/keystroke keystroke})
         (domv/ui-dom-history-view (fp/computed historical-dom-view {:target-app app}))
 
-        (case dock-side
-          ::dock-right
-          (dom/div #js {:className   (str (:resizer css) " " (:resizer-horizontal css))
-                        :ref         #(gobj/set this "resizer" %)
-                        :style       #js {:left (str size "%")}
-                        :onMouseDown (fn [_]
-                                       (let [handler (fn [e]
-                                                       (let [mouse (.-clientX e)
-                                                             vw    js/window.innerWidth
-                                                             pos   (* (/ mouse vw) 100)]
-                                                         (when (pos? pos)
-                                                           (set-style! (gobj/get this "resizer") "left" (str pos "%"))
-                                                           (set-style! (gobj/get this "container") "width" (str (- 100 pos) "%"))
-                                                           ((gobj/get this "resize-debouncer") pos))))
-                                             frame   (js/ReactDOM.findDOMNode (gobj/get this "frame-node"))]
-                                         (set-style! frame "pointerEvents" "none")
-                                         (js/document.addEventListener "mousemove" handler)
-                                         (js/document.addEventListener "mouseup"
-                                           (fn [e]
-                                             (gobj/set (.-style frame) "pointerEvents" "initial")
-                                             (js/document.removeEventListener "mousemove" handler)))))})
+        (if visible?
+          (case dock-side
+            ::dock-right
+            (dom/div #js {:className   (str (:resizer css) " " (:resizer-horizontal css))
+                          :ref         #(gobj/set this "resizer" %)
+                          :style       #js {:left (str size "%")}
+                          :onMouseDown (fn [_]
+                                         (let [handler (fn [e]
+                                                         (let [mouse (.-clientX e)
+                                                               vw    js/window.innerWidth
+                                                               pos   (* (/ mouse vw) 100)]
+                                                           (when (pos? pos)
+                                                             (set-style! (gobj/get this "resizer") "left" (str pos "%"))
+                                                             (set-style! (gobj/get this "container") "width" (str (- 100 pos) "%"))
+                                                             ((gobj/get this "resize-debouncer") pos))))
+                                               frame   (js/ReactDOM.findDOMNode (gobj/get this "frame-node"))]
+                                           (set-style! frame "pointerEvents" "none")
+                                           (js/document.addEventListener "mousemove" handler)
+                                           (js/document.addEventListener "mouseup"
+                                             (fn [e]
+                                               (gobj/set (.-style frame) "pointerEvents" "initial")
+                                               (js/document.removeEventListener "mousemove" handler)))))})
 
-          ::dock-bottom
-          (dom/div #js {:className   (str (:resizer css) " " (:resizer-vertical css))
-                        :ref         #(gobj/set this "resizer" %)
-                        :style       #js {:top (str size "%")}
-                        :onMouseDown (fn [_]
-                                       (let [handler (fn [e]
-                                                       (let [mouse (.-clientY e)
-                                                             vh    js/window.innerHeight
-                                                             pos   (* (/ mouse vh) 100)]
-                                                         (when (pos? pos)
-                                                           (set-style! (gobj/get this "resizer") "top" (str pos "%"))
-                                                           (set-style! (gobj/get this "container") "height" (str (- 100 pos) "%"))
-                                                           ((gobj/get this "resize-debouncer") pos))))
-                                             frame   (js/ReactDOM.findDOMNode (gobj/get this "frame-node"))]
-                                         (set-style! frame "pointerEvents" "none")
-                                         (js/document.addEventListener "mousemove" handler)
-                                         (js/document.addEventListener "mouseup"
-                                           (fn [e]
-                                             (gobj/set (.-style frame) "pointerEvents" "initial")
-                                             (js/document.removeEventListener "mousemove" handler)))))}))
+            ::dock-bottom
+            (dom/div #js {:className   (str (:resizer css) " " (:resizer-vertical css))
+                          :ref         #(gobj/set this "resizer" %)
+                          :style       #js {:top (str size "%")}
+                          :onMouseDown (fn [_]
+                                         (let [handler (fn [e]
+                                                         (let [mouse (.-clientY e)
+                                                               vh    js/window.innerHeight
+                                                               pos   (* (/ mouse vh) 100)]
+                                                           (when (pos? pos)
+                                                             (set-style! (gobj/get this "resizer") "top" (str pos "%"))
+                                                             (set-style! (gobj/get this "container") "height" (str (- 100 pos) "%"))
+                                                             ((gobj/get this "resize-debouncer") pos))))
+                                               frame   (js/ReactDOM.findDOMNode (gobj/get this "frame-node"))]
+                                           (set-style! frame "pointerEvents" "none")
+                                           (js/document.addEventListener "mousemove" handler)
+                                           (js/document.addEventListener "mouseup"
+                                             (fn [e]
+                                               (gobj/set (.-style frame) "pointerEvents" "initial")
+                                               (js/document.removeEventListener "mousemove" handler)))))})))
 
-        (case dock-side
-          ::dock-right
-          (dom/div #js {:className (str (:container css) " " (:container-right css))
-                        :style     #js {:width (str (- 100 size) "%")}
-                        :ref       #(gobj/set this "container" %)}
-            (ui-iframe {:className (:frame css) :ref #(gobj/set this "frame-node" %)}
-              (multi-inspector/multi-inspector inspector)))
+        (if visible?
+          (case dock-side
+            ::dock-right
+            (dom/div #js {:className (str (:container css) " " (:container-right css))
+                          :style     #js {:width (str (- 100 size) "%")}
+                          :ref       #(gobj/set this "container" %)}
+              (ui-iframe {:className (:frame css) :ref #(gobj/set this "frame-node" %)}
+                (multi-inspector/multi-inspector inspector)))
 
-          ::dock-bottom
-          (dom/div #js {:className (str (:container css) " " (:container-bottom css))
-                        :style     #js {:height (str (- 100 size) "%")}
-                        :ref       #(gobj/set this "container" %)}
-            (ui-iframe {:className (:frame css) :ref #(gobj/set this "frame-node" %)}
-              (multi-inspector/multi-inspector inspector))))))))
+            ::dock-bottom
+            (dom/div #js {:className (str (:container css) " " (:container-bottom css))
+                          :style     #js {:height (str (- 100 size) "%")}
+                          :ref       #(gobj/set this "container" %)}
+              (ui-iframe {:className (:frame css) :ref #(gobj/set this "frame-node" %)}
+                (multi-inspector/multi-inspector inspector)))))))))
 
 (def global-inspector-view (fp/factory GlobalInspector))
 
