@@ -10,6 +10,7 @@
 
 (def vec-max-inline 2)
 (def sequential-max-inline 5)
+(def map-max-inline 10)
 
 (defn children-expandable-paths [x]
   (loop [lookup [{:e x :p []}]
@@ -151,11 +152,16 @@
         "{"
         (->> content
              (sort-by (comp str first))
+             (take map-max-inline)
              (mapv (fn [[k v]]
                      [(dom/div #js {:className (:map-inline-key-item css) :key (str k "-key")} (render-data input k))
                       (dom/div #js {:className (:map-inline-value-item css) :key (str k "-value")} (render-data (update input :path conj k) v))]))
              (interpose ", ")
              (apply concat))
+        (if (> (count content) map-max-inline)
+          ", ")
+        (if (> (count content) map-max-inline)
+          (dom/div #js {:className (:list-inline-item css)} "…"))
         "}")
 
       :else
