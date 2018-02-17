@@ -307,7 +307,7 @@
         (ok-handler nil))))
 
   (network-behavior [_] (f.network/network-behavior network))
-  (abort [_ _]))
+  (abort [_ abort-id] (f.network/abort network abort-id)))
 
 (defn transform-network-i [network options]
   (->TransformNetworkI network (assoc options ::app* (atom nil))))
@@ -353,7 +353,7 @@
        (transform-network-i network ts)
 
        :else
-       (throw (ex-info "Invalid network" {:network network}))))))
+       (js/console.warn "Invalid network" {:network network})))))
 
 ;;; installer
 
