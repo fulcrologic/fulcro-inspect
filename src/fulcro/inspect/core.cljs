@@ -286,6 +286,9 @@
         (js/console.log "Error starting sub network" e)))
     this))
 
+(defn transform-network [network options]
+  (->TransformNetwork network (assoc options ::app* (atom nil))))
+
 (defrecord TransformNetworkI [network options]
   f.network/FulcroRemoteI
   (transmit [_ {::f.network/keys [edn ok-handler error-handler]}]
@@ -305,9 +308,6 @@
 
   (network-behavior [_] (f.network/network-behavior network))
   (abort [_ _]))
-
-(defn transform-network [network options]
-  (->TransformNetwork network (assoc options ::app* (atom nil))))
 
 (defn transform-network-i [network options]
   (->TransformNetworkI network (assoc options ::app* (atom nil))))
@@ -345,9 +345,15 @@
                    [`(network/request-finish ~{::network/request-id request-id
                                                ::network/error      error})]))
                error)}]
-     (if (implements? f.network/FulcroNetwork network)
+     (cond
+       (implements? f.network/FulcroNetwork network)
        (transform-network network ts)
-       (transform-network-i network ts)))))
+
+       (implements? f.network/FulcroRemoteI network)
+       (transform-network-i network ts)
+
+       :else
+       (throw (ex-info "Invalid network" {:network network}))))))
 
 ;;; installer
 
