@@ -286,8 +286,31 @@
         (js/console.log "Error starting sub network" e)))
     this))
 
+(defrecord TransformNetworkI [network options]
+  f.network/FulcroRemoteI
+  (transmit [_ {::f.network/keys [edn ok-handler error-handler]}]
+    (let [{::keys [transform-query transform-response transform-error app*]
+           :or    {transform-query    (fn [_ x] x)
+                   transform-response (fn [_ x] x)
+                   transform-error    (fn [_ x] x)}} options
+          req-id (random-uuid)
+          env    {::request-id req-id
+                  ::app        @app*}]
+      (if-let [edn' (transform-query env edn)]
+        (f.network/transmit network
+          {::f.network/edn           edn'
+           ::f.network/ok-handler    #(->> % (transform-response env) ok-handler)
+           ::f.network/error-handler #(->> % (transform-error env) error-handler)})
+        (ok-handler nil))))
+
+  (network-behavior [_] (f.network/network-behavior network))
+  (abort [_ _]))
+
 (defn transform-network [network options]
   (->TransformNetwork network (assoc options ::app* (atom nil))))
+
+(defn transform-network-i [network options]
+  (->TransformNetworkI network (assoc options ::app* (atom nil))))
 
 (defn app-id [reconciler]
   (or (some-> reconciler fp/app-state deref ::app-id)
@@ -295,36 +318,36 @@
 
 (defn inspect-network
   ([remote network]
-   (if (implements? f.network/FulcroNetwork network)
-     (transform-network network
-      {::transform-query
-       (fn [{::keys [request-id app]} edn]
-         (let [{:keys [inspector app]} app
-               app-id (app-id (:reconciler app))]
-           (fp/transact! (:reconciler inspector) [::network/history-id [::app-id app-id]]
-             [`(network/request-start ~{::network/remote      remote
-                                        ::network/request-id  request-id
-                                        ::network/request-edn edn})]))
-         edn)
+   (let [ts {::transform-query
+             (fn [{::keys [request-id app]} edn]
+               (let [{:keys [inspector app]} app
+                     app-id (app-id (:reconciler app))]
+                 (fp/transact! (:reconciler inspector) [::network/history-id [::app-id app-id]]
+                   [`(network/request-start ~{::network/remote      remote
+                                              ::network/request-id  request-id
+                                              ::network/request-edn edn})]))
+               edn)
 
-       ::transform-response
-       (fn [{::keys [request-id app]} response]
-         (let [{:keys [inspector app]} app
-               app-id (app-id (:reconciler app))]
-           (fp/transact! (:reconciler inspector) [::network/history-id [::app-id app-id]]
-             [`(network/request-finish ~{::network/request-id   request-id
-                                         ::network/response-edn response})]))
-         response)
+             ::transform-response
+             (fn [{::keys [request-id app]} response]
+               (let [{:keys [inspector app]} app
+                     app-id (app-id (:reconciler app))]
+                 (fp/transact! (:reconciler inspector) [::network/history-id [::app-id app-id]]
+                   [`(network/request-finish ~{::network/request-id   request-id
+                                               ::network/response-edn response})]))
+               response)
 
-       ::transform-error
-       (fn [{::keys [request-id app]} error]
-         (let [{:keys [inspector app]} app
-               app-id (app-id (:reconciler app))]
-           (fp/transact! (:reconciler inspector) [::network/history-id [::app-id app-id]]
-             [`(network/request-finish ~{::network/request-id request-id
-                                         ::network/error      error})]))
-         error)})
-     (js/console.log "Your implementation of networking is not supported by Inspect (yet)"))))
+             ::transform-error
+             (fn [{::keys [request-id app]} error]
+               (let [{:keys [inspector app]} app
+                     app-id (app-id (:reconciler app))]
+                 (fp/transact! (:reconciler inspector) [::network/history-id [::app-id app-id]]
+                   [`(network/request-finish ~{::network/request-id request-id
+                                               ::network/error      error})]))
+               error)}]
+     (if (implements? f.network/FulcroNetwork network)
+       (transform-network network ts)
+       (transform-network-i network ts)))))
 
 ;;; installer
 
