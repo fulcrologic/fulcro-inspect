@@ -305,8 +305,7 @@
            ::f.network/ok-handler    #(->> % (transform-response env) ok-handler)
            ::f.network/error-handler #(->> % (transform-error env) error-handler)})
         (ok-handler nil))))
-
-  (network-behavior [_] (f.network/network-behavior network))
+  
   (abort [_ abort-id] (f.network/abort network abort-id)))
 
 (defn transform-network-i [network options]
