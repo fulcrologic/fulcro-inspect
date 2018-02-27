@@ -5,6 +5,7 @@
 - Fix iframe subtree unmount
 - Performance improvement: don't render react tree when inspect is inactive
 - Performance improvement: limit number of inline items rendered via map
+- Compatibility with new Fulcro `FulcroRemoteI` protocol (Fulcro 2.3+)
 
 ## [2.0.0-alpha5]
 - Fix a new issue on inspect-tx being called before app-id is ready

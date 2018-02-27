@@ -349,7 +349,8 @@
        (transform-network network ts)
 
        (implements? f.network/FulcroRemoteI network)
-       (transform-network-i network ts)
+       (transform-network-i network
+         (update ts ::transform-response (fn [tr] (fn [env {:keys [body]}] (tr env body)))))
 
        :else
        (js/console.warn "Invalid network" {:network network})))))

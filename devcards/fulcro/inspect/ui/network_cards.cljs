@@ -232,4 +232,15 @@
                 (ok {[::id "name-loader"] {::name (gen/generate (s/gen ::name))}}))
               (start [_]))}})
 
+(defcard-fulcro network-sampler-remote-i
+  NameLoaderRoot
+  {}
+  {:fulcro {:networking
+            (reify
+              f.network/FulcroRemoteI
+              (transmit [this {::f.network/keys [edn ok-handler]}]
+                (ok-handler {:transaction edn
+                             :body {[::id "name-loader"] {::name (gen/generate (s/gen ::name))}}}))
+              (abort [_ _]))}})
+
 (css/upsert-css "network" NetworkRoot)
