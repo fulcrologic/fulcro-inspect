@@ -1,4 +1,4 @@
-(defproject fulcrologic/fulcro-inspect "2.0.0-alpha6-SNAPSHOT"
+(defproject fulcrologic/fulcro-inspect "2.0.0-alpha7-SNAPSHOT"
   :description "A debugging tool for Fulcro that allows you to inspect state and other aspects of the running application(s)."
   :url "https://github.com/fulcrologic/fulcro-inspect"
   :min-lein-version "2.7.0"
