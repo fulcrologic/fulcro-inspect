@@ -1,0 +1,15 @@
+version: 2
+jobs:
+  cljs:
+    docker: 
+      - image: circleci/clojure:lein-2.8.1-node-browsers
+    steps:
+      - checkout
+      - run: npm install 
+      - run: lein doo firefox automated-tests once
+workflows:
+  version: 2
+  fullstack:
+    jobs:
+      - cljs
+
