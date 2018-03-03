@@ -253,6 +253,8 @@
     (add-watch state* app-id
       #(update-inspect-state (:reconciler inspector) app-id %4))
 
+    (swap! state* assoc ::initialized true)
+
     new-inspector))
 
 ;;; network
@@ -378,7 +380,7 @@
     (let [inspector (global-inspector)
           tx        (merge info (select-keys env [:old-state :new-state :ref :component]))
           app-id    (app-id reconciler)]
-      (if app-id
+      (if (-> reconciler fp/app-state deref ::initialized)
         (fp/transact! (:reconciler inspector) [::transactions/tx-list-id [::app-id app-id]]
           [`(transactions/add-tx ~tx) ::transactions/tx-list])))))
 

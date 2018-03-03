@@ -1,5 +1,8 @@
 # Change Log
 
+## [2.0.0-alpha7]
+- Fix issues when transactions are called before inspector is ready, now any tx called before app is ready will be ignored.
+
 ## [2.0.0-alpha6]
 - Fix multi-app selector bug related to normalization.
 - Fix iframe subtree unmount
