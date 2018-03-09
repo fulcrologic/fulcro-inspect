@@ -307,7 +307,7 @@
            ::f.network/ok-handler    #(->> % (transform-response env) ok-handler)
            ::f.network/error-handler #(->> % (transform-error env) error-handler)})
         (ok-handler nil))))
-  
+
   (abort [_ abort-id] (f.network/abort network abort-id)))
 
 (defn transform-network-i [network options]
@@ -352,7 +352,9 @@
 
        (implements? f.network/FulcroRemoteI network)
        (transform-network-i network
-         (update ts ::transform-response (fn [tr] (fn [env {:keys [body]}] (tr env body)))))
+         (update ts ::transform-response (fn [tr] (fn [env {:keys [body] :as response}]
+                                                    (tr env body)
+                                                    response))))
 
        :else
        (js/console.warn "Invalid network" {:network network})))))
