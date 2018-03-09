@@ -1,35 +1,37 @@
 (ns fulcro.inspect.ui.network
   (:require [garden.selectors :as gs]
-            [fulcro.client.core :as fulcro :refer-macros [defsc]]
             [fulcro.client.mutations :as mutations :refer-macros [defmutation]]
             [fulcro-css.css :as css]
             [fulcro.inspect.helpers :as h]
             [fulcro.inspect.ui.core :as ui]
             [fulcro.inspect.ui.data-viewer :as data-viewer]
-            [om.dom :as dom]
-            [om.next :as om]))
+            [fulcro.client.dom :as dom]
+            [fulcro.client.primitives :as fp]))
 
 (declare Request)
 
-(defmutation request-start [request]
+(defmutation request-start [{::keys [remote] :as request}]
   (action [env]
-    (h/create-entity! env Request request :append ::requests)))
+    (h/create-entity! env Request request :append ::requests)
+    (h/swap-entity! env update ::remotes conj remote)
+    (h/swap-entity! env update ::requests #(->> (take-last 50 %) vec))))
 
 (defmutation request-finish [{::keys [response-edn error] :as request}]
   (action [env]
     (let [{:keys [ref state] :as env} env]
-      (when (get-in @state (conj ref :ui/request-edn-view))
-        (if response-edn
-          (h/create-entity! env data-viewer/DataViewer response-edn :set :ui/response-edn-view))
-        (if error
-          (h/create-entity! env data-viewer/DataViewer error :set :ui/error-view)))
+      (when (get-in @state (fp/ident Request request)) ; prevent adding back a done request
+        (when (get-in @state (conj ref :ui/request-edn-view))
+          (if response-edn
+            (h/create-entity! env data-viewer/DataViewer response-edn :set :ui/response-edn-view))
+          (if error
+            (h/create-entity! env data-viewer/DataViewer error :set :ui/error-view)))
 
-      (swap! state h/merge-entity Request (assoc request ::request-finished-at (js/Date.))))))
+        (swap! state h/merge-entity Request (assoc request ::request-finished-at (js/Date.)))))))
 
 (defmutation select-request [{::keys [request-edn response-edn error] :as request}]
   (action [env]
-    (let [{:keys [state ref] :as env} env
-          req-ref (om/ident Request request)]
+    (let [{:keys [state] :as env} env
+          req-ref (fp/ident Request request)]
       (if-not (get-in @state (conj req-ref :ui/request-edn-view))
         (let [env' (assoc env :ref req-ref)]
           (h/create-entity! env' data-viewer/DataViewer request-edn :set :ui/request-edn-view)
@@ -37,67 +39,62 @@
             (h/create-entity! env' data-viewer/DataViewer response-edn :set :ui/response-edn-view))
           (if error
             (h/create-entity! env' data-viewer/DataViewer error :set :ui/error-view))))
-      (swap! state update-in ref assoc ::active-request req-ref))))
+      (h/swap-entity! env assoc ::active-request req-ref))))
 
 (defmutation clear-requests [_]
   (action [env]
-    (let [{:keys [state ref] :as env} env]
-      (swap! state update-in ref assoc ::active-request nil)
-      (h/remove-all env ::requests))))
+    (h/swap-entity! env assoc ::active-request nil ::remotes #{})
+    (h/remove-edge! env ::requests)))
 
-(om/defui ^:once RequestDetails
-  static fulcro/InitialAppState
+(fp/defui ^:once RequestDetails
+  static fp/InitialAppState
   (initial-state [_ _] {})
 
-  static om/Ident
+  static fp/Ident
   (ident [_ props] [::request-id (::request-id props)])
 
-  static om/IQuery
+  static fp/IQuery
   (query [_] [::request-id ::request-edn ::response-edn ::request-started-at ::request-finished-at ::error
-              {:ui/request-edn-view (om/get-query data-viewer/DataViewer)}
-              {:ui/response-edn-view (om/get-query data-viewer/DataViewer)}
-              {:ui/error-view (om/get-query data-viewer/DataViewer)}])
+              {:ui/request-edn-view (fp/get-query data-viewer/DataViewer)}
+              {:ui/response-edn-view (fp/get-query data-viewer/DataViewer)}
+              {:ui/error-view (fp/get-query data-viewer/DataViewer)}])
 
   static css/CSS
-  (local-rules [_] [[:.group ui/css-info-group]
-                    [:.label ui/css-info-label]])
+  (local-rules [_] [])
   (include-children [_] [])
 
   Object
   (render [this]
-    (let [{:ui/keys [request-edn-view response-edn-view error-view]} (om/props this)
+    (let [{:ui/keys [request-edn-view response-edn-view error-view]} (fp/props this)
           css (css/get-classnames RequestDetails)]
       (dom/div #js {:className (:container css)}
-        (dom/div #js {:className (:group css)}
-          (dom/div #js {:className (:label css)} "Request")
+        (ui/info {::ui/title "Request"}
           (data-viewer/data-viewer request-edn-view))
 
         (if response-edn-view
-          (dom/div #js {:className (:group css)}
-            (dom/div #js {:className (:label css)} "Response")
+          (ui/info {::ui/title "Response"}
             (data-viewer/data-viewer response-edn-view)))
 
         (if error-view
-          (dom/div #js {:className (:group css)}
-            (dom/div #js {:className (:label css)} "Error")
+          (ui/info {::ui/title "Error"}
             (data-viewer/data-viewer error-view)))))))
 
-(def request-details (om/factory RequestDetails))
+(def request-details (fp/factory RequestDetails))
 
-(om/defui ^:once Request
-  static fulcro/InitialAppState
+(fp/defui ^:once Request
+  static fp/InitialAppState
   (initial-state [_ {::keys [request-edn] :as props}]
     (merge (cond-> {::request-id         (random-uuid)
                     ::request-started-at (js/Date.)}
              request-edn
-             (assoc ::request-edn-row-view (data-viewer/create-collapsed request-edn)))
+             (assoc ::request-edn-row-view (fp/get-initial-state data-viewer/DataViewer request-edn)))
            props))
 
-  static om/Ident
+  static fp/Ident
   (ident [_ props] [::request-id (::request-id props)])
 
-  static om/IQuery
-  (query [_] [::request-id ::request-edn ::request-edn-row-view ::response-edn
+  static fp/IQuery
+  (query [_] [::request-id ::request-edn ::request-edn-row-view ::response-edn ::remote
               ::request-started-at ::request-finished-at ::error])
 
   static css/CSS
@@ -124,9 +121,9 @@
 
   Object
   (render [this]
-    (let [{::keys [request-edn-row-view response-edn error
-                   request-started-at request-finished-at] :as props} (om/props this)
-          {::keys [columns on-select selected?]} (om/get-computed props)
+    (let [{::keys [request-edn-row-view response-edn error remote
+                   request-started-at request-finished-at] :as props} (fp/props this)
+          {::keys [columns on-select selected? show-remote?]} (fp/get-computed props)
           css (css/get-classnames Request)]
       (dom/div (cond-> {:className (cond-> (:row css)
                                      error (str " " (:error css))
@@ -134,12 +131,16 @@
                  on-select (assoc :onClick #(on-select (h/query-component this)))
                  true clj->js)
         (dom/div #js {:className (:table-cell css)
-                      :style     #js {:width (get columns 0)}}
+                      :style     #js {:width (:started columns)}}
           (dom/span #js {:className (:timestamp css)} (ui/print-timestamp request-started-at)))
         (dom/div #js {:className (str (:table-cell css) " " (:flex css))}
           (data-viewer/data-viewer (assoc request-edn-row-view ::data-viewer/static? true)))
+        (if show-remote?
+          (dom/div #js {:className (:table-cell css)
+                        :style     #js {:width (:remote columns)}}
+            (str remote)))
         (dom/div #js {:className (:table-cell css)
-                      :style     #js {:width (get columns 1)}}
+                      :style     #js {:width (:status columns)}}
           (cond
             response-edn
             "Success"
@@ -150,26 +151,27 @@
             :else
             (dom/span #js {:className (:pending css)} "(pending...)")))
         (dom/div #js {:className (:table-cell css)
-                      :style     #js {:width (get columns 2)}}
+                      :style     #js {:width (:time columns)}}
           (if (and request-started-at request-finished-at)
             (str (- (.getTime request-finished-at) (.getTime request-started-at)) " ms")
             (dom/span #js {:className (:pending css)} "(pending...)")))))))
 
-(def request (om/factory Request))
+(def request (fp/factory Request {:keyfn ::request-id}))
 
-(om/defui ^:once NetworkHistory
-  static fulcro/InitialAppState
+(fp/defui ^:once NetworkHistory
+  static fp/InitialAppState
   (initial-state [_ _]
     {::history-id (random-uuid)
+     ::remotes    #{}
      ::requests   []})
 
-  static om/Ident
+  static fp/Ident
   (ident [_ props] [::history-id (::history-id props)])
 
-  static om/IQuery
-  (query [_] [::history-id
-              {::requests (om/get-query Request)}
-              {::active-request (om/get-query RequestDetails)}])
+  static fp/IQuery
+  (query [_] [::history-id ::remotes
+              {::requests (fp/get-query Request)}
+              {::active-request (fp/get-query RequestDetails)}])
 
   static css/CSS
   (local-rules [_]
@@ -200,68 +202,59 @@
         [(gs/& gs/last-child) {:border-right "0"}]]
 
        [:.table-body {:flex       1
-                      :overflow-y "scroll"}]
-
-       [:.tools {:border-bottom "1px solid #dadada"
-                 :display       "flex"
-                 :align-items   "center"}]
-
-       [:.tool-separator {:background "#ccc"
-                          :width      "1px"
-                          :height     "16px"
-                          :margin     "0 6px"}]
-
-       [:.active-request ui/css-dock-details-container]
-       [:.active-container ui/css-dock-details-item-container]
-       [:.active-tools ui/css-dock-details-tools]
-       [:.icon ui/css-icon
-        [:&:hover {:text-shadow (str "0 0 0 " ui/color-icon-strong)}]]
-       [:.icon-close ui/css-icon-close]]))
-  (include-children [_] [Request RequestDetails])
+                      :overflow-y "scroll"}]]))
+  (include-children [_] [Request RequestDetails ui/CSS])
 
   Object
   (render [this]
-    (let [{::keys [requests active-request]} (om/props this)
-          css     (css/get-classnames NetworkHistory)
-          columns [100 90 70]]
+    (let [{::keys [requests active-request remotes]} (fp/props this)
+          css          (css/get-classnames NetworkHistory)
+          show-remote? (> (count remotes) 1)
+          columns      {:started 100
+                        :remote  80
+                        :status  90
+                        :time    70}]
       (dom/div #js {:className (:container css)}
-        (dom/div #js {:className (:tools css)}
-          (dom/div #js {:className (:icon css)
-                        :title     "Clear requests"
-                        :style     #js {:fontSize "15px"}
-                        :onClick   #(om/transact! this [`(clear-requests {})])}
-            "🚫"))
+        (ui/toolbar {}
+          (ui/toolbar-action {:title   "Clear requests"
+                              :onClick #(fp/transact! this [`(clear-requests {})])}
+            (ui/icon :do_not_disturb)))
 
         (dom/div #js {:className (:table css)}
           (dom/div #js {:className (:table-header css)}
-            (dom/div #js {:style #js {:width (get columns 0)}} "Started")
+            (dom/div #js {:style #js {:width (:started columns)}} "Started")
             (dom/div #js {:className (:flex css)} "Request")
-            (dom/div #js {:style #js {:width (get columns 1)}} "Status")
-            (dom/div #js {:style #js {:width (get columns 2)}} "Time"))
+            (if show-remote?
+              (dom/div #js {:style #js {:width (:remote columns)}} "Remote"))
+            (dom/div #js {:style #js {:width (:status columns)}} "Status")
+            (dom/div #js {:style #js {:width (:time columns)}} "Time"))
 
           (dom/div #js {:className (:table-body css)}
             (if (seq requests)
-              (mapv (comp request
-                          #(om/computed %
-                             {::columns
-                              columns
+              (->> requests
+                   rseq
+                   (mapv (comp request
+                               #(fp/computed %
+                                  {::show-remote?
+                                   show-remote?
 
-                              ::selected?
-                              (= (::request-id active-request) (::request-id %))
+                                   ::columns
+                                   columns
 
-                              ::on-select
-                              (fn [r] (om/transact! this `[(select-request ~r)]))}))
-                requests))))
+                                   ::selected?
+                                   (= (::request-id active-request) (::request-id %))
+
+                                   ::on-select
+                                   (fn [r] (fp/transact! this `[(select-request ~r)]))})))))))
 
         (if active-request
-          (dom/div #js {:className (:active-request css)}
-            (dom/div #js {:className (:active-tools css)}
-              (dom/div #js {:style #js {:flex 1}})
-              (dom/div #js {:className (str (css :icon) " " (css :icon-close))
-                            :title     "Close panel"
-                            :onClick   #(mutations/set-value! this ::active-request nil)}
-                "❌"))
-            (dom/div #js {:className (:active-container css)}
+          (ui/focus-panel {}
+            (ui/toolbar {::ui/classes [:details]}
+              (ui/toolbar-spacer)
+              (ui/toolbar-action {:title   "Close panel"
+                                  :onClick #(mutations/set-value! this ::active-request nil)}
+                (ui/icon :clear)))
+            (ui/focus-panel-content {}
               (request-details active-request))))))))
 
-(def network-history (om/factory NetworkHistory))
+(def network-history (fp/factory NetworkHistory))

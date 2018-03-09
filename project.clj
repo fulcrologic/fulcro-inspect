@@ -1,17 +1,18 @@
-(defproject fulcrologic/fulcro-inspect "0.1.0-SNAPSHOT"
-  :description "FIXME: write description"
-  :url "http://example.com/FIXME"
-  :license {:name "Eclipse Public License"
-            :url  "http://www.eclipse.org/legal/epl-v10.html"}
+(defproject fulcrologic/fulcro-inspect "2.0.0"
+  :description "A debugging tool for Fulcro that allows you to inspect state and other aspects of the running application(s)."
+  :url "https://github.com/fulcrologic/fulcro-inspect"
+  :min-lein-version "2.7.0"
+  :license {:name "MIT Public License"
+            :url  "https://opensource.org/licenses/MIT"}
   :dependencies [[org.clojure/clojure "1.8.0" :scope "provided"]
                  [org.clojure/clojurescript "1.9.946" :scope "provided"]
                  [clojure-future-spec "1.9.0-beta4"]
-                 [fulcrologic/fulcro "1.2.0"]
-                 [fulcrologic/fulcro-css "1.0.0"]
+                 [fulcrologic/fulcro "2.3.1" :scope "provided"]
+                 [fulcrologic/fulcro-css "2.0.0"]
 
                  [org.clojure/tools.namespace "0.3.0-alpha4" :scope "test"]
                  [lein-doo "0.1.7" :scope "test"]
-                 [fulcrologic/fulcro-spec "1.0.0" :scope "test" :exclusions [fulcrologic/fulcro]]]
+                 [fulcrologic/fulcro-spec "2.0.3-1" :scope "test" :exclusions [fulcrologic/fulcro]]]
 
   :source-paths ["src"]
 
@@ -56,6 +57,6 @@
                                   [lein-doo "0.1.8"]]
 
                    :dependencies [[devcards "0.2.3" :exclusions [cljsjs/react cljsjs/react-dom]]
-                                  [figwheel-sidecar "0.5.13" :exclusions [org.clojure/tools.nrepl]]
-                                  [binaryage/devtools "0.9.7"]
+                                  [figwheel-sidecar "0.5.14" :exclusions [org.clojure/tools.nrepl]]
+                                  [binaryage/devtools "0.9.9"]
                                   [org.clojure/test.check "0.9.0"]]}})

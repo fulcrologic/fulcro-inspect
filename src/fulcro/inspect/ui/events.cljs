@@ -2,8 +2,8 @@
   (:require [cljs.spec.alpha :as s]
             [clojure.string :as str]
             [goog.object :as gobj]
-            [om.dom :as dom]
-            [om.next :as om]))
+            [fulcro.client.dom :as dom]
+            [fulcro.client.primitives :as fp]))
 
 (def KEYS
   {"backspace" 8
@@ -64,32 +64,45 @@
   (= (gobj/get e "keyCode") key-code))
 
 (defn handle-event [this e]
-  (let [{::keys [action]} (om/props this)
+  (let [{::keys [action]} (fp/props this)
         {:keys [matcher]} (gobj/get this "matcher")]
-    (if (and (match-key? e matcher)
-             (match-modifiers? e matcher))
+    (when (and (match-key? e matcher)
+               (match-modifiers? e matcher))
       (action e))))
 
-(om/defui ^:once KeyListener
-  Object
-  (componentDidMount [this]
-    (if-let [matcher (parse-keystroke (-> this om/props ::keystroke))]
-      (let [handler #(handle-event this %)
-            {::keys [target event]} (om/props this)
-            target (or target js/document.body)
-            event  (or event "keydown")]
-        (gobj/set this "matcher" {:handler handler
-                                  :matcher matcher})
-        (.addEventListener target event handler))))
+(defn read-target [target]
+  (cond
+    (fn? target) (target)
+    (nil? target) js/document.body
+    :else target))
 
-  (componentWillUnmount [this]
-    (if-let [{:keys [handler]} (gobj/get this "matcher")]
-      (let [{::keys [target event]} (om/props this)
-            target (or target js/document.body)
-            event  (or event "keydown")]
-        (.removeEventListener target event handler))))
+(defn start-handler [this]
+  (if-let [matcher (parse-keystroke (-> this fp/props ::keystroke))]
+    (let [handler #(handle-event this %)
+          {::keys [target event]} (fp/props this)
+          target (read-target target)
+          event  (or event "keydown")]
+      (gobj/set this "matcher" {:handler handler
+                                :matcher matcher})
+      (if target
+        (.addEventListener target event handler)))))
+
+(defn dispose-handler [this]
+  (if-let [{:keys [handler]} (gobj/get this "matcher")]
+    (let [{::keys [target event]} (fp/props this)
+          target (read-target target)
+          event  (or event "keydown")]
+      (if target
+        (.removeEventListener target event handler)))))
+
+(fp/defui ^:once KeyListener
+  Object
+  (componentDidMount [this] (start-handler this))
+  (componentWillUnmount [this] (dispose-handler this))
+  (componentWillUpdate [this _ _] (dispose-handler this))
+  (componentDidUpdate [this _ _] (start-handler this))
 
   (render [_]
     (dom/noscript nil)))
 
-(def key-listener (om/factory KeyListener))
+(def key-listener (fp/factory KeyListener))

@@ -3,93 +3,22 @@
     [cljs.reader :refer [read-string]]
     [goog.functions :as gfun]
     [goog.object :as gobj]
-    [fulcro.client.core :as fulcro]
-    [fulcro.ui.elements :as f.elements]
+    [fulcro.client :as fulcro]
     [fulcro.client.mutations :as mutations :refer-macros [defmutation]]
     [fulcro.client.network :as f.network]
-    [fulcro.inspect.ui.core :as ui]
-    [fulcro.inspect.ui.data-viewer :as data-viewer]
-    [fulcro.inspect.ui.data-watcher :as data-watcher]
+    [fulcro.inspect.helpers :as db.h]
+    [fulcro.inspect.lib.local-storage :as storage]
+    [fulcro.inspect.ui.data-history :as data-history]
+    [fulcro.inspect.ui.dom-history-viewer :as domv]
     [fulcro.inspect.ui.inspector :as inspector]
+    [fulcro.inspect.ui.multi-inspector :as multi-inspector]
     [fulcro.inspect.ui.events :as events]
+    [fulcro.inspect.ui.element :as element]
     [fulcro.inspect.ui.network :as network]
     [fulcro.inspect.ui.transactions :as transactions]
     [fulcro-css.css :as css]
-    [om.dom :as dom]
-    [om.next :as om]
-    [garden.core :as g]))
-
-(defmutation add-inspector [inspector]
-  (action [env]
-    (let [{:keys [ref state reconciler]} env
-          inspector-ref (om/ident inspector/Inspector inspector)
-          current       (get-in @state (conj ref ::current-app))]
-      (fulcro/merge-state! reconciler inspector/Inspector inspector :append (conj ref ::inspectors))
-      (if (nil? current)
-        (swap! state update-in ref assoc ::current-app inspector-ref)))))
-
-(defmutation set-app [{::inspector/keys [id]}]
-  (action [env]
-    (let [{:keys [ref state]} env]
-      (swap! state update-in ref assoc ::current-app [::inspector/id id]))))
-
-(om/defui ^:once MultiInspector
-  static fulcro/InitialAppState
-  (initial-state [_ _] {::inspectors  []
-                        ::current-app nil})
-
-  static om/Ident
-  (ident [_ props] [::multi-inspector "main"])
-
-  static om/IQuery
-  (query [_] [::inspectors {::current-app (om/get-query inspector/Inspector)}])
-
-  static css/CSS
-  (local-rules [_] [[:* {:box-sizing "border-box"}]
-                    [:.container {:display        "flex"
-                                  :flex-direction "column"
-                                  :width          "100%"
-                                  :height         "100%"
-                                  :overflow       "hidden"}]
-                    [:.selector {:font-family ui/label-font-family
-                                 :font-size   ui/label-font-size
-                                 :display     "flex"
-                                 :align-items "center"
-                                 :background  "#f3f3f3"
-                                 :color       ui/color-text-normal
-                                 :border-top  "1px solid #ccc"
-                                 :padding     "12px"
-                                 :user-select "none"}]
-                    [:.label {:margin-right "10px"}]
-                    [:.no-app {:display         "flex"
-                               :background      "#f3f3f3"
-                               :font-family     ui/label-font-family
-                               :font-size       "23px"
-                               :flex            1
-                               :align-items     "center"
-                               :justify-content "center"}]])
-  (include-children [_] [inspector/Inspector])
-
-  Object
-  (render [this]
-    (let [{::keys [inspectors current-app]} (om/props this)
-          css (css/get-classnames MultiInspector)]
-      (dom/div #js {:className (:container css)}
-        (if current-app
-          (inspector/inspector current-app)
-          (dom/div #js {:className (:no-app css)}
-            (dom/div nil "No app connected.")))
-        (if (> (count inspectors) 1)
-          (dom/div #js {:className (:selector css)}
-            (dom/div #js {:className (:label css)} "App")
-            (dom/select #js {:value    (str (::inspector/id current-app))
-                             :onChange #(om/transact! this `[(set-app {::inspector/id ~(read-string (.. % -target -value))})])}
-              (for [app-id (->> (map (comp pr-str second) inspectors) sort)]
-                (dom/option #js {:key   app-id
-                                 :value app-id}
-                  app-id)))))))))
-
-(def multi-inspector (om/factory MultiInspector))
+    [fulcro.client.dom :as dom]
+    [fulcro.client.primitives :as fp]))
 
 (defn set-style! [node prop value]
   (gobj/set (gobj/get node "style") prop value))
@@ -101,128 +30,175 @@
 
 (defn start-frame [this]
   (let [frame-body (.-body (.-contentDocument (js/ReactDOM.findDOMNode this)))
-        {:keys [child]} (om/props this)
+        {:keys [child]} (fp/props this)
         e1         (.createElement js/document "div")]
     (when (= 0 (gobj/getValueByKeys frame-body #js ["children" "length"]))
       (.appendChild frame-body e1)
       (gobj/set this "frame-component" e1)
       (update-frame-content this child))))
 
-(om/defui IFrame
+(fp/defui IFrame
   Object
   (componentDidMount [this] (start-frame this))
 
   (componentDidUpdate [this _ _]
-    (let [child (:child (om/props this))]
+    (let [child (:child (fp/props this))]
       (update-frame-content this child)))
+
+  (componentWillUnmount [this]
+    (let [frame-component (gobj/get this "frame-component")]
+      (js/ReactDOM.unmountComponentAtNode frame-component)))
 
   (render [this]
     (dom/iframe
-      (-> (om/props this)
+      (-> (fp/props this)
           (dissoc :child)
           (assoc :onLoad #(start-frame this))
           clj->js))))
 
-(let [factory (om/factory IFrame)]
+(let [factory (fp/factory IFrame)]
   (defn ui-iframe [props child]
     (factory (assoc props :child child))))
 
-(om/defui ^:once GlobalInspector
-  static fulcro/InitialAppState
-  (initial-state [_ params] {:ui/size      50
-                             :ui/visible?  false
-                             :ui/inspector (fulcro/get-initial-state MultiInspector params)})
+(fp/defui ^:once GlobalInspector
+  static fp/InitialAppState
+  (initial-state [_ params] {:ui/size                (storage/get ::dock-size 50)
+                             :ui/dock-side           (storage/get ::dock-side ::dock-right)
+                             :ui/visible?            (storage/get ::dock-visible? false)
+                             :ui/historical-dom-view (fp/get-initial-state domv/DOMHistoryView {})
+                             :ui/inspector           (fp/get-initial-state multi-inspector/MultiInspector params)})
 
-  static om/Ident
+  static fp/Ident
   (ident [_ props] [::floating-panel "main"])
 
-  static om/IQuery
-  (query [_] [{:ui/inspector (om/get-query MultiInspector)}
-              :ui/size :ui/visible?])
+  static fp/IQuery
+  (query [_] [{:ui/inspector (fp/get-query multi-inspector/MultiInspector)}
+              {:ui/historical-dom-view (fp/get-query domv/DOMHistoryView)}
+              :ui/size :ui/visible? :ui/dock-side])
 
   static css/CSS
   (local-rules [_] [[:.container {:background "#fff"
                                   :box-shadow "rgba(0, 0, 0, 0.3) 0px 0px 4px"
                                   :position   "fixed"
-                                  :top        "0"
-                                  :right      "0"
-                                  :bottom     "0"
-                                  :width      "50%"
                                   :overflow   "hidden"
-                                  :z-index    "9999"}]
+                                  :z-index    "9999999"}]
+                    [:.container-right {:top    "0"
+                                        :right  "0"
+                                        :bottom "0"
+                                        :width  "50%"}]
+                    [:.container-bottom {:left   "0"
+                                         :right  "0"
+                                         :bottom "0"
+                                         :height "50%"}]
                     [:.resizer {:position    "fixed"
-                                :cursor      "ew-resize"
-                                :top         "0"
-                                :left        "50%"
-                                :margin-left "-5px"
-                                :width       "10px"
-                                :bottom      "0"
                                 :z-index     "99999"}]
+                    [:.resizer-horizontal {:cursor      "ew-resize"
+                                           :top         "0"
+                                           :left        "50%"
+                                           :margin-left "-5px"
+                                           :width       "10px"
+                                           :bottom      "0"}]
+                    [:.resizer-vertical {:cursor     "ns-resize"
+                                         :left       "0"
+                                         :top        "50%"
+                                         :margin-top "-5px"
+                                         :height     "10px"
+                                         :right      "0"}]
                     [:.frame {:width  "100%"
                               :height "100%"
                               :border "0"}]])
-  (include-children [_] [MultiInspector])
+  (include-children [_] [element/MarkerCSS domv/DOMHistoryView])
 
   Object
   (componentDidMount [this]
     (gobj/set this "frame-dom" (js/ReactDOM.findDOMNode (gobj/get this "frame-node")))
     (gobj/set this "resize-debouncer"
-      (gfun/debounce #(mutations/set-value! this :ui/size %) 300)))
+      (gfun/debounce #(db.h/persistent-set! this :ui/size ::dock-size %) 300)))
 
   (componentDidUpdate [this _ _]
     (gobj/set this "frame-dom" (js/ReactDOM.findDOMNode (gobj/get this "frame-node"))))
 
   (render [this]
-    (let [{:ui/keys [size visible? inspector]} (om/props this)
-          keystroke (or (om/shared this [:options :launch-keystroke]) "ctrl-f")
+    (let [{:ui/keys [size visible? inspector historical-dom-view dock-side]} (fp/props this)
+          {:keys [::multi-inspector/current-app]} inspector
+          app       (::inspector/target-app current-app)
+          keystroke (or (fp/shared this [:options :launch-keystroke]) "ctrl-f")
           size      (or size 50)
           css       (css/get-classnames GlobalInspector)]
-      (dom/div #js {:className (:reset css)
-                    :style     (if visible? nil #js {:display "none"})}
-        (events/key-listener {::events/action    #(mutations/set-value! this :ui/visible? (not visible?))
+      (dom/div #js {:className (:reset css)}
+        (events/key-listener {::events/action    #(db.h/persistent-set! this :ui/visible? ::dock-visible? (not visible?))
                               ::events/keystroke keystroke})
-        (dom/div #js {:className   (:resizer css)
-                      :ref         #(gobj/set this "resizer" %)
-                      :style       #js {:left (str size "%")}
-                      :onMouseDown (fn [_]
-                                     (let [handler (fn [e]
-                                                     (let [mouse (.-clientX e)
-                                                           vw    js/document.body.clientWidth
-                                                           pos   (* (/ mouse vw) 100)]
-                                                       (when (pos? pos)
-                                                         (set-style! (gobj/get this "resizer") "left" (str pos "%"))
-                                                         (set-style! (gobj/get this "container") "width" (str (- 100 pos) "%"))
-                                                         ((gobj/get this "resize-debouncer") pos))))
-                                           frame   (js/ReactDOM.findDOMNode (gobj/get this "frame-node"))]
-                                       (set-style! frame "pointerEvents" "none")
-                                       (js/document.addEventListener "mousemove" handler)
-                                       (js/document.addEventListener "mouseup"
-                                         (fn [e]
-                                           (gobj/set (.-style frame) "pointerEvents" "initial")
-                                           (js/document.removeEventListener "mousemove" handler)))))})
-        (dom/div #js {:className (:container css)
-                      :style     #js {:width (str (- 100 size) "%")}
-                      :ref       #(gobj/set this "container" %)}
-          (ui-iframe {:className (:frame css) :ref #(gobj/set this "frame-node" %)}
-            (dom/div nil
-              (when-let [frame (gobj/get this "frame-dom")]
-                (events/key-listener {::events/action    #(mutations/set-value! this :ui/visible? (not visible?))
-                                      ::events/keystroke keystroke
-                                      ::events/target    (gobj/getValueByKeys frame #js ["contentDocument" "body"])}))
-              (dom/style #js {:dangerouslySetInnerHTML #js {:__html (g/css [[:body {:margin "0" :padding "0" :box-sizing "border-box"}]])}})
-              (dom/style #js {:dangerouslySetInnerHTML #js {:__html (g/css (css/get-css MultiInspector))}})
-              (multi-inspector inspector))))))))
+        (domv/ui-dom-history-view (fp/computed historical-dom-view {:target-app app}))
 
-(def global-inspector-view (om/factory GlobalInspector))
+        (if visible?
+          (case dock-side
+            ::dock-right
+            (dom/div #js {:className   (str (:resizer css) " " (:resizer-horizontal css))
+                          :ref         #(gobj/set this "resizer" %)
+                          :style       #js {:left (str size "%")}
+                          :onMouseDown (fn [_]
+                                         (let [handler (fn [e]
+                                                         (let [mouse (.-clientX e)
+                                                               vw    js/window.innerWidth
+                                                               pos   (* (/ mouse vw) 100)]
+                                                           (when (pos? pos)
+                                                             (set-style! (gobj/get this "resizer") "left" (str pos "%"))
+                                                             (set-style! (gobj/get this "container") "width" (str (- 100 pos) "%"))
+                                                             ((gobj/get this "resize-debouncer") pos))))
+                                               frame   (js/ReactDOM.findDOMNode (gobj/get this "frame-node"))]
+                                           (set-style! frame "pointerEvents" "none")
+                                           (js/document.addEventListener "mousemove" handler)
+                                           (js/document.addEventListener "mouseup"
+                                             (fn [e]
+                                               (gobj/set (.-style frame) "pointerEvents" "initial")
+                                               (js/document.removeEventListener "mousemove" handler)))))})
 
-(om/defui ^:once GlobalRoot
-  static fulcro/InitialAppState
+            ::dock-bottom
+            (dom/div #js {:className   (str (:resizer css) " " (:resizer-vertical css))
+                          :ref         #(gobj/set this "resizer" %)
+                          :style       #js {:top (str size "%")}
+                          :onMouseDown (fn [_]
+                                         (let [handler (fn [e]
+                                                         (let [mouse (.-clientY e)
+                                                               vh    js/window.innerHeight
+                                                               pos   (* (/ mouse vh) 100)]
+                                                           (when (pos? pos)
+                                                             (set-style! (gobj/get this "resizer") "top" (str pos "%"))
+                                                             (set-style! (gobj/get this "container") "height" (str (- 100 pos) "%"))
+                                                             ((gobj/get this "resize-debouncer") pos))))
+                                               frame   (js/ReactDOM.findDOMNode (gobj/get this "frame-node"))]
+                                           (set-style! frame "pointerEvents" "none")
+                                           (js/document.addEventListener "mousemove" handler)
+                                           (js/document.addEventListener "mouseup"
+                                             (fn [e]
+                                               (gobj/set (.-style frame) "pointerEvents" "initial")
+                                               (js/document.removeEventListener "mousemove" handler)))))})))
+
+        (if visible?
+          (case dock-side
+            ::dock-right
+            (dom/div #js {:className (str (:container css) " " (:container-right css))
+                          :style     #js {:width (str (- 100 size) "%")}
+                          :ref       #(gobj/set this "container" %)}
+              (ui-iframe {:className (:frame css) :ref #(gobj/set this "frame-node" %)}
+                (multi-inspector/multi-inspector inspector)))
+
+            ::dock-bottom
+            (dom/div #js {:className (str (:container css) " " (:container-bottom css))
+                          :style     #js {:height (str (- 100 size) "%")}
+                          :ref       #(gobj/set this "container" %)}
+              (ui-iframe {:className (:frame css) :ref #(gobj/set this "frame-node" %)}
+                (multi-inspector/multi-inspector inspector)))))))))
+
+(def global-inspector-view (fp/factory GlobalInspector))
+
+(fp/defui ^:once GlobalRoot
+  static fp/InitialAppState
   (initial-state [_ _] {:ui/react-key (random-uuid)
-                        :ui/root      (fulcro/get-initial-state GlobalInspector {})})
+                        :ui/root      (fp/get-initial-state GlobalInspector {})})
 
-  static om/IQuery
-  (query [_] [{:ui/root (om/get-query GlobalInspector)}
-              :ui/react-key])
+  static fp/IQuery
+  (query [_] [:ui/react-key {:ui/root (fp/get-query GlobalInspector)}])
 
   static css/CSS
   (local-rules [_] [])
@@ -230,7 +206,7 @@
 
   Object
   (render [this]
-    (let [{:keys [ui/react-key ui/root]} (om/props this)]
+    (let [{:keys [ui/react-key ui/root]} (fp/props this)]
       (dom/div #js {:key react-key}
         (global-inspector-view root)))))
 
@@ -250,8 +226,8 @@
        (reset! global-inspector* (start-global-inspector options)))))
 
 (defn update-inspect-state [reconciler app-id state]
-  (om/transact! reconciler [::data-watcher/id [::app-id app-id]]
-    [`(data-watcher/update-state ~state) ::data-viewer/content]))
+  (fp/transact! reconciler [::data-history/history-id [::app-id app-id]]
+    [`(data-history/set-content ~state) ::data-history/history]))
 
 (defn inspect-network-init [network app]
   (some-> network :options ::app* (reset! app)))
@@ -259,13 +235,16 @@
 (defn inspect-app [app-id target-app]
   (let [inspector     (global-inspector)
         state*        (some-> target-app :reconciler :config :state)
-        new-inspector (-> (fulcro/get-initial-state inspector/Inspector @state*)
+        new-inspector (-> (fp/get-initial-state inspector/Inspector @state*)
                           (assoc ::inspector/id app-id)
-                          (assoc-in [::inspector/app-state ::data-watcher/id] [::app-id app-id])
+                          (assoc ::inspector/target-app target-app)
+                          (assoc-in [::inspector/app-state ::data-history/history-id] [::app-id app-id])
                           (assoc-in [::inspector/network ::network/history-id] [::app-id app-id])
+                          (assoc-in [::inspector/element ::element/panel-id] [::app-id app-id])
+                          (assoc-in [::inspector/element ::element/target-reconciler] (:reconciler target-app))
                           (assoc-in [::inspector/transactions ::transactions/tx-list-id] [::app-id app-id]))]
-    (om/transact! (:reconciler inspector) [::multi-inspector "main"]
-      [`(add-inspector ~new-inspector)
+    (fp/transact! (:reconciler inspector) [::multi-inspector/multi-inspector "main"]
+      [`(multi-inspector/add-inspector ~new-inspector)
        ::inspectors])
 
     (inspect-network-init (-> target-app :networking :remote) {:inspector inspector
@@ -273,6 +252,8 @@
 
     (add-watch state* app-id
       #(update-inspect-state (:reconciler inspector) app-id %4))
+
+    (swap! state* assoc ::initialized true)
 
     new-inspector))
 
@@ -310,39 +291,73 @@
 (defn transform-network [network options]
   (->TransformNetwork network (assoc options ::app* (atom nil))))
 
+(defrecord TransformNetworkI [network options]
+  f.network/FulcroRemoteI
+  (transmit [_ {::f.network/keys [edn ok-handler error-handler]}]
+    (let [{::keys [transform-query transform-response transform-error app*]
+           :or    {transform-query    (fn [_ x] x)
+                   transform-response (fn [_ x] x)
+                   transform-error    (fn [_ x] x)}} options
+          req-id (random-uuid)
+          env    {::request-id req-id
+                  ::app        @app*}]
+      (if-let [edn' (transform-query env edn)]
+        (f.network/transmit network
+          {::f.network/edn           edn'
+           ::f.network/ok-handler    #(->> % (transform-response env) ok-handler)
+           ::f.network/error-handler #(->> % (transform-error env) error-handler)})
+        (ok-handler nil))))
+
+  (abort [_ abort-id] (f.network/abort network abort-id)))
+
+(defn transform-network-i [network options]
+  (->TransformNetworkI network (assoc options ::app* (atom nil))))
+
 (defn app-id [reconciler]
-  (or (some-> reconciler om/app-state deref ::app-id)
-      (some-> reconciler om/app-root om/react-type (gobj/get "displayName") symbol)))
+  (or (some-> reconciler fp/app-state deref ::app-id)
+      (some-> reconciler fp/app-root fp/react-type (gobj/get "displayName") symbol)))
 
 (defn inspect-network
-  ([network]
-   (transform-network network
-     {::transform-query
-      (fn [{::keys [request-id app]} edn]
-        (let [{:keys [inspector app]} app
-              app-id (app-id (:reconciler app))]
-          (om/transact! (:reconciler inspector) [::network/history-id [::app-id app-id]]
-            [`(network/request-start ~{::network/request-id  request-id
-                                       ::network/request-edn edn})]))
-        edn)
+  ([remote network]
+   (let [ts {::transform-query
+             (fn [{::keys [request-id app]} edn]
+               (let [{:keys [inspector app]} app
+                     app-id (app-id (:reconciler app))]
+                 (fp/transact! (:reconciler inspector) [::network/history-id [::app-id app-id]]
+                   [`(network/request-start ~{::network/remote      remote
+                                              ::network/request-id  request-id
+                                              ::network/request-edn edn})]))
+               edn)
 
-      ::transform-response
-      (fn [{::keys [request-id app]} response]
-        (let [{:keys [inspector app]} app
-              app-id (app-id (:reconciler app))]
-          (om/transact! (:reconciler inspector) [::network/history-id [::app-id app-id]]
-            [`(network/request-finish ~{::network/request-id   request-id
-                                        ::network/response-edn response})]))
-        response)
+             ::transform-response
+             (fn [{::keys [request-id app]} response]
+               (let [{:keys [inspector app]} app
+                     app-id (app-id (:reconciler app))]
+                 (fp/transact! (:reconciler inspector) [::network/history-id [::app-id app-id]]
+                   [`(network/request-finish ~{::network/request-id   request-id
+                                               ::network/response-edn response})]))
+               response)
 
-      ::transform-error
-      (fn [{::keys [request-id app]} error]
-        (let [{:keys [inspector app]} app
-              app-id (app-id (:reconciler app))]
-          (om/transact! (:reconciler inspector) [::network/history-id [::app-id app-id]]
-            [`(network/request-finish ~{::network/request-id request-id
-                                        ::network/error      error})]))
-        error)})))
+             ::transform-error
+             (fn [{::keys [request-id app]} error]
+               (let [{:keys [inspector app]} app
+                     app-id (app-id (:reconciler app))]
+                 (fp/transact! (:reconciler inspector) [::network/history-id [::app-id app-id]]
+                   [`(network/request-finish ~{::network/request-id request-id
+                                               ::network/error      error})]))
+               error)}]
+     (cond
+       (implements? f.network/FulcroNetwork network)
+       (transform-network network ts)
+
+       (implements? f.network/FulcroRemoteI network)
+       (transform-network-i network
+         (update ts ::transform-response (fn [tr] (fn [env {:keys [body] :as response}]
+                                                    (tr env body)
+                                                    response))))
+
+       :else
+       (js/console.warn "Invalid network" {:network network})))))
 
 ;;; installer
 
@@ -356,18 +371,20 @@
       :else new-id)))
 
 (defn dedupe-id [id]
-  (let [ids-in-use (some-> (global-inspector) :reconciler om/app-state deref ::inspector/id)]
+  (let [ids-in-use (some-> (global-inspector) :reconciler fp/app-state deref ::inspector/id)]
     (loop [new-id id]
       (if (contains? ids-in-use new-id)
         (recur (inc-id new-id))
         new-id))))
 
 (defn inspect-tx [{:keys [reconciler] :as env} info]
-  (let [inspector (global-inspector)
-        tx        (merge info (select-keys env [:old-state :new-state :ref :component]))
-        app-id    (app-id reconciler)]
-    (om/transact! (:reconciler inspector) [::transactions/tx-list-id [::app-id app-id]]
-      [`(transactions/add-tx ~tx) ::transactions/tx-list])))
+  (if (fp/app-root reconciler)                              ; ensure app is initialized
+    (let [inspector (global-inspector)
+          tx        (merge info (select-keys env [:old-state :new-state :ref :component]))
+          app-id    (app-id reconciler)]
+      (if (-> reconciler fp/app-state deref ::initialized)
+        (fp/transact! (:reconciler inspector) [::transactions/tx-list-id [::app-id app-id]]
+          [`(transactions/add-tx ~tx) ::transactions/tx-list])))))
 
 (defn install [options]
   (when-not @global-inspector*
@@ -381,13 +398,13 @@
        ::fulcro/app-started
        (fn [{:keys [reconciler] :as app}]
          (let [id (-> reconciler app-id dedupe-id)]
-           (swap! (-> reconciler om/app-state) assoc ::app-id id)
+           (swap! (-> reconciler fp/app-state) assoc ::app-id id)
            (inspect-app id app))
          app)
 
        ::fulcro/network-wrapper
        (fn [networks]
-         (into {} (map (fn [[k v]] [k (inspect-network v)])) networks))
+         (into {} (map (fn [[k v]] [k (inspect-network k v)])) networks))
 
        ::fulcro/tx-listen
        #'inspect-tx})))

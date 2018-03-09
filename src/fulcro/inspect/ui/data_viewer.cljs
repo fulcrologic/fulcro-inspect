@@ -1,16 +1,16 @@
 (ns fulcro.inspect.ui.data-viewer
-  (:require [fulcro.client.core :as fulcro]
-            [fulcro.client.mutations :as mutations]
+  (:require [fulcro.client.mutations :as mutations]
             [fulcro-css.css :as css]
             [fulcro.inspect.ui.core :as ui]
             [fulcro.inspect.helpers :as h]
-            [om.dom :as dom]
-            [om.next :as om]))
+            [fulcro.client.dom :as dom]
+            [fulcro.client.primitives :as fp]))
 
 (declare DataViewer)
 
 (def vec-max-inline 2)
 (def sequential-max-inline 5)
+(def map-max-inline 10)
 
 (defn children-expandable-paths [x]
   (loop [lookup [{:e x :p []}]
@@ -51,7 +51,7 @@
       (boolean? x)
       (symbol? x)
       (uuid? x)
-      (om/tempid? x)
+      (fp/tempid? x)
       (and (vector? x)
            (<= (count x) vec-max-inline))))
 
@@ -152,11 +152,16 @@
         "{"
         (->> content
              (sort-by (comp str first))
+             (take map-max-inline)
              (mapv (fn [[k v]]
                      [(dom/div #js {:className (:map-inline-key-item css) :key (str k "-key")} (render-data input k))
                       (dom/div #js {:className (:map-inline-value-item css) :key (str k "-value")} (render-data (update input :path conj k) v))]))
              (interpose ", ")
              (apply concat))
+        (if (> (count content) map-max-inline)
+          ", ")
+        (if (> (count content) map-max-inline)
+          (dom/div #js {:className (:list-inline-item css)} "…"))
         "}")
 
       :else
@@ -211,22 +216,16 @@
    :font-size   "12px"
    :white-space "nowrap"})
 
-(defn create-collapsed [content]
-  ^::h/initialized
-  {::id       (random-uuid)
-   ::content  content
-   ::expanded {}})
-
-(om/defui ^:once DataViewer
-  static fulcro/InitialAppState
+(fp/defui ^:once DataViewer
+  static fp/InitialAppState
   (initial-state [_ content] {::id       (random-uuid)
                               ::content  content
-                              ::expanded {[] true}})
+                              ::expanded {}})
 
-  static om/Ident
+  static fp/Ident
   (ident [_ props] [::id (::id props)])
 
-  static om/IQuery
+  static fp/IQuery
   (query [_] [::id ::content ::expanded])
 
   static css/CSS
@@ -256,7 +255,6 @@
                    :align-items "flex-start"}]
      [:.list-item-index {:background    "#dddddd"
                          :border-right  "2px solid rgba(100, 100, 100, 0.2)"
-                         :text-align    "right"
                          :min-width     "35px"
                          :margin-bottom "1px"
                          :margin-right  "5px"
@@ -283,20 +281,20 @@
 
   Object
   (render [this]
-    (let [{::keys [content expanded elide-one? static?] :as props} (om/props this)
-          {::keys [path-action]} (om/get-computed props)
+    (let [{::keys [content expanded elide-one? static?] :as props} (fp/props this)
+          {::keys [path-action]} (fp/get-computed props)
           css (css/get-classnames DataViewer)]
       (dom/div #js {:className (:container css)}
         (render-data {:expanded    expanded
                       :static?     static?
                       :elide-one?  elide-one?
-                      :toggle      #(om/transact! this [`(toggle {::path       ~%2
+                      :toggle      #(fp/transact! this [`(toggle {::path       ~%2
                                                                   ::propagate? ~(.-metaKey %)})])
                       :css         css
                       :path        []
                       :path-action path-action}
           content)))))
 
-(let [factory (om/factory DataViewer)]
+(let [factory (fp/factory DataViewer)]
   (defn data-viewer [props & [computed]]
-    (factory (om/computed props computed))))
+    (factory (fp/computed props computed))))

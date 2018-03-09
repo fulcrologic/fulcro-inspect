@@ -1,0 +1,10 @@
+#!/bin/bash
+
+oldns=$1
+newns=$2
+files=$(git grep -l "$oldns")
+
+if [ ! -z "$files" ]; then
+  perl -pi.bak -e 's/\b\Q'$oldns'\E\b/'$newns'/g' $files
+  find . -name '*.bak' -print0 | xargs -0 -n100 rm
+fi

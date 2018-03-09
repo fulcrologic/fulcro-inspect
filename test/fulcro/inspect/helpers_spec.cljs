@@ -1,27 +1,46 @@
 (ns fulcro.inspect.helpers-spec
   (:require
-    [fulcro.client.core :as fulcro]
     [fulcro-spec.core :refer [specification behavior component assertions]]
     [fulcro.inspect.helpers :as h]
-    [om.next :as om]))
+    [fulcro.client.primitives :as fp]))
 
-(om/defui ^:once Child
-  static om/Ident
+(fp/defui ^:once Child
+  static fp/Ident
   (ident [_ props] [:child/id (:child/id props)])
 
-  static om/IQuery
+  static fp/IQuery
   (query [_] [:child/id]))
 
-(om/defui ^:once Container
-  static fulcro/InitialAppState
+(fp/defui ^:once Container
+  static fp/InitialAppState
   (initial-state [_ x] (merge {:state :inited} x))
 
-  static om/Ident
+  static fp/Ident
   (ident [_ props] [:container/id (:container/id props)])
 
-  static om/IQuery
+  static fp/IQuery
   (query [_] [:container/id
-              {:child (om/get-query Child)}]))
+              {:child (fp/get-query Child)}]))
+
+(specification "resolve-path"
+  (assertions
+    (h/resolve-path {:id {123 {:other [:id 456]}
+                          456 {:a "x"}}}
+      [:id])
+    => [:id]
+    (h/resolve-path {:id {123 {:other [:id 456]}
+                          456 {:a "x"}}}
+      [:id 123])
+    => [:id 123]
+    (h/resolve-path {:id {123 {:other [:id 456]}
+                          456 {:a "x"}}}
+      [:id 123 :other])
+    => [:id 456]
+    (h/resolve-path {:id {123 {:other [:id 456]}
+                          456 {:a "x"
+                               :b [:id2 333]}}}
+      [:id 123 :other :b :done])
+    => [:id2 333 :done]))
 
 (specification "merge-entity"
   (assertions
