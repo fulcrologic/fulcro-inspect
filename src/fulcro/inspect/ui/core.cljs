@@ -101,45 +101,41 @@
      (dom/img (h/props->html {:src code} props))
      (apply fulcro-icon name (apply concat props)))))
 
-(fp/defui ^:once ToolBar
-  static css/CSS
-  (local-rules [_] [[:.container {:border-bottom "1px solid #dadada"
-                                  :display       "flex"
-                                  :align-items   "center"}
-                     [:$c-icon {:fill      color-icon-normal
-                                :transform "scale(0.7)"}
-                      [:&:hover {:fill color-icon-strong}]]
+(fp/defsc ToolBar [this _]
+  {:css [[:.container {:border-bottom "1px solid #dadada"
+                       :display       "flex"
+                       :align-items   "center"}
+          [:$c-icon {:fill      color-icon-normal
+                     :transform "scale(0.7)"}
+           [:&:hover {:fill color-icon-strong}]]
 
-                     [:&.details {:background    "#f3f3f3"
-                                  :border-bottom "1px solid #ccc"
-                                  :display       "flex"
-                                  :align-items   "center"
-                                  :height        "28px"}]]
+          [:&.details {:background    "#f3f3f3"
+                       :border-bottom "1px solid #ccc"
+                       :display       "flex"
+                       :align-items   "center"
+                       :height        "28px"}]]
 
-                    [:.action {:cursor      "pointer"
-                               :display     "flex"
-                               :align-items "center"}
-                     [(gs/& (gs/attr "disabled")) {:cursor "not-allowed"}
-                      [:$c-icon {:fill color-icon-normal}]]]
+         [:.action {:cursor      "pointer"
+                    :display     "flex"
+                    :align-items "center"}
+          [(gs/& (gs/attr "disabled")) {:cursor "not-allowed"}
+           [:$c-icon {:fill color-icon-normal}]]]
 
-                    [:.separator {:background "#ccc"
-                                  :width      "1px"
-                                  :height     "16px"
-                                  :margin     "0 6px"}]
+         [:.separator {:background "#ccc"
+                       :width      "1px"
+                       :height     "16px"
+                       :margin     "0 6px"}]
 
-                    [:.input {:color       color-text-normal
-                              :outline     "0"
-                              :margin      "0 2px"
-                              :font-family label-font-family
-                              :font-size   label-font-size
-                              :padding     "2px 4px"}]])
-  (include-children [_] [])
+         [:.input {:color       color-text-normal
+                   :outline     "0"
+                   :margin      "0 2px"
+                   :font-family label-font-family
+                   :font-size   label-font-size
+                   :padding     "2px 4px"}]]}
 
-  Object
-  (render [this]
-    (let [css (css/get-classnames ToolBar)]
-      (dom/div (h/props+classes this {:className (:container css)})
-        (fp/children this)))))
+  (let [css (css/get-classnames ToolBar)]
+    (dom/div (h/props+classes this {:className (:container css)})
+      (fp/children this))))
 
 (def toolbar (fp/factory ToolBar))
 
