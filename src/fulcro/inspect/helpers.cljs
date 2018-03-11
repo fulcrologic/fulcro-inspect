@@ -37,6 +37,11 @@
           (recur t (conj new-path h))))
       new-path)))
 
+(defn get-in-path
+  "Like get-in, but will resolve path before reading it."
+  [state path]
+  (get-in state (resolve-path state path)))
+
 (defn swap-in! [{:keys [state ref]} path & args]
   (let [path (resolve-path @state (into ref path))]
     (if (and path (get-in @state path))
@@ -82,7 +87,7 @@
                                  (assert (contains? vector index) (str "Target vector for replacement does not have an item at index " index))))
                              (assoc-in state data-path ident))
                   (throw (ex-info "Unknown post-op to merge-state!: " {:command command :arg data-path})))))
-            state actions)))
+      state actions)))
 
 (defn merge-entity [state x data & named-parameters]
   "Starting from a denormalized entity map, normalizes using class x.
@@ -156,6 +161,6 @@
     (swap-entity! env assoc local-key value)))
 
 (defn persistent-set! [comp local-key storage-key value]
-  (fp/transact! comp [(list `persistent-set-props {::local-key local-key
+  (fp/transact! comp [(list `persistent-set-props {::local-key   local-key
                                                    ::storage-key storage-key
-                                                   ::value value}) local-key]))
+                                                   ::value       value}) local-key]))

@@ -239,6 +239,7 @@
                           (assoc ::inspector/id app-id)
                           (assoc ::inspector/target-app target-app)
                           (assoc-in [::inspector/app-state ::data-history/history-id] [::app-id app-id])
+                          (assoc-in [::inspector/app-state ::data-history/snapshots ::app-id] app-id)
                           (assoc-in [::inspector/network ::network/history-id] [::app-id app-id])
                           (assoc-in [::inspector/element ::element/panel-id] [::app-id app-id])
                           (assoc-in [::inspector/element ::element/target-reconciler] (:reconciler target-app))

@@ -4,21 +4,18 @@
 
 (def local-storage (.-localStorage js/window))
 
-(defn encode-key [key]
-  (pr-str key))
-
 (defn get
   ([key] (get key nil))
   ([key default]
-   (if-let [value (.getItem local-storage (encode-key key))]
+   (if-let [value (.getItem local-storage (pr-str key))]
      (read-string value)
      default)))
 
 (defn set! [key value]
-  (.setItem local-storage (encode-key key) (pr-str value)))
+  (.setItem local-storage (pr-str key) (pr-str value)))
 
 (defn remove! [key]
   (.removeItem local-storage key))
 
 (defn update! [key f]
-  (.setItem local-storage (encode-key key) (pr-str (f (get key)))))
+  (.setItem local-storage (pr-str key) (pr-str (f (get key)))))
