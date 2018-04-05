@@ -34,12 +34,13 @@
                                   :border-bottom "1px solid #eee"
                                   :align-items   "center"
                                   :padding       "5px 0"}
-                     [:&:hover {:background ui/color-row-hover}]
+                     [:.icon {:display "none"}]
+                     [:&:hover {:background ui/color-row-hover}
+                      [:.icon {:display "block"}]]
                      [:&.selected {:background ui/color-row-selected}]]
 
                     [:.data-container {:flex 1}]
-                    [:.icon {:height "20px"
-                             :margin-right "6px"}
+                    [:.icon {:margin "-5px 6px"}
                      [:$c-icon {:fill      ui/color-icon-normal
                                 :transform "scale(0.7)"}
                       [:&:hover {:fill ui/color-icon-strong}]]]
