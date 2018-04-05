@@ -2,6 +2,7 @@
   (:require [devcards.core]
             [fulcro.client.logging :as log]
             [fulcro.inspect.core]
+            [fulcro.inspect.ui.demos-cards]
             [fulcro.inspect.ui.data-history-cards]
             [fulcro.inspect.ui.data-viewer-cards]
             [fulcro.inspect.ui.data-watcher-cards]

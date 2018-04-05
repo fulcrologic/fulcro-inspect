@@ -14,9 +14,9 @@
 (fp/defui ^:once TransactionRow
   static fp/InitialAppState
   (initial-state [_ {:keys [tx] :as transaction}]
-    (merge {::tx-id         (random-uuid)
-            ::timestamp     (js/Date.)
-            :ui/tx-row-view (fp/get-initial-state data-viewer/DataViewer tx)}
+    (merge {::tx-id                     (random-uuid)
+            :fulcro.history/client-time (js/Date.)
+            :ui/tx-row-view             (fp/get-initial-state data-viewer/DataViewer tx)}
            transaction))
 
   static fp/Ident
@@ -32,10 +32,18 @@
                                   :cursor        "pointer"
                                   :flex          "1"
                                   :border-bottom "1px solid #eee"
+                                  :align-items   "center"
                                   :padding       "5px 0"}
-                     [:&:hover {:background ui/color-row-hover}]
+                     [:.icon {:display "none"}]
+                     [:&:hover {:background ui/color-row-hover}
+                      [:.icon {:display "block"}]]
                      [:&.selected {:background ui/color-row-selected}]]
 
+                    [:.data-container {:flex 1}]
+                    [:.icon {:margin "-5px 6px"}
+                     [:$c-icon {:fill      ui/color-icon-normal
+                                :transform "scale(0.7)"}
+                      [:&:hover {:fill ui/color-icon-strong}]]]
                     [:.timestamp ui/css-timestamp]])
   (include-children [_] [data-viewer/DataViewer])
 
@@ -44,24 +52,31 @@
     (let [{:ui/keys             [tx-row-view]
            :fulcro.history/keys [client-time]
            :as                  props} (fp/props this)
-          {::keys [on-select selected?]} (fp/get-computed props)
+          {::keys [on-select selected? on-replay]} (fp/get-computed props)
           css (css/get-classnames TransactionRow)]
       (dom/div #js {:className (cond-> (:container css)
                                  selected? (str " " (:selected css)))
                     :onClick   #(if on-select (on-select props))}
         (dom/div #js {:className (:timestamp css)} (ui/print-timestamp client-time))
-        (data-viewer/data-viewer (assoc tx-row-view ::data-viewer/static? true))))))
+        (dom/div #js {:className (:data-container css)}
+          (data-viewer/data-viewer (assoc tx-row-view ::data-viewer/static? true)))
+        (if on-replay
+          (dom/div #js {:className (:icon css)
+                        :onClick   #(do
+                                      (.stopPropagation %)
+                                      (on-replay props))}
+            (ui/icon {:title "Replay mutation"} :refresh)))))))
 
 (let [factory (fp/factory TransactionRow {:keyfn ::tx-id})]
   (defn transaction-row [props computed]
     (factory (fp/computed props computed))))
 
 (fp/defsc Transaction
-  [this {:keys    [ref component]
+  [this {:keys                [ref component]
          :fulcro.history/keys [network-sends]
-         :ui/keys [tx-view ret-view sends-view
-                   old-state-view new-state-view
-                   diff-add-view diff-rem-view]} computed]
+         :ui/keys             [tx-view ret-view sends-view
+                               old-state-view new-state-view
+                               diff-add-view diff-rem-view]} computed]
   {:initial-state (fn [{:keys                [ret]
                         :fulcro.history/keys [tx network-sends db-before db-after]
                         :as                  transaction}]
@@ -173,16 +188,16 @@
 
   Object
   (render [this]
-    (let [{::keys [tx-list active-tx tx-filter]} (fp/props this)
+    (let [{::keys [tx-list active-tx tx-filter] :as props} (fp/props this)
           css     (css/get-classnames TransactionList)
+          {:keys [target-app]} (fp/get-computed props)
           tx-list (if (seq tx-filter)
                     (filterv #(str/includes? (-> % :tx pr-str) tx-filter) tx-list)
                     tx-list)]
       (dom/div #js {:className (:container css)}
         (ui/toolbar {}
-          (ui/toolbar-action {:title   "Clear transactions"
-                              :onClick #(fp/transact! this [`(clear-transactions {})])}
-            (ui/icon :do_not_disturb))
+          (ui/toolbar-action {:onClick #(fp/transact! this [`(clear-transactions {})])}
+            (ui/icon {:title "Clear transactions"} :do_not_disturb))
           (ui/toolbar-separator)
           (ui/toolbar-text-field {:placeholder "Filter"
                                   :value       tx-filter
@@ -196,15 +211,21 @@
                            (fn [tx]
                              (fp/transact! this [`(select-tx ~tx)]))
 
+                           ::on-replay
+                           (fn [{:keys [tx ref]}]
+                             (if target-app
+                               (if ref
+                                 (fp/transact! (:reconciler target-app) ref tx)
+                                 (fp/transact! (:reconciler target-app) tx))))
+
                            ::selected?
                            (= (::tx-id active-tx) (::tx-id %))})))))
         (if active-tx
           (ui/focus-panel {}
             (ui/toolbar {::ui/classes [:details]}
               (ui/toolbar-spacer)
-              (ui/toolbar-action {:title   "Close panel"
-                                  :onClick #(mutations/set-value! this ::active-tx nil)}
-                (ui/icon :clear)))
+              (ui/toolbar-action {:onClick #(mutations/set-value! this ::active-tx nil)}
+                (ui/icon {:title "Close panel"} :clear)))
             (ui/focus-panel-content {}
               (transaction active-tx))))))))
 
