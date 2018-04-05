@@ -149,7 +149,7 @@
 
         ::page-transactions
         (dom/div #js {:className (:tab-content css)}
-          (transactions/transaction-list transactions))
+          (transactions/transaction-list (fp/computed transactions {:target-app target-app})))
 
         ::page-network
         (dom/div #js {:className (:tab-content css)}

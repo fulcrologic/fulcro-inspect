@@ -83,11 +83,10 @@
                           :onChange #(mutations/toggle! this ::show-dom-preview?)
                           :type     "checkbox"}))
 
-        (ui/toolbar-action {:title    "Back one version"
-                            :disabled (= 0 current-index)
+        (ui/toolbar-action {:disabled (= 0 current-index)
                             :onClick  #(fp/transact! this (cond-> `[(navigate-history ~{::current-index (dec current-index)})]
                                                             (-> this fp/props ::show-dom-preview?) (conj `(domv/show-dom-preview {}))))}
-          (ui/icon :chevron_left))
+          (ui/icon {:title "Back one version"} :chevron_left))
 
         (dom/input #js {:type      "range" :min "0" :max (dec (count history))
                         :value     (str current-index)
@@ -95,16 +94,14 @@
                         :onChange  #(fp/transact! this (cond-> `[(navigate-history {::current-index ~(js/parseInt (.. % -target -value))})]
                                                          (-> this fp/props ::show-dom-preview?) (conj `(domv/show-dom-preview {}))))})
 
-        (ui/toolbar-action {:title    "Foward one version"
-                            :disabled at-end?
+        (ui/toolbar-action {:disabled at-end?
                             :onClick  #(fp/transact! this (cond-> `[(navigate-history ~{::current-index (inc current-index)})]
                                                             (-> this fp/props ::show-dom-preview?) (conj `(domv/show-dom-preview {}))))}
-          (ui/icon :chevron_right))
+          (ui/icon {:title "Foward one version"} :chevron_right))
 
-        (ui/toolbar-action {:title    "Reset App To This State"
-                            :disabled at-end?
+        (ui/toolbar-action {:disabled at-end?
                             :onClick  #(fp/transact! this `[(reset-app ~{:app target-app :target-state app-state})])}
-          (ui/icon :settings_backup_restore)))
+          (ui/icon {:title "Reset App To This State"} :settings_backup_restore)))
       (dom/div #js {:className (:watcher css)}
         (watcher/data-watcher watcher)))))
 
