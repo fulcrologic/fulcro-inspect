@@ -1,5 +1,8 @@
 # Change Log
 
+## [2.0.1]
+- New feature: replay mutations from the transactions panel
+
 ## [2.0.0]
 - Fix issues when transactions are called before inspector is ready, now any tx called before app is ready will be ignored.
 - Fixed wrapper for new networking
