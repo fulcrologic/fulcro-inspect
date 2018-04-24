@@ -3,7 +3,7 @@
     [devcards.core :refer-macros [defcard]]
     [fulcro.client.cards :refer-macros [defcard-fulcro]]
     [fulcro.client.primitives :as fp]
-    [fulcro.client.alpha.localized-dom :as dom]
+    [fulcro.client.localized-dom :as dom]
     [fulcro.client.mutations :as mutations]
     [fulcro.inspect.card-helpers :as card.helpers]
     [fulcro.inspect.helpers :as h]))
