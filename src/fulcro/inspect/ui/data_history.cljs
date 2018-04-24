@@ -1,6 +1,6 @@
 (ns fulcro.inspect.ui.data-history
   (:require [fulcro.client.primitives :as fp]
-            [fulcro.client.dom :as dom]
+            [fulcro.client.localized-dom :as dom]
             [fulcro.client.mutations :as mutations]
             [fulcro.inspect.lib.local-storage :as storage]
             [fulcro.inspect.ui.data-viewer :as data-viewer]
@@ -74,25 +74,6 @@
     (let [snapshots (-> (h/query-component component) ::snapshots)]
       (storage/set! [::snapshots (ui.h/ref-app-id ref)] snapshots))))
 
-(fp/defsc DataSnapshots
-  [this {::keys [snapshots]}
-   {::keys [snapshot-current-db
-            on-pick-snapshot]}]
-  {:initial-state (fn [_]
-                    {::snapshots-id (random-uuid)
-                     ::snapshots    []})
-   :ident         [::snapshots-id ::snapshots-id]
-   :query         [::snapshots-id :fulcro.inspect.core/app-id
-                   {::snapshots (fp/get-query Snapshot)}]
-   :css           []}
-  (dom/div nil
-    (dom/button {:onClick #(let [content (snapshot-current-db)]
-                             (fp/transact! this [`(save-snapshot {::snapshot-db ~content})]))}
-      "Save snapshot")
-    (mapv (comp snapshot #(fp/computed % {::on-pick-snapshot on-pick-snapshot})) snapshots)))
-
-(def data-snapshots (fp/factory DataSnapshots {:keyfn ::snapshots-id}))
-
 (fp/defsc DataHistory
   [this {::keys [history watcher current-index show-dom-preview? snapshots]} {:keys [target-app]} css]
   {:initial-state (fn [content]
@@ -101,11 +82,11 @@
                      ::current-index     0
                      ::show-dom-preview? true
                      ::watcher           (fp/get-initial-state watcher/DataWatcher content)
-                     ::snapshots         (fp/get-initial-state DataSnapshots {})})
+                     ::snapshots         []})
    :ident         [::history-id ::history-id]
    :query         [::history-id ::history ::current-index ::show-dom-preview?
                    {::watcher (fp/get-query watcher/DataWatcher)}
-                   {::snapshots (fp/get-query DataSnapshots)}]
+                   {::snapshots (fp/get-query Snapshot)}]
    :css           [[:.container {:width          "100%"
                                  :flex           "1"
                                  :display        "flex"
@@ -114,28 +95,29 @@
                    [:.watcher {:flex     "1"
                                :overflow "auto"
                                :padding  "10px"}]
-                   [:.toolbar {:padding-left "4px"}]]
+                   [:.toolbar {:padding-left "4px"}]
+                   [:.snapshots {:display "flex"}]]
    :css-include   [ui/CSS watcher/DataWatcher domv/DOMHistoryView]}
   (let [at-end?   (= (dec (count history)) current-index)
         app-state (-> watcher ::watcher/root-data :fulcro.inspect.ui.data-viewer/content)]
-    (dom/div #js {:className (:container css)}
+    (dom/div :.container
       (ui/toolbar {:className (:toolbar css)}
         (ui/toolbar-action {}
-          (dom/input #js {:title    "Show DOM preview."
-                          :checked  show-dom-preview?
-                          :onChange #(mutations/toggle! this ::show-dom-preview?)
-                          :type     "checkbox"}))
+          (dom/input {:title    "Show DOM preview."
+                      :checked  show-dom-preview?
+                      :onChange #(mutations/toggle! this ::show-dom-preview?)
+                      :type     "checkbox"}))
 
         (ui/toolbar-action {:disabled (= 0 current-index)
                             :onClick  #(fp/transact! this (cond-> `[(navigate-history ~{::current-index (dec current-index)})]
                                                             (-> this fp/props ::show-dom-preview?) (conj `(domv/show-dom-preview {}))))}
           (ui/icon {:title "Back one version"} :chevron_left))
 
-        (dom/input #js {:type      "range" :min "0" :max (dec (count history))
-                        :value     (str current-index)
-                        :onMouseUp (fn [] (fp/transact! this `[(domv/hide-dom-preview {})]))
-                        :onChange  #(fp/transact! this (cond-> `[(navigate-history {::current-index ~(js/parseInt (.. % -target -value))})]
-                                                         (-> this fp/props ::show-dom-preview?) (conj `(domv/show-dom-preview {}))))})
+        (dom/input {:type      "range" :min "0" :max (dec (count history))
+                    :value     (str current-index)
+                    :onMouseUp (fn [] (fp/transact! this `[(domv/hide-dom-preview {})]))
+                    :onChange  #(fp/transact! this (cond-> `[(navigate-history {::current-index ~(js/parseInt (.. % -target -value))})]
+                                                     (-> this fp/props ::show-dom-preview?) (conj `(domv/show-dom-preview {}))))})
 
         (ui/toolbar-action {:disabled at-end?
                             :onClick  #(fp/transact! this (cond-> `[(navigate-history ~{::current-index (inc current-index)})]
@@ -144,12 +126,19 @@
 
         (ui/toolbar-action {:disabled at-end?
                             :onClick  #(fp/transact! this `[(reset-app ~{:app target-app :target-state app-state})])}
-          (ui/icon {:title "Reset App To This State"} :settings_backup_restore)))
-      (dom/div #js {:className (:watcher css)}
+          (ui/icon {:title "Reset App To This State"} :settings_backup_restore))
+
+        (ui/toolbar-action {:onClick #(let [content (-> this fp/get-reconciler fp/app-state deref
+                                                        (h/get-in-path [::watcher/id (::watcher/id watcher) ::watcher/root-data ::data-viewer/content]))]
+                                        (fp/transact! this [`(save-snapshot {::snapshot-db ~content})]))}
+          (ui/icon {:title "Save snapshot of current state"} :add_a_photo)))
+
+      (dom/div :.watcher
         (watcher/data-watcher watcher))
-      (data-snapshots (fp/computed snapshots {::snapshot-current-db #(-> this fp/get-reconciler fp/app-state deref
-                                                                         (h/get-in-path [::watcher/id (::watcher/id watcher) ::watcher/root-data ::data-viewer/content]))
-                                              ::on-pick-snapshot    (fn [{::keys [snapshot-db]}]
-                                                                      (fp/transact! this `[(reset-app ~{:app target-app :target-state snapshot-db})]))})))))
+
+      (dom/div :.snapshots
+        (for [s snapshots]
+          (snapshot (fp/computed s {::on-pick-snapshot (fn [{::keys [snapshot-db]}]
+                                                         (fp/transact! this `[(reset-app ~{:app target-app :target-state snapshot-db})]))})))))))
 
 (def data-history (fp/factory DataHistory))
