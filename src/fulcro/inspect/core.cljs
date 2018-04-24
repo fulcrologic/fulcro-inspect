@@ -240,6 +240,7 @@
                           (assoc ::inspector/target-app target-app)
                           (assoc-in [::inspector/app-state ::data-history/history-id] [::app-id app-id])
                           (assoc-in [::inspector/app-state ::data-history/snapshots ::app-id] app-id)
+                          (assoc-in [::inspector/app-state ::data-history/snapshots ::data-history/snapshots-id] [::app-id app-id])
                           (assoc-in [::inspector/network ::network/history-id] [::app-id app-id])
                           (assoc-in [::inspector/element ::element/panel-id] [::app-id app-id])
                           (assoc-in [::inspector/element ::element/target-reconciler] (:reconciler target-app))
@@ -370,14 +371,6 @@
       (keyword? id) (keyword (subs new-id 1))
       (symbol? id) (symbol new-id)
       :else new-id)))
-
-(defn normalize-id [id]
-  (if-let [[_ prefix] (re-find #"(.+?)(-\d+)$" (str id))]
-    (cond
-      (keyword? id) (keyword (subs prefix 1))
-      (symbol? id) (symbol prefix)
-      :else prefix)
-    id))
 
 (defn inspector-app-ids []
   (some-> (global-inspector) :reconciler fp/app-state deref ::inspector/id))

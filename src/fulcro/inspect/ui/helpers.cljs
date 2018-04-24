@@ -2,9 +2,7 @@
   (:require [fulcro-css.css :as css]
             [clojure.string :as str]
             [goog.object :as gobj]
-            [fulcro.client.primitives :as fp]
-            [fulcro.client.impl.protocols :as p]
-            [fulcro.util :as util]))
+            [fulcro.client.primitives :as fp]))
 
 (defn js-get-in [x path]
   (gobj/getValueByKeys x (clj->js path)))
@@ -40,3 +38,23 @@
   (let [factory (fp/factory class)]
     (fn [props computed]
       (factory (fp/computed props computed)))))
+
+(defn normalize-id [id]
+  (if-let [[_ prefix] (re-find #"(.+?)(-\d+)$" (str id))]
+    (cond
+      (keyword? id) (keyword (subs prefix 1))
+      (symbol? id) (symbol prefix)
+      :else prefix)
+    id))
+
+(defn ref-app-id
+  "Extracts the app id from a reference."
+  [ref]
+  (assert (and (vector? ref)
+               (vector? (second ref)))
+    "Ref with app it must be in the format: [:id-key [::app-id app-id]]")
+  (let [[_ [_ app-id]] ref]
+    (normalize-id app-id)))
+
+(defn comp-app-id [comp]
+  (-> comp fp/get-ident ref-app-id))

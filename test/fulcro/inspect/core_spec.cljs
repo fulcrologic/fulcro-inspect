@@ -19,12 +19,3 @@
       (ic/app-id {:config {:state (atom {})}
                   :state  (atom {:root (my-root {})})})
       => `MyRoot)))
-
-(specification "normalize-id"
-  (assertions
-    (ic/normalize-id 'sym) => 'sym
-    (ic/normalize-id :key) => :key
-    (ic/normalize-id "str") => "str"
-    (ic/normalize-id 'sym-0) => 'sym
-    (ic/normalize-id :key-10) => :key
-    (ic/normalize-id "str-42") => "str"))
