@@ -112,7 +112,8 @@
         data'            (if (-> data meta ::initialized)
                            data
                            (fp/get-initial-state x data))]
-    (apply swap! state merge-entity x data' named-parameters)))
+    (apply swap! state merge-entity x data' named-parameters)
+    data'))
 
 (defn- dissoc-in [m path]
   (cond-> m

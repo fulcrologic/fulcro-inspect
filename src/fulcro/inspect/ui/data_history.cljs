@@ -2,12 +2,13 @@
   (:require [fulcro.client.primitives :as fp]
             [fulcro.client.dom :as dom]
             [fulcro.client.mutations :as mutations]
+            [fulcro.inspect.lib.local-storage :as storage]
             [fulcro.inspect.ui.data-viewer :as data-viewer]
             [fulcro.inspect.ui.data-watcher :as watcher]
             [fulcro.inspect.ui.core :as ui]
             [fulcro.inspect.ui.dom-history-viewer :as domv]
             [fulcro.inspect.helpers :as h]
-            [cljsjs.html2canvas]))
+            [fulcro.inspect.ui.helpers :as ui.h]))
 
 (def ^:dynamic *max-history* 100)
 
@@ -55,28 +56,28 @@
   (refresh [_] [::current-index]))
 
 (fp/defsc Snapshot
-  [this {::keys [snapshot-date]} _ css]
+  [this {::keys [snapshot-date] :as props} {::keys [on-pick-snapshot]}]
   {:initial-state (fn [data] {::snapshot-id   (random-uuid)
                               ::snapshot-db   data
                               ::snapshot-date (js/Date.)})
    :ident         [::snapshot-id ::snapshot-id]
    :query         [::snapshot-id ::snapshot-db ::snapshot-date]
    :css           []}
-  (dom/div nil
+  (dom/div {:onClick #(on-pick-snapshot props)}
     (str snapshot-date)))
 
 (def snapshot (fp/factory Snapshot {:keyfn ::snapshot-id}))
 
 (mutations/defmutation save-snapshot [{::keys [snapshot-db]}]
-  (action [{:keys [state] :as env}]
+  (action [{:keys [ref component] :as env}]
     (h/create-entity! env Snapshot snapshot-db :append ::snapshots)
-    (js/console.log "save snapshot" snapshot-db)))
+    (let [snapshots (-> (h/query-component component) ::snapshots)]
+      (storage/set! [::snapshots (ui.h/ref-app-id ref)] snapshots))))
 
 (fp/defsc DataSnapshots
-  [this {::keys [snapshots]
-         :keys  [fulcro.inspect.core/app-id]}
+  [this {::keys [snapshots]}
    {::keys [snapshot-current-db
-            on-pick-snapshot]} css]
+            on-pick-snapshot]}]
   {:initial-state (fn [_]
                     {::snapshots-id (random-uuid)
                      ::snapshots    []})
@@ -85,20 +86,10 @@
                    {::snapshots (fp/get-query Snapshot)}]
    :css           []}
   (dom/div nil
-    (dom/button #js {:onClick #(let [content (snapshot-current-db)
-                                     root    (some-> this fp/get-reconciler fp/app-state deref
-                                               (get-in [:fulcro.inspect.ui.inspector/id app-id :fulcro.inspect.ui.inspector/target-app])
-                                               :reconciler fp/app-root dom/node)]
-                                 (when root
-                                   (js/console.log (-> (js/html2canvas root)
-                                                       (.render))))
-                                 (js/console.log "app id" app-id)
-                                 (js/console.log (-> this fp/get-reconciler fp/app-state deref
-                                                     (get-in [:fulcro.inspect.ui.inspector/id app-id :fulcro.inspect.ui.inspector/target-app])
-                                                     :reconciler fp/app-root dom/node))
-                                 (fp/transact! this [`(save-snapshot {::snapshot-db ~content})]))}
+    (dom/button {:onClick #(let [content (snapshot-current-db)]
+                             (fp/transact! this [`(save-snapshot {::snapshot-db ~content})]))}
       "Save snapshot")
-    (mapv snapshot snapshots)))
+    (mapv (comp snapshot #(fp/computed % {::on-pick-snapshot on-pick-snapshot})) snapshots)))
 
 (def data-snapshots (fp/factory DataSnapshots {:keyfn ::snapshots-id}))
 
@@ -158,6 +149,7 @@
         (watcher/data-watcher watcher))
       (data-snapshots (fp/computed snapshots {::snapshot-current-db #(-> this fp/get-reconciler fp/app-state deref
                                                                          (h/get-in-path [::watcher/id (::watcher/id watcher) ::watcher/root-data ::data-viewer/content]))
-                                              ::on-pick-snapshot    (fn [db] (js/console.log "pick" db))})))))
+                                              ::on-pick-snapshot    (fn [{::keys [snapshot-db]}]
+                                                                      (fp/transact! this `[(reset-app ~{:app target-app :target-state snapshot-db})]))})))))
 
 (def data-history (fp/factory DataHistory))

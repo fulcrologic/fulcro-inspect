@@ -18,7 +18,8 @@
     [fulcro.inspect.ui.transactions :as transactions]
     [fulcro-css.css :as css]
     [fulcro.client.dom :as dom]
-    [fulcro.client.primitives :as fp]))
+    [fulcro.client.primitives :as fp]
+    [fulcro.inspect.ui.helpers :as ui.h]))
 
 (defn set-style! [node prop value]
   (gobj/set (gobj/get node "style") prop value))
@@ -239,8 +240,8 @@
                           (assoc ::inspector/id app-id)
                           (assoc ::inspector/target-app target-app)
                           (assoc-in [::inspector/app-state ::data-history/history-id] [::app-id app-id])
-                          (assoc-in [::inspector/app-state ::data-history/snapshots ::app-id] app-id)
                           (assoc-in [::inspector/app-state ::data-history/snapshots ::data-history/snapshots-id] [::app-id app-id])
+                          (assoc-in [::inspector/app-state ::data-history/snapshots ::data-history/snapshots] (storage/get [::data-history/snapshots (ui.h/normalize-id app-id)]))
                           (assoc-in [::inspector/network ::network/history-id] [::app-id app-id])
                           (assoc-in [::inspector/element ::element/panel-id] [::app-id app-id])
                           (assoc-in [::inspector/element ::element/target-reconciler] (:reconciler target-app))
