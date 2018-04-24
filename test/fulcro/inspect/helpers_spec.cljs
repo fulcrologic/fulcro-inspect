@@ -65,21 +65,25 @@
 
 (specification "create-entity"
   (assertions
-    (h/create-entity! {:state (atom {})}
-      Container {:container/id "cont"
-                 :child        {:child/id "child"}})
+    (let [state (atom {})]
+      (h/create-entity! {:state state}
+        Container {:container/id "cont"
+                   :child        {:child/id "child"}})
+      @state)
     => {:container/id {"cont" {:state        :inited
                                :container/id "cont"
                                :child        [:child/id "child"]}}
         :child/id     {"child" {:child/id "child"}}}
 
-    (h/create-entity! {:state (atom {:parent {"pai" {:parent     "pai"
-                                                     :containers []}}})
-                       :ref   [:parent "pai"]}
-      Container {:container/id "cont"
-                 :some-data    "vai"
-                 :child        {:child/id "child"}}
-      :append :containers)
+    (let [state (atom {:parent {"pai" {:parent     "pai"
+                                       :containers []}}})]
+      (h/create-entity! {:state state
+                         :ref   [:parent "pai"]}
+        Container {:container/id "cont"
+                   :some-data    "vai"
+                   :child        {:child/id "child"}}
+        :append :containers)
+      @state)
     => {:parent       {"pai" {:parent     "pai"
                               :containers [[:container/id "cont"]]}}
         :container/id {"cont" {:state        :inited
@@ -88,8 +92,10 @@
                                :child        [:child/id "child"]}}
         :child/id     {"child" {:child/id "child"}}}
 
-    (h/create-entity! {:state (atom {})}
-      Container ^::h/initialized {:container/id "cont" :foo "bar"})
+    (let [state (atom {})]
+      (h/create-entity! {:state state}
+        Container ^::h/initialized {:container/id "cont" :foo "bar"})
+      @state)
     => {:container/id {"cont" {:container/id "cont" :foo "bar"}}}))
 
 (specification "deep-remove"
