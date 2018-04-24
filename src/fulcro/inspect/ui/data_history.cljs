@@ -66,11 +66,24 @@
   (dom/div {:onClick #(on-pick-snapshot props)}
     (str snapshot-date)))
 
-(def snapshot (fp/factory Snapshot {:keyfn ::snapshot-id}))
+(def snapshot (ui.h/computed-factory Snapshot {:keyfn ::snapshot-id}))
 
 (mutations/defmutation save-snapshot [{::keys [snapshot-db]}]
-  (action [{:keys [ref component] :as env}]
-    (h/create-entity! env Snapshot snapshot-db :append ::snapshots)
+  (action [{:keys [ref state component] :as env}]
+    (let [ss        (h/create-entity! env Snapshot snapshot-db)
+          new-ident (fp/get-ident Snapshot ss)
+          app-id    (ui.h/ref-app-id ref)
+          apps      (ui.h/matching-apps @state app-id)]
+      (swap! state (fn [s]
+                     (reduce
+                       (fn [s app]
+                         (update-in s [:fulcro.inspect.ui.data-history/history-id
+                                       [:fulcro.inspect.core/app-id app]
+                                       ::snapshots]
+                           conj new-ident))
+                       s
+                       apps))))
+
     (let [snapshots (-> (h/query-component component) ::snapshots)]
       (storage/set! [::snapshots (ui.h/ref-app-id ref)] snapshots))))
 
@@ -138,7 +151,7 @@
 
       (dom/div :.snapshots
         (for [s snapshots]
-          (snapshot (fp/computed s {::on-pick-snapshot (fn [{::keys [snapshot-db]}]
-                                                         (fp/transact! this `[(reset-app ~{:app target-app :target-state snapshot-db})]))})))))))
+          (snapshot s {::on-pick-snapshot (fn [{::keys [snapshot-db]}]
+                                            (fp/transact! this `[(reset-app ~{:app target-app :target-state snapshot-db})]))}))))))
 
 (def data-history (fp/factory DataHistory))

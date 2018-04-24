@@ -34,10 +34,14 @@
                  (expand-classes css (:fulcro.inspect.ui.core/classes props))
                  props)))
 
-(defn computed-factory [class]
-  (let [factory (fp/factory class)]
-    (fn [props computed]
-      (factory (fp/computed props computed)))))
+(defn computed-factory
+  ([class] (computed-factory class {}))
+  ([class options]
+   (let [factory (fp/factory class options)]
+     (fn real-factory
+       ([props] (real-factory props {}))
+       ([props computed]
+        (factory (fp/computed props computed)))))))
 
 (defn normalize-id [id]
   (if-let [[_ prefix] (re-find #"(.+?)(-\d+)$" (str id))]
@@ -58,3 +62,14 @@
 
 (defn comp-app-id [comp]
   (-> comp fp/get-ident ref-app-id))
+
+(defn all-apps [state]
+  (->> (get-in state [:fulcro.inspect.ui.multi-inspector/multi-inspector
+                      "main"
+                      :fulcro.inspect.ui.multi-inspector/inspectors])
+       (mapv second)))
+
+(defn matching-apps [state app-id]
+  (let [nid (normalize-id app-id)]
+    (->> (all-apps state)
+         (filterv #(= nid (normalize-id %))))))
