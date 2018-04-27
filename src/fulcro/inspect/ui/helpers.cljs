@@ -73,3 +73,11 @@
   (let [nid (normalize-id app-id)]
     (->> (all-apps state)
          (filterv #(= nid (normalize-id %))))))
+
+(defn update-matching-apps [state app-id f]
+  (let [apps (matching-apps state app-id)]
+    (reduce
+      (fn [s app]
+        (f s app))
+      state
+      apps)))

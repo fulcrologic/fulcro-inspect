@@ -2,6 +2,7 @@
   (:require [fulcro.client.primitives :as fp]
             [fulcro.client.localized-dom :as dom]
             [fulcro.client.mutations :as mutations]
+            [garden.selectors :as gs]
             [fulcro.inspect.lib.local-storage :as storage]
             [fulcro.inspect.ui.data-viewer :as data-viewer]
             [fulcro.inspect.ui.data-watcher :as watcher]
@@ -56,15 +57,32 @@
   (refresh [_] [::current-index]))
 
 (fp/defsc Snapshot
-  [this {::keys [snapshot-date] :as props} {::keys [on-pick-snapshot]}]
-  {:initial-state (fn [data] {::snapshot-id   (random-uuid)
-                              ::snapshot-db   data
-                              ::snapshot-date (js/Date.)})
+  [this
+   {::keys [snapshot-date snapshot-label] :as props}
+   {::keys [on-pick-snapshot on-delete-snapshot current?]}
+   css]
+  {:initial-state (fn [data] {::snapshot-id    (random-uuid)
+                              ::snapshot-db    data
+                              ::snapshot-label "New Snapshot"
+                              ::snapshot-date  (js/Date.)})
    :ident         [::snapshot-id ::snapshot-id]
-   :query         [::snapshot-id ::snapshot-db ::snapshot-date]
-   :css           []}
-  (dom/div {:onClick #(on-pick-snapshot props)}
-    (str snapshot-date)))
+   :query         [::snapshot-id ::snapshot-db ::snapshot-label ::snapshot-date]
+   :css           [[:.container {:display     "flex"
+                                 :align-items "center"}]
+                   [:.current {:background "#deeefe !important"}]
+                   [:.pointer {:cursor "pointer"}]
+                   [:.label {:font-family ui/label-font-family
+                             :font-size   ui/label-font-size}]
+                   [:.date (merge ui/css-timestamp {:margin "0"})]
+                   [:.flex {:flex "1"}]
+                   [:.pick :.remove {:margin "0 8px"}]]}
+  (dom/div :.container {:className (if current? (:current css))}
+    (dom/div :.pointer.pick {:onClick #(on-pick-snapshot props)}
+      (ui/icon :filter_center_focus))
+    (dom/div :.flex
+      (dom/div :.label (str snapshot-label)))
+    (dom/div :.pointer.remove {:onClick #(on-delete-snapshot props)}
+      (ui/icon :delete_forever))))
 
 (def snapshot (ui.h/computed-factory Snapshot {:keyfn ::snapshot-id}))
 
@@ -87,6 +105,23 @@
     (let [snapshots (-> (h/query-component component) ::snapshots)]
       (storage/set! [::snapshots (ui.h/ref-app-id ref)] snapshots))))
 
+(mutations/defmutation delete-snapshot [{::keys [snapshot-id]}]
+  (action [{:keys [ref state component] :as env}]
+    (let [sref   [::snapshot-id snapshot-id]
+          app-id (ui.h/ref-app-id ref)]
+      (swap! state
+        (comp
+          #(h/deep-remove-ref % sref)
+          #(ui.h/update-matching-apps % app-id
+             (fn [s app]
+               (update-in s [:fulcro.inspect.ui.data-history/history-id
+                             [:fulcro.inspect.core/app-id app]
+                             ::snapshots]
+                 (fn [ss] (vec (remove #{sref} ss)))))))))
+
+    (let [snapshots (-> (h/query-component component) ::snapshots)]
+      (storage/set! [::snapshots (ui.h/ref-app-id ref)] snapshots))))
+
 (fp/defsc DataHistory
   [this {::keys [history watcher current-index show-dom-preview? snapshots]} {:keys [target-app]} css]
   {:initial-state (fn [content]
@@ -94,6 +129,7 @@
                      ::history           [(new-state content)]
                      ::current-index     0
                      ::show-dom-preview? true
+                     ::show-snapshots?   true
                      ::watcher           (fp/get-initial-state watcher/DataWatcher content)
                      ::snapshots         []})
    :ident         [::history-id ::history-id]
@@ -109,8 +145,15 @@
                                :overflow "auto"
                                :padding  "10px"}]
                    [:.toolbar {:padding-left "4px"}]
-                   [:.snapshots {:display "flex"}]]
-   :css-include   [ui/CSS watcher/DataWatcher domv/DOMHistoryView]}
+                   [:.row-content {:display "flex"
+                                   :flex    "1"}]
+                   [:.snapshots {:width "20%"
+                                 :overflow "auto"}]
+                   [:.snapshots-toggler {:background "#a3a3a3"
+                                         :cursor     "pointer"
+                                         :width      "1px"}]
+                   [(gs/> :.snapshots (gs/div (gs/nth-child "odd"))) {:background "#f5f5f5"}]]
+   :css-include   [ui/CSS watcher/DataWatcher domv/DOMHistoryView Snapshot]}
   (let [at-end?   (= (dec (count history)) current-index)
         app-state (-> watcher ::watcher/root-data :fulcro.inspect.ui.data-viewer/content)]
     (dom/div :.container
@@ -146,12 +189,19 @@
                                         (fp/transact! this [`(save-snapshot {::snapshot-db ~content})]))}
           (ui/icon {:title "Save snapshot of current state"} :add_a_photo)))
 
-      (dom/div :.watcher
-        (watcher/data-watcher watcher))
+      (dom/div :.row-content
+        (dom/div :.watcher
+          (watcher/data-watcher watcher))
 
-      (dom/div :.snapshots
-        (for [s snapshots]
-          (snapshot s {::on-pick-snapshot (fn [{::keys [snapshot-db]}]
-                                            (fp/transact! this `[(reset-app ~{:app target-app :target-state snapshot-db})]))}))))))
+        (dom/div :.snapshots-toggler
+          )
+        (dom/div :.snapshots
+          (for [s (sort-by ::snapshot-date #(compare %2 %) snapshots)]
+            (snapshot s {::current?           (= (get-in watcher [::watcher/root-data ::data-viewer/content])
+                                                 (get s ::snapshot-db))
+                         ::on-delete-snapshot (fn [s]
+                                                (fp/transact! this `[(delete-snapshot ~s)]))
+                         ::on-pick-snapshot   (fn [{::keys [snapshot-db]}]
+                                                (fp/transact! this `[(reset-app ~{:app target-app :target-state snapshot-db})]))})))))))
 
 (def data-history (fp/factory DataHistory))

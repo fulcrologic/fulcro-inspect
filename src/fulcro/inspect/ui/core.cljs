@@ -4,7 +4,7 @@
             [fulcro.ui.icons :as icons]
             [fulcro.inspect.ui.helpers :as h]
             [garden.selectors :as gs]
-            [fulcro.client.dom :as dom]
+            [fulcro.client.localized-dom :as dom]
             [clojure.string :as str]))
 
 (def mono-font-family "monospace")
@@ -101,6 +101,12 @@
      (dom/img (h/props->html {:src code} props))
      (apply fulcro-icon name (apply concat props)))))
 
+(fp/defsc Row [this props]
+  {:css [[:.container {:display "flex"}]]}
+  (dom/div :.container props (fp/children this)))
+
+(def row (fp/factory Row))
+
 (fp/defsc ToolBar [this _]
   {:css [[:.container {:border-bottom "1px solid #dadada"
                        :display       "flex"
@@ -179,7 +185,7 @@
                                      :padding     "4px 8px"
                                      :font-family mono-font-family
                                      :font-size   "14px"}]])
-  (include-children [_] [ToolBar]))
+  (include-children [_] [ToolBar Row]))
 
 (def scss (css/get-classnames CSS))
 
