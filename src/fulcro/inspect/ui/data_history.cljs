@@ -9,7 +9,8 @@
             [fulcro.inspect.ui.core :as ui]
             [fulcro.inspect.ui.dom-history-viewer :as domv]
             [fulcro.inspect.helpers :as h]
-            [fulcro.inspect.ui.helpers :as ui.h]))
+            [fulcro.inspect.ui.helpers :as ui.h]
+            [fulcro-css.css :as css]))
 
 (def ^:dynamic *max-history* 100)
 
@@ -58,21 +59,33 @@
 
 (fp/defsc Snapshot
   [this
-   {::keys [snapshot-date snapshot-label] :as props}
-   {::keys [on-pick-snapshot on-delete-snapshot current?]}
+   {::keys   [snapshot-date snapshot-label]
+    :ui/keys [label-editor]
+    :as      props}
+   {::keys [on-pick-snapshot on-delete-snapshot current?
+            on-update-snapshot]}
    css]
   {:initial-state (fn [data] {::snapshot-id    (random-uuid)
                               ::snapshot-db    data
                               ::snapshot-label "New Snapshot"
-                              ::snapshot-date  (js/Date.)})
+                              ::snapshot-date  (js/Date.)
+                              :ui/label-editor (fp/get-initial-state ui/InlineEditor {})})
    :ident         [::snapshot-id ::snapshot-id]
-   :query         [::snapshot-id ::snapshot-db ::snapshot-label ::snapshot-date]
+   :query         [::snapshot-id ::snapshot-db ::snapshot-label ::snapshot-date
+                   {:ui/label-editor (fp/get-query ui/InlineEditor)}]
    :css           [[:.container {:display     "flex"
                                  :align-items "center"}]
-                   [:.current {:background "#deeefe !important"}]
-                   [:.action {:cursor "pointer"
+                   [:.current {:background "#3c7bd6 !important"}
+                    [(ui/foreign-class ui/InlineEditor :label)
+                     (ui/foreign-class ui/InlineEditor :no-label)
+                     {:color "#fff"}]
+                    [:.action {:fill "#fff"}]]
+                   [:.action {:cursor    "pointer"
+                              :fill      ui/color-text-normal
                               :transform "scale(0.8)"}]
-                   [:.label {:font-family ui/label-font-family
+                   [:.label {:display     "flex"
+                             :flex        "1"
+                             :font-family ui/label-font-family
                              :font-size   ui/label-font-size}]
                    [:.date (merge ui/css-timestamp {:margin "0"})]
                    [:.flex {:flex "1"}]
@@ -80,8 +93,10 @@
   (dom/div :.container {:className (if current? (:current css))}
     (dom/div :.action.pick {:onClick #(on-pick-snapshot props)}
       (ui/icon :settings_backup_restore))
-    (dom/div :.flex
-      (dom/div :.label (str snapshot-label)))
+    (dom/div :.label
+      (ui/inline-editor label-editor
+        {::ui/value     snapshot-label
+         ::ui/on-change (fn [new-label] (on-update-snapshot (assoc props ::snapshot-label new-label)))}))
     (dom/div :.action.remove {:onClick #(on-delete-snapshot props)}
       (ui/icon :delete_forever))))
 
@@ -102,6 +117,13 @@
                            conj new-ident))
                        s
                        apps))))
+
+    (let [snapshots (-> (h/query-component component) ::snapshots)]
+      (storage/set! [::snapshots (ui.h/ref-app-id ref)] snapshots))))
+
+(mutations/defmutation update-snapshot-label [{::keys [snapshot-id snapshot-label]}]
+  (action [{:keys [ref component] :as env}]
+    (h/swap-entity! (assoc env :ref [::snapshot-id snapshot-id]) assoc ::snapshot-label snapshot-label)
 
     (let [snapshots (-> (h/query-component component) ::snapshots)]
       (storage/set! [::snapshots (ui.h/ref-app-id ref)] snapshots))))
@@ -148,7 +170,7 @@
                    [:.toolbar {:padding-left "4px"}]
                    [:.row-content {:display "flex"
                                    :flex    "1"}]
-                   [:.snapshots {:width "20%"
+                   [:.snapshots {:width    "20%"
                                  :overflow "auto"}]
                    [:.snapshots-toggler {:background "#a3a3a3"
                                          :cursor     "pointer"
@@ -204,6 +226,8 @@
                                                 (if (js/confirm (str "Delete " snapshot-label " snapshot?"))
                                                   (fp/transact! this `[(delete-snapshot ~s)])))
                          ::on-pick-snapshot   (fn [{::keys [snapshot-db]}]
-                                                (fp/transact! this `[(reset-app ~{:app target-app :target-state snapshot-db})]))})))))))
+                                                (fp/transact! this `[(reset-app ~{:app target-app :target-state snapshot-db})]))
+                         ::on-update-snapshot (fn [snapshot]
+                                                (fp/transact! this `[(update-snapshot-label ~snapshot)]))})))))))
 
 (def data-history (fp/factory DataHistory))
