@@ -96,7 +96,7 @@
                     :role            "img"
                     :viewBox         "0 0 24 24"}
                    onClick (assoc :onClick #(onClick))))
-        (dom/title nil (str (or title (icons/title-case (str/replace (name icon-name) #"_" " ")))))
+        (dom/title nil (str title))
         (dom/path #js {:d path-check})))))
 
 (defn icon
@@ -213,6 +213,7 @@
                     [:.info-group css-info-group
                      [(gs/& gs/first-child) {:border-top "0"}]]
                     [:.info-label css-info-label]
+                    [:.flex {:flex "1"}]
                     [:.ident {:padding     "5px 6px"
                               :background  "#f3f3f3"
                               :color       "#424242"

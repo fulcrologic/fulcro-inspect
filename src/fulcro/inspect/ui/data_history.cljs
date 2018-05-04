@@ -1,7 +1,7 @@
 (ns fulcro.inspect.ui.data-history
   (:require [fulcro.client.primitives :as fp]
             [fulcro.client.localized-dom :as dom]
-            [fulcro.client.mutations :as mutations]
+            [fulcro.client.mutations :as fm]
             [garden.selectors :as gs]
             [fulcro.inspect.lib.local-storage :as storage]
             [fulcro.inspect.ui.data-viewer :as data-viewer]
@@ -18,7 +18,7 @@
   {::state     content
    ::timestamp (js/Date.)})
 
-(mutations/defmutation ^:intern set-content [content]
+(fm/defmutation ^:intern set-content [content]
   (action [env]
     (let [{:keys [state ref]} env
           {::keys [watcher current-index history]} (get-in @state ref)]
@@ -36,7 +36,7 @@
                                                  (take-last *max-history*)
                                                  (vec))))))
 
-(mutations/defmutation ^:intern navigate-history [{::keys [current-index]}]
+(fm/defmutation ^:intern navigate-history [{::keys [current-index]}]
   (action [{:keys [state ref] :as env}]
     (let [history (get-in @state ref)]
       (when (not= current-index (::current-index history))
@@ -48,7 +48,7 @@
           (watcher/update-state (assoc env :ref (::watcher history)) content)))))
   (refresh [env] [:ui/historical-dom-view]))
 
-(mutations/defmutation reset-app [{:keys [app target-state]}]
+(fm/defmutation reset-app [{:keys [app target-state]}]
   (action [{:keys [state ref] :as env}]
     (let [reconciler (some-> app :reconciler)
           state-atom (some-> reconciler fp/app-state)]
@@ -74,35 +74,37 @@
    :query         [::snapshot-id ::snapshot-db ::snapshot-label ::snapshot-date
                    {:ui/label-editor (fp/get-query ui/InlineEditor)}]
    :css           [[:.container {:display     "flex"
-                                 :align-items "center"}]
+                                 :align-items "center"}
+                    [:&:hover [:.action {:visibility "visible"}]]]
                    [:.current {:background "#3c7bd6 !important"}
                     [(ui/foreign-class ui/InlineEditor :label)
                      (ui/foreign-class ui/InlineEditor :no-label)
                      {:color "#fff"}]
                     [:.action {:fill "#fff"}]]
-                   [:.action {:cursor    "pointer"
-                              :fill      ui/color-text-normal
-                              :transform "scale(0.8)"}]
+                   [:.action {:cursor     "pointer"
+                              :visibility "hidden"
+                              :fill       ui/color-text-normal
+                              :transform  "scale(0.8)"}]
                    [:.label {:display     "flex"
                              :flex        "1"
+                             :padding     "0 6px"
                              :font-family ui/label-font-family
                              :font-size   ui/label-font-size}]
                    [:.date (merge ui/css-timestamp {:margin "0"})]
-                   [:.flex {:flex "1"}]
-                   [:.pick :.remove {:margin "0 3px"}]]}
+                   [:.flex {:flex "1"}]]}
   (dom/div :.container {:className (if current? (:current css))}
-    (dom/div :.action.pick {:onClick #(on-pick-snapshot props)}
-      (ui/icon :settings_backup_restore))
     (dom/div :.label
       (ui/inline-editor label-editor
         {::ui/value     snapshot-label
          ::ui/on-change (fn [new-label] (on-update-snapshot (assoc props ::snapshot-label new-label)))}))
+    (dom/div :.action.pick {:onClick #(on-pick-snapshot props)}
+      (ui/icon {:title "Restore snapshot"} :settings_backup_restore))
     (dom/div :.action.remove {:onClick #(on-delete-snapshot props)}
-      (ui/icon :delete_forever))))
+      (ui/icon {:title "Delete snapshot"} :delete_forever))))
 
 (def snapshot (ui.h/computed-factory Snapshot {:keyfn ::snapshot-id}))
 
-(mutations/defmutation save-snapshot [{::keys [snapshot-db]}]
+(fm/defmutation save-snapshot [{::keys [snapshot-db]}]
   (action [{:keys [ref state component] :as env}]
     (let [ss        (h/create-entity! env Snapshot snapshot-db)
           new-ident (fp/get-ident Snapshot ss)
@@ -121,14 +123,14 @@
     (let [snapshots (-> (h/query-component component) ::snapshots)]
       (storage/set! [::snapshots (ui.h/ref-app-id ref)] snapshots))))
 
-(mutations/defmutation update-snapshot-label [{::keys [snapshot-id snapshot-label]}]
+(fm/defmutation update-snapshot-label [{::keys [snapshot-id snapshot-label]}]
   (action [{:keys [ref component] :as env}]
     (h/swap-entity! (assoc env :ref [::snapshot-id snapshot-id]) assoc ::snapshot-label snapshot-label)
 
     (let [snapshots (-> (h/query-component component) ::snapshots)]
       (storage/set! [::snapshots (ui.h/ref-app-id ref)] snapshots))))
 
-(mutations/defmutation delete-snapshot [{::keys [snapshot-id]}]
+(fm/defmutation delete-snapshot [{::keys [snapshot-id]}]
   (action [{:keys [ref state component] :as env}]
     (let [sref   [::snapshot-id snapshot-id]
           app-id (ui.h/ref-app-id ref)]
@@ -146,7 +148,7 @@
       (storage/set! [::snapshots (ui.h/ref-app-id ref)] snapshots))))
 
 (fp/defsc DataHistory
-  [this {::keys [history watcher current-index show-dom-preview? snapshots]} {:keys [target-app]} css]
+  [this {::keys [history watcher current-index show-dom-preview? show-snapshots? snapshots]} {:keys [target-app]} css]
   {:initial-state (fn [content]
                     {::history-id        (random-uuid)
                      ::history           [(new-state content)]
@@ -156,7 +158,7 @@
                      ::watcher           (fp/get-initial-state watcher/DataWatcher content)
                      ::snapshots         []})
    :ident         [::history-id ::history-id]
-   :query         [::history-id ::history ::current-index ::show-dom-preview?
+   :query         [::history-id ::history ::current-index ::show-dom-preview? ::show-snapshots?
                    {::watcher (fp/get-query watcher/DataWatcher)}
                    {::snapshots (fp/get-query Snapshot)}]
    :css           [[:.container {:width          "100%"
@@ -170,8 +172,9 @@
                    [:.toolbar {:padding-left "4px"}]
                    [:.row-content {:display "flex"
                                    :flex    "1"}]
-                   [:.snapshots {:width    "220px"
-                                 :overflow "auto"}]
+                   [:.snapshots {:border-left "1px solid #a3a3a3"
+                                 :width       "220px"
+                                 :overflow    "auto"}]
                    [:.snapshots-toggler {:background "#a3a3a3"
                                          :cursor     "pointer"
                                          :width      "1px"}]
@@ -184,7 +187,7 @@
         (ui/toolbar-action {}
           (dom/input {:title    "Show DOM preview."
                       :checked  show-dom-preview?
-                      :onChange #(mutations/toggle! this ::show-dom-preview?)
+                      :onChange #(fm/toggle! this ::show-dom-preview?)
                       :type     "checkbox"}))
 
         (ui/toolbar-action {:disabled (= 0 current-index)
@@ -210,24 +213,34 @@
         (ui/toolbar-action {:onClick #(let [content (-> this fp/get-reconciler fp/app-state deref
                                                         (h/get-in-path [::watcher/id (::watcher/id watcher) ::watcher/root-data ::data-viewer/content]))]
                                         (fp/transact! this [`(save-snapshot {::snapshot-db ~content})]))}
-          (ui/icon {:title "Save snapshot of current state"} :add_a_photo)))
+          (ui/icon {:title "Save snapshot of current state"} :add_a_photo))
+        (dom/div {:className (:flex ui/scss)})
+        (ui/toolbar-action {:disabled (not (seq snapshots))}
+          (ui/icon {:onClick #(fm/toggle! this ::show-snapshots?)
+                    :title   (if (seq snapshots) "Toggle snapshots view." "Record a snapshot to enable the snapshots view.")}
+            :wallpaper)))
 
       (dom/div :.row-content
         (dom/div :.watcher
           (watcher/data-watcher watcher))
 
-        (dom/div :.snapshots-toggler
-          )
-        (dom/div :.snapshots
-          (for [s (sort-by ::snapshot-date #(compare %2 %) snapshots)]
-            (snapshot s {::current?           (= (get-in watcher [::watcher/root-data ::data-viewer/content])
-                                                (get s ::snapshot-db))
-                         ::on-delete-snapshot (fn [{::keys [snapshot-label] :as s}]
-                                                (if (js/confirm (str "Delete " snapshot-label " snapshot?"))
-                                                  (fp/transact! this `[(delete-snapshot ~s)])))
-                         ::on-pick-snapshot   (fn [{::keys [snapshot-db]}]
-                                                (fp/transact! this `[(reset-app ~{:app target-app :target-state snapshot-db})]))
-                         ::on-update-snapshot (fn [snapshot]
-                                                (fp/transact! this `[(update-snapshot-label ~snapshot)]))})))))))
+        (if (and show-snapshots? (seq snapshots))
+          (dom/div :.snapshots
+            (ui/toolbar {}
+              (dom/div {:className (:flex ui/scss)})
+              (ui/toolbar-action {:disabled true}
+                (ui/icon {:title "Not implemented yet."} :file_upload))
+              (ui/toolbar-action {:disabled true}
+                (ui/icon {:title "Not implemented yet."} :file_download)))
+            (for [s (sort-by ::snapshot-date #(compare %2 %) snapshots)]
+              (snapshot s {::current?           (= (get-in watcher [::watcher/root-data ::data-viewer/content])
+                                                  (get s ::snapshot-db))
+                           ::on-delete-snapshot (fn [{::keys [snapshot-label] :as s}]
+                                                  (if (js/confirm (str "Delete " snapshot-label " snapshot?"))
+                                                    (fp/transact! this `[(delete-snapshot ~s)])))
+                           ::on-pick-snapshot   (fn [{::keys [snapshot-db]}]
+                                                  (fp/transact! this `[(reset-app ~{:app target-app :target-state snapshot-db})]))
+                           ::on-update-snapshot (fn [snapshot]
+                                                  (fp/transact! this `[(update-snapshot-label ~snapshot)]))}))))))))
 
 (def data-history (fp/factory DataHistory))

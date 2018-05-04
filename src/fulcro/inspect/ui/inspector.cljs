@@ -74,6 +74,7 @@
              :transform     "scale(0.8)"
              :padding-right "3px"}]
     [:.more-panel {:position      "absolute"
+                   :z-index       "1"
                    :right         "0"
                    :top           "26px"
                    :background    "#f3f3f3"
