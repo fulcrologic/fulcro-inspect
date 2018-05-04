@@ -186,9 +186,14 @@
     (if editing?
       (dom/input {:value     editor-value
                   :autoFocus true
-                  :onKeyDown #(when (events/match-key? % {::events/key-code (get events/KEYS "return")})
+                  :onKeyDown #(cond
+                                (events/match-key? % (events/key-code "escape"))
                                 (fm/set-value! this ::editing? false)
-                                (on-change editor-value))
+
+                                (events/match-key? % (events/key-code "return"))
+                                (do
+                                  (fm/set-value! this ::editing? false)
+                                  (on-change editor-value)))
                   :onChange  #(fm/set-string! this ::editor-value :event %)})
       (dom/div :.label
         (if (seq value) (str value) (dom/span :.no-label "Unnamed"))))))

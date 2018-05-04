@@ -170,7 +170,7 @@
                    [:.toolbar {:padding-left "4px"}]
                    [:.row-content {:display "flex"
                                    :flex    "1"}]
-                   [:.snapshots {:width    "20%"
+                   [:.snapshots {:width    "220px"
                                  :overflow "auto"}]
                    [:.snapshots-toggler {:background "#a3a3a3"
                                          :cursor     "pointer"
