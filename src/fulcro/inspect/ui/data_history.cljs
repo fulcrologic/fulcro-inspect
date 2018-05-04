@@ -52,8 +52,8 @@
     (let [reconciler (some-> app :reconciler)
           state-atom (some-> reconciler fp/app-state)]
       (reset! state-atom target-state)
-      (fp/force-root-render! reconciler)
-      (h/swap-entity! env assoc ::current-index (-> (get-in @state ref) ::history count dec))))
+      (h/swap-entity! env assoc ::current-index (-> (get-in @state ref) ::history count dec))
+      (js/setTimeout #(fp/force-root-render! reconciler) 10)))
   (refresh [_] [::current-index]))
 
 (fp/defsc Snapshot
@@ -70,18 +70,19 @@
    :css           [[:.container {:display     "flex"
                                  :align-items "center"}]
                    [:.current {:background "#deeefe !important"}]
-                   [:.pointer {:cursor "pointer"}]
+                   [:.action {:cursor "pointer"
+                              :transform "scale(0.8)"}]
                    [:.label {:font-family ui/label-font-family
                              :font-size   ui/label-font-size}]
                    [:.date (merge ui/css-timestamp {:margin "0"})]
                    [:.flex {:flex "1"}]
-                   [:.pick :.remove {:margin "0 8px"}]]}
+                   [:.pick :.remove {:margin "0 3px"}]]}
   (dom/div :.container {:className (if current? (:current css))}
-    (dom/div :.pointer.pick {:onClick #(on-pick-snapshot props)}
-      (ui/icon :filter_center_focus))
+    (dom/div :.action.pick {:onClick #(on-pick-snapshot props)}
+      (ui/icon :settings_backup_restore))
     (dom/div :.flex
       (dom/div :.label (str snapshot-label)))
-    (dom/div :.pointer.remove {:onClick #(on-delete-snapshot props)}
+    (dom/div :.action.remove {:onClick #(on-delete-snapshot props)}
       (ui/icon :delete_forever))))
 
 (def snapshot (ui.h/computed-factory Snapshot {:keyfn ::snapshot-id}))
@@ -198,9 +199,10 @@
         (dom/div :.snapshots
           (for [s (sort-by ::snapshot-date #(compare %2 %) snapshots)]
             (snapshot s {::current?           (= (get-in watcher [::watcher/root-data ::data-viewer/content])
-                                                 (get s ::snapshot-db))
-                         ::on-delete-snapshot (fn [s]
-                                                (fp/transact! this `[(delete-snapshot ~s)]))
+                                                (get s ::snapshot-db))
+                         ::on-delete-snapshot (fn [{::keys [snapshot-label] :as s}]
+                                                (if (js/confirm (str "Delete " snapshot-label " snapshot?"))
+                                                  (fp/transact! this `[(delete-snapshot ~s)])))
                          ::on-pick-snapshot   (fn [{::keys [snapshot-db]}]
                                                 (fp/transact! this `[(reset-app ~{:app target-app :target-state snapshot-db})]))})))))))
 

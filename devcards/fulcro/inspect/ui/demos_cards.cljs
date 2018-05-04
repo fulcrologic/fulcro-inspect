@@ -37,7 +37,6 @@
                 :onChange #(mutations/set-string! this ::title :event %)})
     (dom/button {:onClick #(fp/transact! this [`(add-item {::title ~title})])}
       "Add item")
-    (js/console.log "RENDER" items)
     (mapv list-item items)))
 
 (defcard-fulcro add-item-demo
