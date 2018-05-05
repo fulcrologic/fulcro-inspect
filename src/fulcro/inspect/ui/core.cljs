@@ -186,7 +186,10 @@
                    [:.label {:color       color-text-strong
                              :font-family label-font-family
                              :font-size   label-font-size}]
-                   [:.input {:width "100%"}]]
+                   [:.input {:border     "1px solid #c7c7c7"
+                             :box-shadow "0px 1px 3px 1px rgba(0, 0, 0, 0.078)"
+                             :outline    "none"
+                             :width      "100%"}]]
    :css-include   []}
   (dom/div :.container (h/props->html {:onClick #(when-not editing?
                                                    (fm/set-value! this ::editor-value value)
@@ -203,6 +206,7 @@
                        (do
                          (fm/set-value! this ::editing? false)
                          (on-change editor-value)))
+         :onBlur    #(fm/set-value! this ::editing? false)
          :onChange  #(fm/set-string! this ::editor-value :event %)})
       (dom/div :.label
         (if (seq value) (str value) (dom/span :.no-label "Unnamed"))))))

@@ -234,7 +234,7 @@
                 (ui/icon {:title "Not implemented yet."} :file_upload))
               (ui/toolbar-action {:disabled true}
                 (ui/icon {:title "Not implemented yet."} :file_download)))
-            (for [s (sort-by ::snapshot-date #(compare %2 %) snapshots)]
+            (for [s (sort-by ::snapshot-label #(compare %2 %) snapshots)]
               (snapshot s {::current?           (= (get-in watcher [::watcher/root-data ::data-viewer/content])
                                                   (get s ::snapshot-db))
                            ::on-delete-snapshot (fn [{::keys [snapshot-label] :as s}]
