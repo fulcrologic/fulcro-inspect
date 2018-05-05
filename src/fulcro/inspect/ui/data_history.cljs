@@ -9,8 +9,7 @@
             [fulcro.inspect.ui.core :as ui]
             [fulcro.inspect.ui.dom-history-viewer :as domv]
             [fulcro.inspect.helpers :as h]
-            [fulcro.inspect.ui.helpers :as ui.h]
-            [fulcro-css.css :as css]))
+            [fulcro.inspect.ui.helpers :as ui.h]))
 
 (def ^:dynamic *max-history* 100)
 
@@ -121,7 +120,7 @@
                        apps))))
 
     (let [snapshots (-> (h/query-component component) ::snapshots)]
-      (storage/set! [::snapshots (ui.h/ref-app-id ref)] snapshots))
+      (storage/tset! [::snapshots (ui.h/ref-app-id ref)] snapshots))
 
     (h/swap-entity! env assoc ::show-snapshots? true)))
 
@@ -130,7 +129,7 @@
     (h/swap-entity! (assoc env :ref [::snapshot-id snapshot-id]) assoc ::snapshot-label snapshot-label)
 
     (let [snapshots (-> (h/query-component component) ::snapshots)]
-      (storage/set! [::snapshots (ui.h/ref-app-id ref)] snapshots))))
+      (storage/tset! [::snapshots (ui.h/ref-app-id ref)] snapshots))))
 
 (fm/defmutation delete-snapshot [{::keys [snapshot-id]}]
   (action [{:keys [ref state component] :as env}]
@@ -147,7 +146,7 @@
                  (fn [ss] (vec (remove #{sref} ss)))))))))
 
     (let [snapshots (-> (h/query-component component) ::snapshots)]
-      (storage/set! [::snapshots (ui.h/ref-app-id ref)] snapshots))))
+      (storage/tset! [::snapshots (ui.h/ref-app-id ref)] snapshots))))
 
 (fp/defsc DataHistory
   [this {::keys [history watcher current-index show-dom-preview? show-snapshots? snapshots]} {:keys [target-app]} css]

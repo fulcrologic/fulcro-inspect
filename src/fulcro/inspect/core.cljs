@@ -240,7 +240,7 @@
                           (assoc ::inspector/id app-id)
                           (assoc ::inspector/target-app target-app)
                           (assoc-in [::inspector/app-state ::data-history/history-id] [::app-id app-id])
-                          (assoc-in [::inspector/app-state ::data-history/snapshots] (storage/get [::data-history/snapshots (ui.h/normalize-id app-id)] []))
+                          (assoc-in [::inspector/app-state ::data-history/snapshots] (storage/tget [::data-history/snapshots (ui.h/normalize-id app-id)] []))
                           (assoc-in [::inspector/network ::network/history-id] [::app-id app-id])
                           (assoc-in [::inspector/element ::element/panel-id] [::app-id app-id])
                           (assoc-in [::inspector/element ::element/target-reconciler] (:reconciler target-app))
