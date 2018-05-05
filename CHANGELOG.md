@@ -1,6 +1,6 @@
 # Change Log
 
-## [2.0.2]
+## [2.1.0]
 - New feature: record/restore snapshots from app state
 - Fix: improved function that resets app state
 
