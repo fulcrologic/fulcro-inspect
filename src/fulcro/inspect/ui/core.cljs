@@ -165,8 +165,15 @@
   (dom/input (h/props->html {:className (:input (css/get-classnames ToolBar))
                              :type      "text"} props)))
 
+(fp/defsc AutoFocusInput
+  [this props]
+  {:componentDidMount #(.select (dom/node this))}
+  (dom/input props))
+
+(def auto-focus-input (fp/factory AutoFocusInput))
+
 (fp/defsc InlineEditor
-  [this {::keys [editing? editor-value]} {::keys [value on-change] :as computed}]
+  [this {::keys [editing? editor-value]} {::keys [value on-change] :as computed} css]
   {:initial-state (fn [_]
                     {::editor-id    (random-uuid)
                      ::editing?     false
@@ -185,9 +192,9 @@
                                                    (fm/set-value! this ::editor-value value)
                                                    (fm/set-value! this ::editing? true))} computed)
     (if editing?
-      (dom/input :.input
-        {:value     editor-value
-         :autoFocus true
+      (auto-focus-input
+        {:className (:input css)
+         :value     editor-value
          :onKeyDown #(cond
                        (events/match-key? % (events/key-code "escape"))
                        (fm/set-value! this ::editing? false)
