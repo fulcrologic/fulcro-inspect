@@ -121,7 +121,9 @@
                        apps))))
 
     (let [snapshots (-> (h/query-component component) ::snapshots)]
-      (storage/set! [::snapshots (ui.h/ref-app-id ref)] snapshots))))
+      (storage/set! [::snapshots (ui.h/ref-app-id ref)] snapshots))
+
+    (h/swap-entity! env assoc ::show-snapshots? true)))
 
 (fm/defmutation update-snapshot-label [{::keys [snapshot-id snapshot-label]}]
   (action [{:keys [ref component] :as env}]

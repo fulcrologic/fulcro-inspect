@@ -178,23 +178,25 @@
                                 :color      color-text-faded}]
                    [:.label {:color       color-text-strong
                              :font-family label-font-family
-                             :font-size   label-font-size}]]
+                             :font-size   label-font-size}]
+                   [:.input {:width "100%"}]]
    :css-include   []}
   (dom/div :.container (h/props->html {:onClick #(when-not editing?
                                                    (fm/set-value! this ::editor-value value)
                                                    (fm/set-value! this ::editing? true))} computed)
     (if editing?
-      (dom/input {:value     editor-value
-                  :autoFocus true
-                  :onKeyDown #(cond
-                                (events/match-key? % (events/key-code "escape"))
-                                (fm/set-value! this ::editing? false)
+      (dom/input :.input
+        {:value     editor-value
+         :autoFocus true
+         :onKeyDown #(cond
+                       (events/match-key? % (events/key-code "escape"))
+                       (fm/set-value! this ::editing? false)
 
-                                (events/match-key? % (events/key-code "return"))
-                                (do
-                                  (fm/set-value! this ::editing? false)
-                                  (on-change editor-value)))
-                  :onChange  #(fm/set-string! this ::editor-value :event %)})
+                       (events/match-key? % (events/key-code "return"))
+                       (do
+                         (fm/set-value! this ::editing? false)
+                         (on-change editor-value)))
+         :onChange  #(fm/set-string! this ::editor-value :event %)})
       (dom/div :.label
         (if (seq value) (str value) (dom/span :.no-label "Unnamed"))))))
 
