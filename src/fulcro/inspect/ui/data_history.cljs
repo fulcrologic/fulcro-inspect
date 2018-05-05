@@ -227,6 +227,7 @@
 
         (if (and show-snapshots? (seq snapshots))
           (dom/div :.snapshots
+            #_
             (ui/toolbar {}
               (dom/div {:className (:flex ui/scss)})
               (ui/toolbar-action {:disabled true}
