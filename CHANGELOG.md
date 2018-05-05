@@ -1,5 +1,9 @@
 # Change Log
 
+## [2.0.2]
+- New feature: record/restore snapshots from app state
+- Fix: improved function that resets app state
+
 ## [2.0.1]
 - New feature: replay mutations from the transactions panel
 
