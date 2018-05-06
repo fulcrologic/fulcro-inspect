@@ -18,7 +18,8 @@
     [fulcro.inspect.ui.transactions :as transactions]
     [fulcro-css.css :as css]
     [fulcro.client.dom :as dom]
-    [fulcro.client.primitives :as fp]))
+    [fulcro.client.primitives :as fp]
+    [fulcro.inspect.ui.helpers :as ui.h]))
 
 (defn set-style! [node prop value]
   (gobj/set (gobj/get node "style") prop value))
@@ -90,8 +91,8 @@
                                          :right  "0"
                                          :bottom "0"
                                          :height "50%"}]
-                    [:.resizer {:position    "fixed"
-                                :z-index     "99999"}]
+                    [:.resizer {:position "fixed"
+                                :z-index  "99999"}]
                     [:.resizer-horizontal {:cursor      "ew-resize"
                                            :top         "0"
                                            :left        "50%"
@@ -239,6 +240,7 @@
                           (assoc ::inspector/id app-id)
                           (assoc ::inspector/target-app target-app)
                           (assoc-in [::inspector/app-state ::data-history/history-id] [::app-id app-id])
+                          (assoc-in [::inspector/app-state ::data-history/snapshots] (storage/tget [::data-history/snapshots (ui.h/normalize-id app-id)] []))
                           (assoc-in [::inspector/network ::network/history-id] [::app-id app-id])
                           (assoc-in [::inspector/element ::element/panel-id] [::app-id app-id])
                           (assoc-in [::inspector/element ::element/target-reconciler] (:reconciler target-app))
@@ -370,15 +372,18 @@
       (symbol? id) (symbol new-id)
       :else new-id)))
 
+(defn inspector-app-ids []
+  (some-> (global-inspector) :reconciler fp/app-state deref ::inspector/id))
+
 (defn dedupe-id [id]
-  (let [ids-in-use (some-> (global-inspector) :reconciler fp/app-state deref ::inspector/id)]
+  (let [ids-in-use (inspector-app-ids)]
     (loop [new-id id]
       (if (contains? ids-in-use new-id)
         (recur (inc-id new-id))
         new-id))))
 
 (defn inspect-tx [{:keys [reconciler] :as env} info]
-  (if (fp/app-root reconciler)                              ; ensure app is initialized
+  (if (fp/app-root reconciler) ; ensure app is initialized
     (let [inspector (global-inspector)
           tx        (merge info (select-keys env [:old-state :new-state :ref :component]))
           app-id    (app-id reconciler)]

@@ -51,6 +51,8 @@
          (s/cat :modifiers (s/* ::modifier) :key ::key-string)))
 (s/def ::key-code pos-int?)
 
+(defn key-code [name] {::key-code (get KEYS name)})
+
 (defn parse-keystroke [keystroke]
   (if-let [{:keys [modifiers key]} (s/conform ::keystroke keystroke)]
     {::key-code  (get KEYS key)

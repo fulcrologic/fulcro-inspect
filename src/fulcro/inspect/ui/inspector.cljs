@@ -74,6 +74,7 @@
              :transform     "scale(0.8)"
              :padding-right "3px"}]
     [:.more-panel {:position      "absolute"
+                   :z-index       "1"
                    :right         "0"
                    :top           "26px"
                    :background    "#f3f3f3"
@@ -116,7 +117,6 @@
         (tab-item {:title "Element" :page ::page-element})
         (tab-item {:title "Transactions" :page ::page-transactions})
         (tab-item {:title "Network" :page ::page-network})
-        (tab-item {:title "OgE" :disabled? true})
         (dom/div #js {:className (:flex css)})
         (dom/div #js {:className (:more css)
                       :onClick   (fn [e]

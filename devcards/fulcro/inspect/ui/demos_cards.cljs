@@ -3,7 +3,7 @@
     [devcards.core :refer-macros [defcard]]
     [fulcro.client.cards :refer-macros [defcard-fulcro]]
     [fulcro.client.primitives :as fp]
-    [fulcro.client.alpha.localized-dom :as dom]
+    [fulcro.client.localized-dom :as dom]
     [fulcro.client.mutations :as mutations]
     [fulcro.inspect.card-helpers :as card.helpers]
     [fulcro.inspect.helpers :as h]))
@@ -37,7 +37,6 @@
                 :onChange #(mutations/set-string! this ::title :event %)})
     (dom/button {:onClick #(fp/transact! this [`(add-item {::title ~title})])}
       "Add item")
-    (js/console.log "RENDER" items)
     (mapv list-item items)))
 
 (defcard-fulcro add-item-demo

@@ -289,7 +289,8 @@
                       :static?     static?
                       :elide-one?  elide-one?
                       :toggle      #(fp/transact! this [`(toggle {::path       ~%2
-                                                                  ::propagate? ~(.-metaKey %)})])
+                                                                  ::propagate? ~(or (.-altKey %)
+                                                                                    (.-metaKey %))})])
                       :css         css
                       :path        []
                       :path-action path-action}
