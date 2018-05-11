@@ -58,4 +58,5 @@
                    :dependencies [[devcards "0.2.3" :exclusions [cljsjs/react cljsjs/react-dom]]
                                   [figwheel-sidecar "0.5.14" :exclusions [org.clojure/tools.nrepl]]
                                   [binaryage/devtools "0.9.9"]
+                                  [com.cemerick/piggieback "0.2.2"]
                                   [org.clojure/test.check "0.9.0"]]}})

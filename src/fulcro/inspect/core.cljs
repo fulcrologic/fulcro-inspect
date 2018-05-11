@@ -16,6 +16,8 @@
     [fulcro.inspect.ui.element :as element]
     [fulcro.inspect.ui.network :as network]
     [fulcro.inspect.ui.transactions :as transactions]
+    [fulcro.i18n :as fulcro-i18n]
+    [fulcro.inspect.ui.i18n :as inspect-i18n]
     [fulcro-css.css :as css]
     [fulcro.client.dom :as dom]
     [fulcro.client.primitives :as fp]
@@ -230,6 +232,11 @@
   (fp/transact! reconciler [::data-history/history-id [::app-id app-id]]
     [`(data-history/set-content ~state) ::data-history/history]))
 
+(defn update-i18n-state [reconciler app-id state]
+  (fp/transact! reconciler [::inspect-i18n/id [::app-id app-id]]
+    [`(inspect-i18n/set-locales {::inspect-i18n/locales ~(-> state ::fulcro-i18n/locale-by-id vals vec)
+                                 ::inspect-i18n/current-locale ~(::fulcro-i18n/current-locale state)}) ::inspect-i18n/locales ::inspect-i18n/current-locale]))
+
 (defn inspect-network-init [network app]
   (some-> network :options ::app* (reset! app)))
 
@@ -244,7 +251,12 @@
                           (assoc-in [::inspector/network ::network/history-id] [::app-id app-id])
                           (assoc-in [::inspector/element ::element/panel-id] [::app-id app-id])
                           (assoc-in [::inspector/element ::element/target-reconciler] (:reconciler target-app))
+                          (assoc-in [::inspector/i18n ::inspect-i18n/id] [::app-id app-id])
+                          (assoc-in [::inspector/i18n ::inspect-i18n/current-locale] (get-in (-> target-app :reconciler fp/app-state deref)   
+                                                                                             (-> target-app :reconciler fp/app-state deref ::fulcro-i18n/current-locale)))
+                          (assoc-in [::inspector/i18n ::inspect-i18n/locales] (-> target-app :reconciler fp/app-state deref ::fulcro-i18n/locale-by-id vals vec))
                           (assoc-in [::inspector/transactions ::transactions/tx-list-id] [::app-id app-id]))]
+
     (fp/transact! (:reconciler inspector) [::multi-inspector/multi-inspector "main"]
       [`(multi-inspector/add-inspector ~new-inspector)
        ::inspectors])
@@ -253,7 +265,9 @@
                                                                :app       target-app})
 
     (add-watch state* app-id
-      #(update-inspect-state (:reconciler inspector) app-id %4))
+               #(do
+                 (update-i18n-state (:reconciler inspector) app-id %4)
+                 (update-inspect-state (:reconciler inspector) app-id %4)))
 
     (swap! state* assoc ::initialized true)
 
