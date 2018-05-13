@@ -240,6 +240,9 @@
 (defn inspect-network-init [network app]
   (some-> network :options ::app* (reset! app)))
 
+(defn i18n-init [app-id reconciler]
+  (swap! inspect-i18n/reconciler-by-app-id assoc app-id reconciler))
+
 (defn inspect-app [app-id target-app]
   (let [inspector     (global-inspector)
         state*        (some-> target-app :reconciler :config :state)
@@ -263,6 +266,8 @@
 
     (inspect-network-init (-> target-app :networking :remote) {:inspector inspector
                                                                :app       target-app})
+    
+    (i18n-init app-id (:reconciler target-app))
 
     (add-watch state* app-id
                #(do

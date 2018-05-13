@@ -9,9 +9,16 @@
     static fp/InitialAppState
     (initial-state [_ params] {:fulcro.inspect.core/app-id app-id
                                ::i18n/current-locale (fp/get-initial-state i18n/Locale {:locale :en :name "English"})
-                               ::i18n/locale-by-id [(fp/get-initial-state i18n/Locale {:locale :en :name "English"})
-                                                    (fp/get-initial-state i18n/Locale {:locale :pt :name "Portuguese"})
-                                                    (fp/get-initial-state i18n/Locale {:locale :nl :name "Dutch"})]
+                               ;; TODO Actually load from po files
+                               ::i18n/locale-by-id [(fp/get-initial-state i18n/Locale {:locale :en 
+                                                                                       :name "English" 
+                                                                                       :translations {["" "Add item"] "Add item"}})
+                                                    (fp/get-initial-state i18n/Locale {:locale :pt 
+                                                                                       :name "Portuguese" 
+                                                                                       :translations {["" "Add item"] "adicionar Item "}})
+                                                    (fp/get-initial-state i18n/Locale {:locale :nl 
+                                                                                       :name "Dutch" 
+                                                                                       :translations {["" "Add item"] "Voeg item toe"}})]
                                :ui/react-key (random-uuid)
                                :ui/root      (fp/get-initial-state Root params)})
 

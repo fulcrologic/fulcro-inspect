@@ -34,6 +34,13 @@
                                        :external-config      {:fulcro.inspect/config {:launch-keystroke "ctrl-f"}}
                                        :parallel-build       true
                                        :source-map-timestamp true}}
+                       {:id           "i18n"
+                        :source-paths ["src" "devcards"]
+                        :figwheel     {:devcards true}
+                        :compiler     {:main                 fulcro.inspect.devcards
+                                       :output-to            "resources/public/js/compiled/i18n.js"
+                                       :parallel-build       true
+                                       :optimizations        :whitespace}}
                        {:id           "automated-tests"
                         :source-paths ["src" "test"]
                         :compiler     {:main          fulcro.inspect.ci-test-main
