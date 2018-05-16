@@ -1,6 +1,5 @@
 (ns fulcro.inspect.card-helpers
-  (:require [fulcro-css.css :as css]
-            #?(:clj [fulcro.client.dom-server :as dom]
+  (:require #?(:clj [fulcro.client.dom-server :as dom]
                :cljs [fulcro.client.dom :as dom])
             [fulcro.i18n :as i18n]
             [fulcro.client.primitives :as fp])
