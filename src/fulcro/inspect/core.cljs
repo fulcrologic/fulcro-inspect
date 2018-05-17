@@ -317,6 +317,7 @@
 
 (defn app-id [reconciler]
   (or (some-> reconciler fp/app-state deref ::app-id)
+      (some-> reconciler fp/app-root (gobj/get "displayName") symbol)
       (some-> reconciler fp/app-root fp/react-type (gobj/get "displayName") symbol)))
 
 (defn inspect-network
