@@ -29,6 +29,10 @@
     "type": "git",
     "url": "git@github.com:fulcrologic/fulcro-inspect.git"
   },
+  "scripts": {
+    "dev-chrome": "shadow-cljs watch chrome-devtool chrome-background chrome-content-script devcards",
+    "dev-electron": "shadow-cljs watch electron-main electron-renderer devcards"
+  },
   "author": "",
   "license": "MIT"
 }

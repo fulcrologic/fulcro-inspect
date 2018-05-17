@@ -1,0 +1,14 @@
+{
+  "name": "fulcro-inspect-electron",
+  "version": "2.2.0",
+  "description": "",
+  "main": "js/background/main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "electron": "^2.0.1"
+  }
+}

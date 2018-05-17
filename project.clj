@@ -13,7 +13,7 @@
                  [lein-doo "0.1.7" :scope "test"]
                  [fulcrologic/fulcro-spec "2.1.0-1" :scope "test" :exclusions [fulcrologic/fulcro]]]
 
-  :source-paths ["src/remote" "src/ui" "src/chrome"]
+  :source-paths ["src/remote" "src/ui" "src/chrome" "src/electron"]
 
   :figwheel {:server-port 3389}
 
@@ -22,35 +22,6 @@
   ;; CI tests: Set up to support karma runner.
   :doo {:build "automated-tests"
         :paths {:karma "node_modules/karma/bin/karma"}}
-
-  :cljsbuild {:builds [{:id           "devcards"
-                        :source-paths ["src/ui" "devcards"]
-                        :figwheel     {:devcards true}
-                        :compiler     {:main                 fulcro.inspect.devcards
-                                       :asset-path           "js/compiled/devcards_out"
-                                       :output-to            "resources/public/js/compiled/devcards.js"
-                                       :output-dir           "resources/public/js/compiled/devcards_out"
-                                       :preloads             [devtools.preload fulcro.inspect.preload]
-                                       :external-config      {:fulcro.inspect/config {:launch-keystroke "ctrl-f"}}
-                                       :parallel-build       true
-                                       :source-map-timestamp true}}
-                       {:id           "automated-tests"
-                        :source-paths ["src/ui" "test"]
-                        :compiler     {:main          fulcro.inspect.ci-test-main
-                                       :output-to     "resources/public/js/compiled/ci/test.js"
-                                       :output-dir    "resources/public/js/compiled/ci/out"
-                                       :asset-path    "js/compiled/ci/out"
-                                       ;:preloads      [fulcro.inspect.preload]
-                                       :optimizations :none}}
-                       {:id           "test"
-                        :source-paths ["src/ui" "test"]
-                        :figwheel     {:on-jsload cljs.user/on-load}
-                        :compiler     {:main          cljs.user
-                                       :output-to     "resources/public/js/compiled/test/test.js"
-                                       :output-dir    "resources/public/js/compiled/test/out"
-                                       :asset-path    "js/compiled/test/out"
-                                       :preloads      [devtools.preload fulcro.inspect.preload]
-                                       :optimizations :none}}]}
 
   :profiles {:dev {:plugins      [[lein-cljsbuild "1.1.7"]
                                   [lein-doo "0.1.8"]]
