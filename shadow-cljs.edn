@@ -1,4 +1,4 @@
-{:source-paths ["src" "devcards"]
+{:source-paths ["src/remote" "src/ui" "src/chrome" "devcards"]
 
  :dependencies [[org.clojure/core.async "0.4.474"]
                 [spec-coerce "1.0.0-alpha5"]
