@@ -21,7 +21,7 @@
     {
       "matches": ["<all_urls>"],
       "js": ["js/content-script/main.js"],
-      "run_at": "document_start"
+      "run_at": "document_idle"
     }
   ],
 
