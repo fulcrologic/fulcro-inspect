@@ -8,11 +8,33 @@
                 [binaryage/devtools "0.9.9"]
                 [devcards "0.2.4" :exclusions [cljsjs/react cljsjs/react-dom]]]
 
- :builds       {:devcards {:target           :browser
-                           :output-dir       "resources/public/js/devcards"
-                           :asset-path       "/js/devcards"
-                           :compiler-options {:devcards true}
-                           :devtools         {:preloads  [devtools.preload fulcro.inspect.preload]
-                                              :http-root "resources/public"
-                                              :http-port 8084}
-                           :modules          {:main {:entries [fulcro.inspect.devcards]}}}}}
+ :http         {:host "localhost"
+                :port 9630}
+
+ :builds       {:chrome-background     {:target          :browser
+                                        :output-dir      "shells/chrome/js/background"
+                                        :asset-path      "js/background"
+                                        :closure-defines {shadow.cljs.devtools.client.env/devtools-url "http://localhost:9630"}
+                                        :modules         {:main {:entries [fulcro.inspect.chrome.background.main]}}}
+
+                :chrome-devtool        {:target          :browser
+                                        :output-dir      "shells/chrome/js/devtool"
+                                        :asset-path      "js/devtool"
+                                        :closure-defines {shadow.cljs.devtools.client.env/devtools-url "http://localhost:9630"}
+                                        :modules         {:main {:entries [fulcro.inspect.chrome.devtool.main]}}}
+
+                :chrome-content-script {:target          :browser
+                                        :output-dir      "shells/chrome/js/content-script"
+                                        :asset-path      "js/content-script"
+                                        :dev             {:compiler-options {:optimizations :whitespace}}
+                                        :closure-defines {shadow.cljs.devtools.client.env/devtools-url "http://localhost:9630"}
+                                        :modules         {:main {:entries [fulcro.inspect.chrome.content-script.main]}}}
+
+                :devcards              {:target           :browser
+                                        :output-dir       "resources/public/js/devcards"
+                                        :asset-path       "/js/devcards"
+                                        :compiler-options {:devcards true}
+                                        :devtools         {:preloads  [devtools.preload fulcro.inspect.preload]
+                                                           :http-root "resources/public"
+                                                           :http-port 8084}
+                                        :modules          {:main {:entries [fulcro.inspect.devcards]}}}}}

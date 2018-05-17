@@ -1,5 +1,5 @@
 (ns fulcro.inspect.preload
-  (:require [fulcro.inspect.core]
+  (:require [fulcro.inspect.remote]
             [fulcro.inspect.prefs :as prefs]))
 
-(fulcro.inspect.core/install (or @prefs/external-config {}))
+(fulcro.inspect.remote/install (or @prefs/external-config {}))
