@@ -50,7 +50,15 @@
     #_
         new-inspector))
 
+(defn post-message [data]
+  (.postMessage js/window #js {:type "Sample" :data (pr-str data)} "*"))
+
+(gobj/set js/window "TEST_COMM" (fn []
+                                  (post-message {:Hello "World"})))
+
 (defn install [_]
+  (gobj/set js/window "__FULCRO_INSPECT_DEVTOOLS_HOOK__" {:hello "world"})
+
   (when-not @started?*
     (js/console.log "Installing Fulcro Inspect" {})
 

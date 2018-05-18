@@ -12,6 +12,10 @@
     "https://*/*"
   ],
 
+  "externally_connectable": {
+    "ids": ["*"]
+  },
+
   "background": {
     "scripts": ["js/background/main.js"],
     "persistent": false
@@ -21,7 +25,7 @@
     {
       "matches": ["<all_urls>"],
       "js": ["js/content-script/main.js"],
-      "run_at": "document_idle"
+      "run_at": "document_start"
     }
   ],
 

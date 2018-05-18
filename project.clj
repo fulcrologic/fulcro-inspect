@@ -7,7 +7,7 @@
   :dependencies [[org.clojure/clojure "1.9.0" :scope "provided"]
                  [org.clojure/clojurescript "1.9.946" :scope "provided"]
                  [fulcrologic/fulcro "2.5.2" :scope "provided"]
-                 [com.wsscode/pathom "2.0.0-beta4"]
+                 [com.wsscode/pathom "2.0.1"]
                  [com.taoensso/sente "1.12.0"]
 
                  [org.clojure/tools.namespace "0.3.0-alpha4" :scope "test"]

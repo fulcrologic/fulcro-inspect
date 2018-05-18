@@ -19,7 +19,17 @@
 
 (defonce ^:private global-inspector* (atom nil))
 
+(defn event-loop []
+  (js/console.log "LISTEN TO PORT")
+  (let [port (js/chrome.runtime.connect #js {:name "fulcro-inspect-devtools-background"})]
+    (.addListener (.-onMessage port)
+      (fn [event]
+        (js/console.log "DEVTOOLS GOT EVENT" event)))
+    (.postMessage port #js {:name  "init"
+                            :tabId js/chrome.devtools.inspectedWindow.tabId})))
+
 (defn start-global-inspector [options]
+  (event-loop)
   (let [app  (fulcro/new-fulcro-client :shared {:options options})
         node (js/document.createElement "div")]
     (js/document.body.appendChild node)
