@@ -6,6 +6,7 @@
   (let [port (js/chrome.runtime.connect)]
     (.addEventListener js/window "message"
       (fn [event]
+        (js/console.log "PAGE EVT" event port)
         (if (= (.-source event) js/window)
           (.postMessage port (.-data event))))
       false)))

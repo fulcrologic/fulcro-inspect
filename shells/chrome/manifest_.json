@@ -1,0 +1,33 @@
+{
+  "manifest_version": 2,
+  "name": "Fulcro Inspect",
+  "description": "Developer tool to assist Fulcro applicatioins",
+  "version": "2.2",
+
+  "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'",
+
+  "permissions": [
+    "file:///*",
+    "http://*/*",
+    "https://*/*"
+  ],
+
+  "externally_connectable": {
+    "ids": ["*"]
+  },
+
+  "background": {
+    "scripts": ["js/background/main.js"],
+    "persistent": false
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["js/content-script/main.js"],
+      "run_at": "document_start"
+    }
+  ],
+
+  "devtools_page": "devtools.html"
+}

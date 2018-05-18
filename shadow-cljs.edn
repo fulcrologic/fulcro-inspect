@@ -22,6 +22,9 @@
                                                            :devtools-url "http://localhost:9630"}
                                         :modules          {:main {:entries [fulcro.inspect.devcards]}}}
 
+                :chrome                {:target        :chrome-extension
+                                        :extension-dir "shells/chrome"}
+
                 :chrome-background     {:target     :browser
                                         :output-dir "shells/chrome/js/background"
                                         :asset-path "js/background"
