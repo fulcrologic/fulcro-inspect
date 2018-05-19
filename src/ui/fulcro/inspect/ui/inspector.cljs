@@ -118,6 +118,7 @@
         (tab-item {:title "Transactions" :page ::page-transactions})
         (tab-item {:title "Network" :page ::page-network})
         (dom/div #js {:className (:flex css)})
+        #_
         (dom/div #js {:className (:more css)
                       :onClick   (fn [e]
                                    (.stopPropagation e)
@@ -126,17 +127,7 @@
 
       (if more-open?
         (dom/div #js {:className (:more-panel css)
-                      :onClick   #(.stopPropagation %)}
-          (dom/div #js {:className (:dock-side css)}
-            (dom/div #js {:className (:dock-title css)} "Dock side")
-            (ui/icon {:className (:dock-icon css)
-                      :title     "Dock to bottom"
-                      :onClick   #(set-dock! :fulcro.inspect.core/dock-bottom)}
-              (if (= dock-side :fulcro.inspect.core/dock-bottom) :dock-bottom-blue :dock-bottom))
-            (ui/icon {:className (:dock-icon css)
-                      :title     "Dock to right"
-                      :onClick   #(set-dock! :fulcro.inspect.core/dock-right)}
-              (if (= dock-side :fulcro.inspect.core/dock-right) :dock-right-blue :dock-right)))))
+                      :onClick   #(.stopPropagation %)}))
 
       (case tab
         ::page-db

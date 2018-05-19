@@ -11,4 +11,4 @@
           (.postMessage port (.-data event))))
       false)))
 
-(event-loop)
+(defonce start (event-loop))

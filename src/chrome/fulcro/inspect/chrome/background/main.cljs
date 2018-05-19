@@ -16,6 +16,7 @@
                 (let [tab-id (gobj/getValueByKeys port' #js ["sender" "tab" "id"])]
                   (if (contains? @connections* tab-id)
                     (.postMessage (get @connections* tab-id) message)
+                    #_
                     (js/console.log "Tab not found in connection list.")))))]
       (.. port -onMessage (addListener listener))
       (.. port -onDisconnect
@@ -36,5 +37,3 @@
           (js/console.log "Tab not found in connection list."))))
 
     true))
-
-(js/console.log "backgroun cassa sad init updated change here!")
