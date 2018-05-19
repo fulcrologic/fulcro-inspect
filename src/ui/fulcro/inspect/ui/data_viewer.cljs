@@ -188,6 +188,12 @@
       (boolean? content)
       (dom/div #js {:className (:boolean css)} (str content))
 
+      (uuid? content)
+      (dom/div #js {:className (:uuid css)} "#uuid " (dom/span {:className (:string css)} (str "\"" content "\"")))
+
+      (map? content)
+      (render-map input content)
+
       (vector? content)
       (render-vector input content)
 
@@ -196,9 +202,6 @@
 
       (set? content)
       (render-set input content)
-
-      (map? content)
-      (render-map input content)
 
       :else
       (dom/div #js {:className (:unknown css)} (str content)))))

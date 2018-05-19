@@ -2,22 +2,25 @@
   (:require [fulcro.client :as fulcro]
             [fulcro.client.primitives :as fp]
             [fulcro.inspect.remote.transit :as encode]
-            [goog.object :as gobj]))
+            [goog.object :as gobj]
+            [fulcro.inspect.ui.data-history :as data-history]))
 
 (defonce started?* (atom false))
 (defonce apps* (atom {}))
+
+(def app-id-key :fulcro.inspect.core/app-id)
 
 (defn chrome-extension-installed? []
   (js/document.documentElement.getAttribute "__fulcro-inspect-chrome-installed__"))
 
 (defn post-message [type data]
-  (.postMessage js/window #js {:type type :data (encode/write data)} "*"))
+  (.postMessage js/window #js {:fulcro-inspect-remote-message (encode/write {:type type :data data})} "*"))
 
 (defn find-remote-server []
   )
 
 (defn app-id [reconciler]
-  (or (some-> reconciler fp/app-state deref :fulcro.inspect.core/app-id)
+  (or (some-> reconciler fp/app-state deref app-id-key)
       (some-> reconciler fp/app-root (gobj/get "displayName") symbol)
       (some-> reconciler fp/app-root fp/react-type (gobj/get "displayName") symbol)))
 
@@ -40,13 +43,24 @@
 (defn inspect-network-init [network app]
   (some-> network :options ::app* (reset! app)))
 
-(defn inspect-app [app-id target-app]
-  (let [state* (some-> target-app :reconciler :config :state)]
+(defn transact! [])
+
+(gobj/set js/window "PING_PORT"
+  (fn []
+    (post-message ::ping {:msg-id (random-uuid)})))
+
+(defn update-inspect-state [app-id state]
+  (post-message ::transact-client {::tx-ref [::data-history/history-id [app-id-key app-id]]
+                                   ::tx     [`(data-history/set-content ~state) ::data-history/history]}))
+
+(defn inspect-app [target-app]
+  (let [state* (some-> target-app :reconciler :config :state)
+        app-id (app-id (:reconciler target-app))]
     #_(inspect-network-init (-> target-app :networking :remote) {:inspector inspector
                                                                  :app       target-app})
 
-    #_(add-watch state* app-id
-        #(update-inspect-state (:reconciler inspector) app-id %4))
+    (add-watch state* app-id
+      #(update-inspect-state app-id %4))
 
     (swap! state* assoc ::initialized true)
     #_new-inspector))
@@ -65,12 +79,10 @@
        (fn [{:keys [reconciler] :as app}]
          (let [state* (some-> reconciler fp/app-state)]
            (js/console.log "POST!!")
-           (post-message "fulcro-inspect-app-start" {::app-id        (app-id reconciler)
-                                                     ::initial-state @state*}))
-
-         #_(let [id (-> reconciler app-id dedupe-id)]
-             (swap! (-> reconciler fp/app-state) assoc :fulcro.inspect.core/app-id id)
-             (inspect-app id app))
+           (post-message ::init-app {app-id-key      (app-id reconciler)
+                                     ::message-id    (random-uuid)
+                                     ::initial-state @state*})
+           (inspect-app app))
          app)
 
        #_#_::fulcro/network-wrapper

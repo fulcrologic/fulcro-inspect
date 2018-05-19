@@ -4,7 +4,7 @@
  :description             "Developer tool to assist Fulcro applicatioins"
  :content-scripts         [{:matches ["<all_urls>"]
                             :entry   fulcro.inspect.chrome.content-script.main
-                            :run_at  "document_start"}]
+                            :run_at  "document_idle"}]
  :permissions             ["file:///*" "http://*/*" "https://*/*"]
  :externally-connectable  {:ids ["*"]}
 
