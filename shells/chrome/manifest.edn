@@ -2,13 +2,13 @@
  :name                    "Fulcro Inspect"
  :version                 "2.2"
  :description             "Developer tool to assist Fulcro applicatioins"
- :content_scripts         [{:matches ["<all_urls>"]
+ :content-scripts         [{:matches ["<all_urls>"]
                             :entry   fulcro.inspect.chrome.content-script.main
                             :run_at  "document_start"}]
  :permissions             ["file:///*" "http://*/*" "https://*/*"]
- :externally_connectable  {:ids ["*"]}
+ :externally-connectable  {:ids ["*"]}
 
  :background              {:persistent false
                            :entry      fulcro.inspect.chrome.background.main}
- :content_security_policy "script-src 'self' 'unsafe-eval'; object-src 'self'"
- :devtools_page           "devtools.html"}
+ :content-security-policy "script-src 'self' 'unsafe-eval'; object-src 'self'"
+ :devtools-page           "devtools.html"}
