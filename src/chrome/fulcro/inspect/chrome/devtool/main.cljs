@@ -67,7 +67,8 @@
         new-id))))
 
 (defn start-app [{:fulcro.inspect.core/keys   [app-id]
-                  :fulcro.inspect.remote/keys [initial-state]}]
+                  :fulcro.inspect.remote/keys [initial-state]
+                  ::keys                      [port]}]
   (let [inspector     @global-inspector*
         app-id        (dedupe-id app-id)
         new-inspector (-> (fp/get-initial-state inspector/Inspector initial-state)
@@ -85,29 +86,37 @@
 
     new-inspector))
 
-(defn tx-run [{:fulcro.inspect.remote/keys [app-id tx tx-ref]}]
+(defn tx-run [{:fulcro.inspect.remote/keys [tx tx-ref]}]
   (let [{:keys [reconciler]} @global-inspector*]
     (if tx-ref
       (fp/transact! reconciler tx-ref tx)
       (fp/transact! reconciler tx))))
 
-(defn handle-loop-event [event]
+(defn handle-loop-event [port event]
+  (js/console.log "DEV EVENT" event)
   (when-let [{:keys [type data]} (event-data event)]
-    (case type
-      :fulcro.inspect.remote/init-app
-      (start-app data)
+    (let [data (assoc data ::port port)]
+      (case type
+        :fulcro.inspect.remote/init-app
+        (start-app data)
 
-      :fulcro.inspect.remote/transact-client
-      (tx-run data)
+        :fulcro.inspect.remote/transact-client
+        (tx-run data)
 
-      nil)))
+        nil))))
+
+(def current-tab-id js/chrome.devtools.inspectedWindow.tabId)
 
 (defn event-loop [app]
   (js/console.log "LISTEN TO PORT")
-  (let [port (js/chrome.runtime.connect #js {:name "fulcro-inspect-devtools-background"})]
-    (.addListener (.-onMessage port) #(handle-loop-event %))
-    (.postMessage port #js {:name  "init"
-                            :tabId js/chrome.devtools.inspectedWindow.tabId})))
+  (let [port (js/chrome.runtime.connect #js {:name "fulcro-inspect-devtool"})]
+    (js/console.log "REGISTER PING")
+    (.addListener (.-onMessage port) #(handle-loop-event port %))
+
+    (.postMessage port #js {:name   "init"
+                            :tab-id current-tab-id})
+    (.postMessage port #js {:fulcro-inspect-devtool-message (encode/write {:type ::ping :data {:foo "bar"}})
+                            :tab-id                         current-tab-id} "*")))
 
 (defn start-global-inspector [options]
   (let [app  (fulcro/new-fulcro-client

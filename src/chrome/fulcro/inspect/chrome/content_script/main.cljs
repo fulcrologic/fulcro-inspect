@@ -12,12 +12,17 @@
       res)))
 
 (defn setup-new-port []
-  (let [port (js/chrome.runtime.connect)]
+  (let [port (js/chrome.runtime.connect #js {:name "fulcro-inspect-remote"})]
     (.addListener (gobj/get port "onMessage")
       (fn [msg]
-        (when-let [ch (some->> (gobj/getValueByKeys msg "__fulcro-insect-msg-id")
-                               (get @active-messages*))]
-          (put! ch msg))))
+        (cond
+          (gobj/getValueByKeys msg "fulcro-inspect-devtool-message")
+          (js/console.log "BG MESSAGE" msg)
+
+          :else
+          (when-let [ch (some->> (gobj/getValueByKeys msg "__fulcro-insect-msg-id")
+                                 (get @active-messages*))]
+            (put! ch msg)))))
     port))
 
 (defn event-loop []
