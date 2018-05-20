@@ -27,7 +27,7 @@
     (.addEventListener js/window "message"
       (fn [event]
         (when (and (= (.-source event) js/window)
-                   (gobj/getValueByKeys event #js ["data" "fulcro-inspect-remote-message"]))
+                   (gobj/getValueByKeys event "data" "fulcro-inspect-remote-message"))
           (let [data (gobj/get event "data")
                 id   (str (random-uuid))]
             (gobj/set data "__fulcro-insect-msg-id" id)
@@ -43,6 +43,7 @@
           (let [timer (async/timeout 1000)
                 acker (ack-message data)
                 [_ c] (async/alts! [acker timer] :priority true)]
+            ; restart the port in case of a timeout
             (when (= c timer)
               (reset! port* (setup-new-port))
               (recur))))

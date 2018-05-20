@@ -87,14 +87,12 @@
 
 (defn tx-run [{:fulcro.inspect.remote/keys [app-id tx tx-ref]}]
   (let [{:keys [reconciler]} @global-inspector*]
-    (js/console.log "RUN TX" tx-ref)
     (if tx-ref
       (fp/transact! reconciler tx-ref tx)
       (fp/transact! reconciler tx))))
 
 (defn handle-loop-event [event]
   (when-let [{:keys [type data]} (event-data event)]
-    (js/console.log "DEVTOOL MESSAGE" type data)
     (case type
       :fulcro.inspect.remote/init-app
       (start-app data)
