@@ -48,14 +48,13 @@
           (watcher/update-state (assoc env :ref (::watcher history)) content)))))
   (refresh [env] [:ui/historical-dom-view]))
 
-(fm/defmutation reset-app [{:keys [app target-state]}]
+(fm/defmutation reset-app [_]
   (action [{:keys [state ref] :as env}]
-    (let [reconciler (some-> app :reconciler)
-          state-atom (some-> reconciler fp/app-state)]
-      (reset! state-atom target-state)
-      (h/swap-entity! env assoc ::current-index (-> (get-in @state ref) ::history count dec))
-      (js/setTimeout #(fp/force-root-render! reconciler) 10)))
-  (refresh [_] [::current-index]))
+    (h/swap-entity! env assoc ::current-index (-> (get-in @state ref) ::history count dec)))
+  (refresh [_] [::current-index])
+  (remote [{:keys [ast ref]}]
+    (-> (assoc ast :key 'reset-app)
+        (assoc-in [:params :fulcro.inspect.core/app-uuid] (db.h/ref-app-uuid ref)))))
 
 (fp/defsc Snapshot
   [this
@@ -239,7 +238,7 @@
                                                   (if (js/confirm (str "Delete " snapshot-label " snapshot?"))
                                                     (fp/transact! this `[(delete-snapshot ~s)])))
                            ::on-pick-snapshot   (fn [{::keys [snapshot-db]}]
-                                                  (fp/transact! this `[(reset-app ~{:app target-app :target-state snapshot-db})]))
+                                                  (fp/transact! this `[(reset-app ~{:target-state snapshot-db})]))
                            ::on-update-snapshot (fn [snapshot]
                                                   (fp/transact! this `[(update-snapshot-label ~snapshot)]))}))))))))
 

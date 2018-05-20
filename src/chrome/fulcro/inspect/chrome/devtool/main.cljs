@@ -2,6 +2,8 @@
   (:require [fulcro.client :as fulcro]
             [fulcro-css.css :as css]
             [goog.object :as gobj]
+            [cljs.core.async :refer [go <!]]
+            [com.wsscode.pathom.fulcro.network :as pfn]
             [fulcro.client.primitives :as fp]
             [fulcro.inspect.lib.local-storage :as storage]
             [fulcro.inspect.ui.data-history :as data-history]
@@ -10,6 +12,7 @@
             [fulcro.inspect.ui.element :as element]
             [fulcro.inspect.ui.network :as network]
             [fulcro.inspect.ui.transactions :as transactions]
+            [fulcro.inspect.remote.parser :as ui-parser]
             [fulcro.client.localized-dom :as dom]
             [fulcro.inspect.remote.transit :as encode]
             [fulcro.inspect.helpers :as db.h]
@@ -100,7 +103,7 @@
 (defn reset-inspector []
   (-> @global-inspector* :reconciler fp/app-state (reset! (fp/tree->db GlobalRoot (fp/get-initial-state GlobalRoot {}) true))))
 
-(defn handle-loop-event [port event]
+(defn handle-remote-message [port event]
   (js/console.log "DEV EVENT" event)
   (when-let [{:keys [type data]} (event-data event)]
     (let [data (assoc data ::port port)]
@@ -119,16 +122,34 @@
 (defn event-loop [app]
   (js/console.log "LISTEN TO PORT")
   (let [port (js/chrome.runtime.connect #js {:name "fulcro-inspect-devtool"})]
-    (.addListener (.-onMessage port) #(handle-loop-event port %))
+    (.addListener (.-onMessage port) #(handle-remote-message port %))
 
     (.postMessage port #js {:name   "init"
                             :tab-id current-tab-id})
-    (post-message port :fulcro.inspect.client/request-page-apps {})))
+    (post-message port :fulcro.inspect.client/request-page-apps {})
+
+    port))
+
+(defn make-network [port* parser]
+  (pfn/fn-network
+    (fn [this edn ok error]
+      (go
+        (try
+          (ok (<! (parser {:send-message (fn [type data]
+                                           (js/console.log "SEND MESSAGE" @port*)
+                                           (post-message @port* type data))} edn)))
+          (catch :default e
+            (error e)))))))
 
 (defn start-global-inspector [options]
-  (let [app  (fulcro/new-fulcro-client
+  (let [port* (atom nil)
+        app  (fulcro/new-fulcro-client
                :started-callback
-               (fn [app] (event-loop app)))
+               (fn [app]
+                 (reset! port* (event-loop app)))
+
+               :networking
+               (make-network port* ui-parser/parser))
         node (js/document.createElement "div")]
     (js/document.body.appendChild node)
     (fulcro/mount app GlobalRoot node)))
