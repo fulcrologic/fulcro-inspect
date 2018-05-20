@@ -24,7 +24,7 @@
 
   static fp/IQuery
   (query [_]
-    [::tx-id :ref :tx :fulcro.history/client-time
+    [::tx-id :ident-ref :tx :fulcro.history/client-time
      {:ui/tx-row-view (fp/get-query data-viewer/DataViewer)}])
 
   static css/CSS
@@ -72,7 +72,7 @@
     (factory (fp/computed props computed))))
 
 (fp/defsc Transaction
-  [this {:keys                [ref component]
+  [this {:keys                [ident-ref component]
          :fulcro.history/keys [network-sends]
          :ui/keys             [tx-view ret-view sends-view
                                old-state-view new-state-view
@@ -90,7 +90,7 @@
                             :ui/old-state-view (fp/get-initial-state data-viewer/DataViewer db-before)
                             :ui/new-state-view (fp/get-initial-state data-viewer/DataViewer db-after)}))
    :ident         [::tx-id ::tx-id]
-   :query         [::tx-id ::timestamp :tx :ret :old-state :new-state :ref :component :fulcro.history/network-sends
+   :query         [::tx-id ::timestamp :tx :ret :old-state :new-state :ident-ref :component :fulcro.history/network-sends
                    {:ui/tx-view (fp/get-query data-viewer/DataViewer)}
                    {:ui/ret-view (fp/get-query data-viewer/DataViewer)}
                    {:ui/tx-row-view (fp/get-query data-viewer/DataViewer)}
@@ -104,7 +104,7 @@
   (let [css (css/get-classnames Transaction)]
     (dom/div #js {:className (:container css)}
       (ui/info {::ui/title "Ref"}
-        (ui/ident {} ref))
+        (ui/ident {} ident-ref))
 
       (ui/info {::ui/title "Transaction"}
         (data-viewer/data-viewer tx-view))
@@ -125,7 +125,7 @@
       (if component
         (ui/info {::ui/title "Component"}
           (ui/comp-display-name {}
-            (gobj/get (fp/react-type component) "displayName"))))
+            (str component))))
 
       (ui/info {::ui/title "State before"}
         (data-viewer/data-viewer old-state-view))
@@ -147,7 +147,7 @@
           {:keys [ui/diff-computed? old-state new-state]} (get-in @state tx-ref)]
       (if-not diff-computed?
         (let [[add rem] (data/diff new-state old-state)
-              env' (assoc env :ref tx-ref)]
+              env' (assoc env :ident-ref tx-ref)]
           (h/create-entity! env' data-viewer/DataViewer add :set :ui/diff-add-view)
           (h/create-entity! env' data-viewer/DataViewer rem :set :ui/diff-rem-view)
           (swap! state update-in tx-ref assoc :ui/diff-computed? true)))
@@ -212,10 +212,10 @@
                              (fp/transact! this [`(select-tx ~tx)]))
 
                            ::on-replay
-                           (fn [{:keys [tx ref]}]
+                           (fn [{:keys [tx ident-ref]}]
                              (if target-app
-                               (if ref
-                                 (fp/transact! (:reconciler target-app) ref tx)
+                               (if ident-ref
+                                 (fp/transact! (:reconciler target-app) ident-ref tx)
                                  (fp/transact! (:reconciler target-app) tx))))
 
                            ::selected?

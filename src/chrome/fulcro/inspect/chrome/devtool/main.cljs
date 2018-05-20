@@ -124,7 +124,7 @@
     (.postMessage port #js {:name   "init"
                             :tab-id current-tab-id})
     (.postMessage port #js {:fulcro-inspect-devtool-message (encode/write {:type ::ping :data {:foo "bar"}})
-                            :tab-id                         current-tab-id} "*")))
+                            :tab-id                         current-tab-id})))
 
 (defn start-global-inspector [options]
   (let [app  (fulcro/new-fulcro-client

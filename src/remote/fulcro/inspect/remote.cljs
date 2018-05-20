@@ -3,7 +3,8 @@
             [fulcro.client.primitives :as fp]
             [fulcro.inspect.remote.transit :as encode]
             [goog.object :as gobj]
-            [fulcro.inspect.ui.data-history :as data-history]))
+            [fulcro.inspect.ui.data-history :as data-history]
+            [clojure.set :as set]))
 
 (defonce started?* (atom false))
 (defonce apps* (atom {}))
@@ -58,6 +59,16 @@
     (swap! state* assoc ::initialized true)
     #_new-inspector))
 
+(defn inspect-tx [{:keys [reconciler] :as env} info]
+  (if (fp/app-root reconciler) ; ensure app is initialized
+    (let [tx     (-> (merge info (select-keys env [:old-state :new-state :ref :component]))
+                     (update :component #(gobj/get (fp/react-type %) "displayName"))
+                     (set/rename-keys {:ref :ident-ref}))
+          app-id (app-name reconciler)]
+      (if (-> reconciler fp/app-state deref ::initialized)
+        (transact! [:fulcro.inspect.ui.transactions/tx-list-id [app-id-key app-id]]
+                   [`(fulcro.inspect.ui.transactions/add-tx ~tx) :fulcro.inspect.ui.transactions/tx-list])))))
+
 (defn install [_]
   (js/document.documentElement.setAttribute "__fulcro-inspect-remote-installed__" true)
 
@@ -88,7 +99,7 @@
            (fn [networks]
              (into {} (map (fn [[k v]] [k (inspect-network k v)])) networks))
 
-       #_#_::fulcro/tx-listen
-           #'inspect-tx})
+       ::fulcro/tx-listen
+       inspect-tx})
 
     (listen-local-messages)))
