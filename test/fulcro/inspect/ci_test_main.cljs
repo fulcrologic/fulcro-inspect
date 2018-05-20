@@ -1,5 +1,8 @@
 (ns fulcro.inspect.ci-test-main
   (:require fulcro.inspect.tests-to-run
-            [doo.runner :refer-macros [doo-all-tests]]))
+            [fulcro-spec.selectors :as sel]
+            [fulcro-spec.suite :as suite]))
 
-(doo-all-tests #"fulcro.inspect.*-spec")
+(suite/def-test-suite on-load {:ns-regex #"fulcro.inspect\..*-spec"}
+  {:default #{::sel/none :focused}
+   :available #{:focused :should-fail}})

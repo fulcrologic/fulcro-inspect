@@ -13,6 +13,8 @@
  :http         {:host "localhost"
                 :port 9630}
 
+ :nrepl        {:port 63104}
+
  :builds       {:devcards              {:target           :browser
                                         :output-dir       "resources/public/js/devcards"
                                         :asset-path       "/js/devcards"
@@ -57,8 +59,9 @@
                 :test-dev              {:target    :browser-test
                                         :test-dir  "resources/public/js/test"
                                         :ns-regexp "-spec$"
-                                        :devtools  {:http-port 8021
-                                                    :http-root "resources/public/js/test"}}
+                                        :devtools  {:http-port          8021
+                                                    :http-resource-root "public"
+                                                    :http-root          "resources/public/js/test"}}
 
                 :test-ci               {:target    :karma
                                         :output-to "target/ci.js"

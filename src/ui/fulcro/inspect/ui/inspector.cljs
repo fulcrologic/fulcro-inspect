@@ -32,7 +32,7 @@
    [::id ::id]
 
    :query
-   [::tab ::id ::name :ui/more-open?
+   [::tab ::id ::name :fulcro.inspect.core/app-id :ui/more-open?
     ::target-app
     {[:fulcro.inspect.core/floating-panel "main"] [:ui/dock-side]}
     {::app-state (fp/get-query data-history/DataHistory)}

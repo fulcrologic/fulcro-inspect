@@ -165,3 +165,48 @@
   (fp/transact! comp [(list `persistent-set-props {::local-key   local-key
                                                    ::storage-key storage-key
                                                    ::value       value}) local-key]))
+
+(defn normalize-id [id]
+  (if-let [[_ prefix] (re-find #"(.+?)(-\d+)$" (str id))]
+    (cond
+      (keyword? id) (keyword (subs prefix 1))
+      (symbol? id) (symbol prefix)
+      :else prefix)
+    id))
+
+(defn ref-app-uuid
+  "Extracts the app id from a reference."
+  [ref]
+  (assert (and (vector? ref)
+               (vector? (second ref)))
+    "Ref with app it must be in the format: [:id-key [::app-id app-id]]")
+  (let [[_ [_ app-id]] ref]
+    app-id))
+
+(defn ref-app-id
+  [state ref]
+  (let [app-uuid (ref-app-uuid ref)]
+    (get-in state [:fulcro.inspect.ui.inspector/id
+                   app-uuid
+                   :fulcro.inspect.core/app-id])))
+
+(defn comp-app-uuid [comp]
+  (-> comp fp/get-ident ref-app-uuid))
+
+(defn all-apps [state]
+  (get-in state [:fulcro.inspect.ui.multi-inspector/multi-inspector
+                 "main"
+                 :fulcro.inspect.ui.multi-inspector/inspectors]))
+
+(defn matching-apps [state app-id]
+  (->> (all-apps state)
+       (filterv #(= app-id (:fulcro.inspect.core/app-id (get-in state %))))
+       (mapv second)))
+
+(defn update-matching-apps [state app-id f]
+  (let [apps (matching-apps state app-id)]
+    (reduce
+      (fn [s app]
+        (f s app))
+      state
+      apps)))

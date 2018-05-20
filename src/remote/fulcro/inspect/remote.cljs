@@ -179,9 +179,9 @@
   (case type
     :fulcro.inspect.client/request-page-apps
     (doseq [{:keys [reconciler]} (vals @apps*)]
-      (post-message ::init-app {app-uuid-key    (app-uuid reconciler)
-                                ::app-name      (app-id reconciler)
-                                ::initial-state @(fp/app-state reconciler)}))
+      (post-message ::init-app {app-uuid-key                (app-uuid reconciler)
+                                :fulcro.inspect.core/app-id (app-id reconciler)
+                                ::initial-state             @(fp/app-state reconciler)}))
 
     (js/console.log "Unknown message" type)))
 
