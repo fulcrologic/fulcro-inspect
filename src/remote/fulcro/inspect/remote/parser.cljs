@@ -16,6 +16,11 @@
   (fn [{:keys [send-message]} input]
     (send-message :fulcro.inspect.client/reset-app-state input)))
 
+(defmutation 'transact
+  {}
+  (fn [{:keys [send-message]} input]
+    (send-message :fulcro.inspect.client/transact input)))
+
 (def parser
   (p/parser {::p/env     {::p/reader             [p/map-reader pc/all-async-readers]
                           ::pc/resolver-dispatch resolver-fn

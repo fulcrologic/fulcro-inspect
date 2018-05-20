@@ -9,7 +9,8 @@
     [fulcro.inspect.ui.data-viewer :as data-viewer]
     [goog.object :as gobj]
     [fulcro.client.dom :as dom]
-    [fulcro.client.primitives :as fp]))
+    [fulcro.client.primitives :as fp]
+    [fulcro.inspect.helpers :as db.h]))
 
 (fp/defui ^:once TransactionRow
   static fp/InitialAppState
@@ -161,6 +162,11 @@
       (if (seq tx-refs)
         (swap! state #(reduce h/deep-remove-ref % tx-refs))))))
 
+(defmutation replay-tx [_]
+  (remote [{:keys [ast ref]}]
+    (-> (assoc ast :key 'transact)
+        (assoc-in [:params :fulcro.inspect.core/app-uuid] (db.h/ref-app-uuid ref)))))
+
 (fp/defui ^:once TransactionList
   static fp/InitialAppState
   (initial-state [_ _]
@@ -213,10 +219,7 @@
 
                            ::on-replay
                            (fn [{:keys [tx ident-ref]}]
-                             (if target-app
-                               (if ident-ref
-                                 (fp/transact! (:reconciler target-app) ident-ref tx)
-                                 (fp/transact! (:reconciler target-app) tx))))
+                             (fp/transact! this [`(replay-tx ~{:tx tx :tx-ref ident-ref})]))
 
                            ::selected?
                            (= (::tx-id active-tx) (::tx-id %))})))))

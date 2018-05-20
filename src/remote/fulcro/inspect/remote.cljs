@@ -192,6 +192,15 @@
           (js/setTimeout #(fp/force-root-render! reconciler) 10))
         (js/console.log "Reset app on invalid uuid" app-uuid)))
 
+    :fulcro.inspect.client/transact
+    (let [{:keys [tx tx-ref]
+           :fulcro.inspect.core/keys [app-uuid]} data]
+      (if-let [{:keys [reconciler]} (get @apps* app-uuid)]
+        (if tx-ref
+          (fp/transact! reconciler tx-ref tx)
+          (fp/transact! reconciler tx))
+        (js/console.log "Transact on invalid uuid" app-uuid)))
+
     (js/console.log "Unknown message" type)))
 
 (defn install [_]
