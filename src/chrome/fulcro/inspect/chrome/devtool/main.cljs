@@ -56,26 +56,28 @@
       (symbol? id) (symbol new-id)
       :else new-id)))
 
-(defn inspector-app-ids []
-  (some-> @global-inspector* :reconciler fp/app-state deref ::inspector/id))
+(defn inspector-app-names []
+  (some->> @global-inspector* :reconciler fp/app-state deref ::inspector/id vals
+           (mapv ::inspector/name) set))
 
-(defn dedupe-id [id]
-  (let [ids-in-use (inspector-app-ids)]
-    (loop [new-id id]
+(defn dedupe-name [name]
+  (let [ids-in-use (inspector-app-names)]
+    (loop [new-id name]
       (if (contains? ids-in-use new-id)
         (recur (inc-id new-id))
         new-id))))
 
 (defn start-app [{:fulcro.inspect.core/keys   [app-id]
-                  :fulcro.inspect.remote/keys [initial-state]
+                  :fulcro.inspect.remote/keys [initial-state app-name]
                   ::keys                      [port]}]
   (let [inspector     @global-inspector*
-        app-id        (dedupe-id app-id)
+        app-name      (dedupe-name app-name)
         new-inspector (-> (fp/get-initial-state inspector/Inspector initial-state)
                           (assoc ::inspector/id app-id)
+                          (assoc ::inspector/name app-name)
                           ;(assoc ::inspector/target-app target-app)
                           (assoc-in [::inspector/app-state ::data-history/history-id] [app-id-key app-id])
-                          (assoc-in [::inspector/app-state ::data-history/snapshots] (storage/tget [::data-history/snapshots (ui.h/normalize-id app-id)] []))
+                          (assoc-in [::inspector/app-state ::data-history/snapshots] (storage/tget [::data-history/snapshots (ui.h/normalize-name app-name)] []))
                           (assoc-in [::inspector/network ::network/history-id] [app-id-key app-id])
                           (assoc-in [::inspector/element ::element/panel-id] [app-id-key app-id])
                           ;(assoc-in [::inspector/element ::element/target-reconciler] (:reconciler target-app))

@@ -31,7 +31,7 @@
                            ::current-app nil})
 
    :ident         (fn [] [::multi-inspector "main"])
-   :query         [::inspectors
+   :query         [{::inspectors [::inspector/id ::inspector/name]}
                    {[:fulcro.inspect.core/floating-panel "main"] [:ui/visible?]}
                    {::current-app (fp/get-query inspector/Inspector)}]
    :css           [[:.container {:display        "flex"
@@ -78,9 +78,9 @@
           (dom/div :.label "App")
           (dom/select {:value    (pr-str (::inspector/id current-app))
                        :onChange #(fp/transact! this `[(set-app {::inspector/id ~(read-string (.. % -target -value))})])}
-            (for [app-id (->> (map (comp pr-str second) inspectors) sort)]
-              (dom/option {:key   app-id
-                           :value app-id}
-                app-id))))))))
+            (for [{::inspector/keys [id name]} (sort-by ::inspector/name inspectors)]
+              (dom/option {:key   id
+                           :value (pr-str id)}
+                (str name)))))))))
 
 (def multi-inspector (fp/factory MultiInspector {:keyfn ::multi-inspector}))

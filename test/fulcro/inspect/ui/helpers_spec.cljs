@@ -4,12 +4,12 @@
 
 (specification "normalize-id"
   (assertions
-    (ui.h/normalize-id 'sym) => 'sym
-    (ui.h/normalize-id :key) => :key
-    (ui.h/normalize-id "str") => "str"
-    (ui.h/normalize-id 'sym-0) => 'sym
-    (ui.h/normalize-id :key-10) => :key
-    (ui.h/normalize-id "str-42") => "str"))
+    (ui.h/normalize-name 'sym) => 'sym
+    (ui.h/normalize-name :key) => :key
+    (ui.h/normalize-name "str") => "str"
+    (ui.h/normalize-name 'sym-0) => 'sym
+    (ui.h/normalize-name :key-10) => :key
+    (ui.h/normalize-name "str-42") => "str"))
 
 (specification "ref-app-id"
   (assertions

@@ -24,7 +24,7 @@
 (defn find-remote-server []
   )
 
-(defn app-id [reconciler]
+(defn app-name [reconciler]
   (or (some-> reconciler fp/app-state deref app-id-key)
       (some-> reconciler fp/app-root (gobj/get "displayName") symbol)
       (some-> reconciler fp/app-root fp/react-type (gobj/get "displayName") symbol)))
@@ -48,7 +48,7 @@
 
 (defn inspect-app [target-app]
   (let [state* (some-> target-app :reconciler :config :state)
-        app-id (app-id (:reconciler target-app))]
+        app-id (app-name (:reconciler target-app))]
     #_(inspect-network-init (-> target-app :networking :remote) {:inspector inspector
                                                                  :app       target-app})
 
@@ -72,10 +72,15 @@
 
        ::fulcro/app-started
        (fn [{:keys [reconciler] :as app}]
-         (let [state* (some-> reconciler fp/app-state)]
-           (js/console.log "POST!!")
-           (post-message ::init-app {app-id-key      (app-id reconciler)
+         (let [state* (some-> reconciler fp/app-state)
+               app-id (random-uuid)]
+           (post-message ::init-app {app-id-key      app-id
+                                     ::app-name      (app-name reconciler)
                                      ::initial-state @state*})
+
+           (swap! apps* assoc app-id app)
+           (swap! state* assoc app-id-key app-id)
+
            (inspect-app app))
          app)
 

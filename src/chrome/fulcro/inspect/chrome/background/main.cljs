@@ -4,15 +4,13 @@
 
 (defonce remote-conns* (atom {}))
 (defonce tools-conns* (atom {}))
-(defonce tools-waiters* (atom {}))
 
 (defn handle-devtool-message [devtool-port message port]
   (js/console.log "DEVTOOL MESSAGE" message @tools-conns* port)
   (cond
     (= "init" (gobj/get message "name"))
     (let [tab-id (gobj/get message "tab-id")]
-      (swap! tools-conns* assoc tab-id devtool-port)
-      (some-> (get @tools-waiters* tab-id) (put! :ready)))
+      (swap! tools-conns* assoc tab-id devtool-port))
 
     (gobj/getValueByKeys message "fulcro-inspect-devtool-message")
     (let [tab-id      (gobj/get message "tab-id")
@@ -48,17 +46,14 @@
                          (swap! remote-conns* dissoc tab-id)
                          (async/close! background->devtool-chan))))
 
-        (go-loop [replay nil]
-          (when-let [{:keys [tab-id message] :as data} (or replay (<! background->devtool-chan))]
+        (go-loop []
+          (when-let [{:keys [tab-id message] :as data} (<! background->devtool-chan)]
             ; send message to devtool
             (if (contains? @tools-conns* tab-id)
               (do
                 (.postMessage (get @tools-conns* tab-id) message)
-                (recur nil))
-              (let [ch (async/promise-chan)]
-                (swap! tools-waiters* assoc tab-id ch)
-                (<! ch)
-                (recur data))))))
+                (recur))
+              (recur)))))
 
       "fulcro-inspect-devtool"
       (let [listener (partial handle-devtool-message port)]

@@ -43,7 +43,7 @@
        ([props computed]
         (factory (fp/computed props computed)))))))
 
-(defn normalize-id [id]
+(defn normalize-name [id]
   (if-let [[_ prefix] (re-find #"(.+?)(-\d+)$" (str id))]
     (cond
       (keyword? id) (keyword (subs prefix 1))
@@ -58,7 +58,7 @@
                (vector? (second ref)))
     "Ref with app it must be in the format: [:id-key [::app-id app-id]]")
   (let [[_ [_ app-id]] ref]
-    (normalize-id app-id)))
+    (normalize-name app-id)))
 
 (defn comp-app-id [comp]
   (-> comp fp/get-ident ref-app-id))
@@ -70,9 +70,9 @@
        (mapv second)))
 
 (defn matching-apps [state app-id]
-  (let [nid (normalize-id app-id)]
+  (let [nid (normalize-name app-id)]
     (->> (all-apps state)
-         (filterv #(= nid (normalize-id %))))))
+         (filterv #(= nid (normalize-name %))))))
 
 (defn update-matching-apps [state app-id f]
   (let [apps (matching-apps state app-id)]

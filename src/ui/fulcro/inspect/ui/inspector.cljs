@@ -18,6 +18,7 @@
   {:initial-state
    (fn [state]
      {::id           (random-uuid)
+      ::name         ""
       ::tab          ::page-db
       ::app-state    (-> (fp/get-initial-state data-history/DataHistory state)
                          (assoc-in [::data-history/watcher ::data-watcher/root-data ::data-viewer/expanded]
@@ -31,7 +32,7 @@
    [::id ::id]
 
    :query
-   [::tab ::id :ui/more-open?
+   [::tab ::id ::name :ui/more-open?
     ::target-app
     {[:fulcro.inspect.core/floating-panel "main"] [:ui/dock-side]}
     {::app-state (fp/get-query data-history/DataHistory)}
