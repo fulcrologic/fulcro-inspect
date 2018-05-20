@@ -74,19 +74,16 @@
         new-name))))
 
 (defn start-app [{:fulcro.inspect.core/keys   [app-id app-uuid]
-                  :fulcro.inspect.remote/keys [initial-state]
-                  ::keys                      [port]}]
+                  :fulcro.inspect.remote/keys [initial-state]}]
   (let [inspector     @global-inspector*
         new-inspector (-> (fp/get-initial-state inspector/Inspector initial-state)
                           (assoc ::inspector/id app-uuid)
                           (assoc :fulcro.inspect.core/app-id app-id)
                           (assoc ::inspector/name (dedupe-name app-id))
-                          ;(assoc ::inspector/target-app target-app)
                           (assoc-in [::inspector/app-state ::data-history/history-id] [app-uuid-key app-uuid])
                           (assoc-in [::inspector/app-state ::data-history/snapshots] (storage/tget [::data-history/snapshots app-id] []))
                           (assoc-in [::inspector/network ::network/history-id] [app-uuid-key app-uuid])
                           (assoc-in [::inspector/element ::element/panel-id] [app-uuid-key app-uuid])
-                          ;(assoc-in [::inspector/element ::element/target-reconciler] (:reconciler target-app))
                           (assoc-in [::inspector/transactions ::transactions/tx-list-id] [app-uuid-key app-uuid]))]
 
     (fp/transact! (:reconciler inspector) [::multi-inspector/multi-inspector "main"]

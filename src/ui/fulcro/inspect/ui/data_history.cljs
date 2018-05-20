@@ -220,7 +220,7 @@
             :wallpaper)))
 
       (dom/div :.row-content
-        (dom/div :.watchert
+        (dom/div :.watcher
           (watcher/data-watcher watcher))
 
         (if (and show-snapshots? (seq snapshots))
