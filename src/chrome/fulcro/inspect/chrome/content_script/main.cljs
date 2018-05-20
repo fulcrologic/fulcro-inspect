@@ -1,6 +1,7 @@
 (ns fulcro.inspect.chrome.content-script.main
   (:require [goog.object :as gobj]
-            [cljs.core.async :as async :refer [go go-loop chan <! >! put!]]))
+            [cljs.core.async :as async :refer [go go-loop chan <! >! put!]]
+            [fulcro.inspect.remote.transit :as encode]))
 
 (defonce active-messages* (atom {}))
 
@@ -10,6 +11,12 @@
           res (<! (get @active-messages* id))]
       (swap! active-messages* dissoc id)
       res)))
+
+(defn envelope-ack [data]
+  (let [id   (str (random-uuid))]
+    (gobj/set data "__fulcro-insect-msg-id" id)
+    (swap! active-messages* assoc id (async/promise-chan))
+    data))
 
 (defn setup-new-port []
   (let [port (js/chrome.runtime.connect #js {:name "fulcro-inspect-remote"})]
@@ -30,15 +37,18 @@
     (let [content-script->background-chan (chan (async/sliding-buffer 1024))
           port*                           (atom (setup-new-port))]
 
+      (put! content-script->background-chan
+        (envelope-ack
+          #js {:fulcro-inspect-remote-message
+               (encode/write
+                 {:type :fulcro.inspect.remote/reset
+                  :data {}})}))
+
       (.addEventListener js/window "message"
         (fn [event]
           (when (and (= (.-source event) js/window)
                      (gobj/getValueByKeys event "data" "fulcro-inspect-remote-message"))
-            (let [data (gobj/get event "data")
-                  id   (str (random-uuid))]
-              (gobj/set data "__fulcro-insect-msg-id" id)
-              (swap! active-messages* assoc id (async/promise-chan))
-              (put! content-script->background-chan data))))
+            (put! content-script->background-chan (envelope-ack (gobj/get event "data")))))
         false)
 
       (go-loop []

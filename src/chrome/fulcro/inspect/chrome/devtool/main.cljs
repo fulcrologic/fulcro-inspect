@@ -94,6 +94,9 @@
       (fp/transact! reconciler tx-ref tx)
       (fp/transact! reconciler tx))))
 
+(defn reset-inspector []
+  (-> @global-inspector* :reconciler fp/app-state (reset! (fp/tree->db GlobalRoot (fp/get-initial-state GlobalRoot {}) true))))
+
 (defn handle-loop-event [port event]
   (js/console.log "DEV EVENT" event)
   (when-let [{:keys [type data]} (event-data event)]
@@ -104,6 +107,9 @@
 
         :fulcro.inspect.remote/transact-client
         (tx-run data)
+
+        :fulcro.inspect.remote/reset
+        (reset-inspector)
 
         nil))))
 
