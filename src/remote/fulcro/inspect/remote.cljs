@@ -66,6 +66,8 @@
     #_new-inspector))
 
 (defn install [_]
+  (js/document.documentElement.setAttribute "__fulcro-inspect-remote-installed__" true)
+
   (when-not @started?*
     (js/console.log "Installing Fulcro Inspect" {})
 

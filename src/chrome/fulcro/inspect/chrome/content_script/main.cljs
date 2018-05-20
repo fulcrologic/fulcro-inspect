@@ -21,35 +21,36 @@
     port))
 
 (defn event-loop []
-  (let [content-script->background-chan (chan (async/sliding-buffer 1024))
-        port*                           (atom (setup-new-port))]
+  (when (js/document.documentElement.getAttribute "__fulcro-inspect-remote-installed__")
+    (let [content-script->background-chan (chan (async/sliding-buffer 1024))
+          port*                           (atom (setup-new-port))]
 
-    (.addEventListener js/window "message"
-      (fn [event]
-        (when (and (= (.-source event) js/window)
-                   (gobj/getValueByKeys event "data" "fulcro-inspect-remote-message"))
-          (let [data (gobj/get event "data")
-                id   (str (random-uuid))]
-            (gobj/set data "__fulcro-insect-msg-id" id)
-            (swap! active-messages* assoc id (async/promise-chan))
-            (put! content-script->background-chan data))))
-      false)
+      (.addEventListener js/window "message"
+        (fn [event]
+          (when (and (= (.-source event) js/window)
+                     (gobj/getValueByKeys event "data" "fulcro-inspect-remote-message"))
+            (let [data (gobj/get event "data")
+                  id   (str (random-uuid))]
+              (gobj/set data "__fulcro-insect-msg-id" id)
+              (swap! active-messages* assoc id (async/promise-chan))
+              (put! content-script->background-chan data))))
+        false)
 
-    (go-loop []
-      (when-let [data (<! content-script->background-chan)]
-        ; keep trying to send
-        (loop []
-          (.postMessage @port* data)
-          (let [timer (async/timeout 1000)
-                acker (ack-message data)
-                [_ c] (async/alts! [acker timer] :priority true)]
-            ; restart the port in case of a timeout
-            (when (= c timer)
-              (reset! port* (setup-new-port))
-              (recur))))
-        (recur)))
+      (go-loop []
+        (when-let [data (<! content-script->background-chan)]
+          ; keep trying to send
+          (loop []
+            (.postMessage @port* data)
+            (let [timer (async/timeout 1000)
+                  acker (ack-message data)
+                  [_ c] (async/alts! [acker timer] :priority true)]
+              ; restart the port in case of a timeout
+              (when (= c timer)
+                (reset! port* (setup-new-port))
+                (recur))))
+          (recur)))
 
-    (js/console.log "LOOP READY"))
+      (js/console.log "LOOP READY")))
 
   :ready)
 
