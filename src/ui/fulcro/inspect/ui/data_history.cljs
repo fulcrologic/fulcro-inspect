@@ -123,11 +123,11 @@
     (h/swap-entity! env assoc ::show-snapshots? true)))
 
 (fm/defmutation update-snapshot-label [{::keys [snapshot-id snapshot-label]}]
-  (action [{:keys [ref component] :as env}]
+  (action [{:keys [ref component state] :as env}]
     (h/swap-entity! (assoc env :ref [::snapshot-id snapshot-id]) assoc ::snapshot-label snapshot-label)
 
     (let [snapshots (-> (h/query-component component) ::snapshots)]
-      (storage/tset! [::snapshots (db.h/ref-app-uuid ref)] snapshots))))
+      (storage/tset! [::snapshots (db.h/ref-app-id @state ref)] snapshots))))
 
 (fm/defmutation delete-snapshot [{::keys [snapshot-id]}]
   (action [{:keys [ref state component] :as env}]
