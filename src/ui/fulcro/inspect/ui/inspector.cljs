@@ -12,7 +12,7 @@
             [fulcro.client.primitives :as fp]
             [fulcro.inspect.helpers :as db.h]))
 
-(fp/defsc Inspector [this {::keys   [target-app app-state tab element network transactions]
+(fp/defsc Inspector [this {::keys   [app-state tab element network transactions]
                            :ui/keys [more-open?]
                            :as      props} _ css]
   {:initial-state
@@ -33,7 +33,6 @@
 
    :query
    [::tab ::id ::name :fulcro.inspect.core/app-id :ui/more-open?
-    ::target-app
     {[:fulcro.inspect.core/floating-panel "main"] [:ui/dock-side]}
     {::app-state (fp/get-query data-history/DataHistory)}
     {::element (fp/get-query element/Panel)}
@@ -96,21 +95,14 @@
    :css-include
    [data-history/DataHistory network/NetworkHistory transactions/TransactionList element/Panel]}
 
-  (let [tab-item  (fn [{:keys [title html-title disabled? page]}]
-                    (dom/div #js {:className (cond-> (:tab css)
-                                               disabled? (str " " (:tab-disabled css))
-                                               (= tab page) (str " " (:tab-selected css)))
-                                  :title     html-title
-                                  :onClick   #(if-not disabled?
-                                                (mutations/set-value! this ::tab page))}
-                      title))
-        {:keys [ui/dock-side]} (get props [:fulcro.inspect.core/floating-panel "main"])
-        set-dock! #(do
-                     (fp/transact! (fp/get-reconciler this) [:fulcro.inspect.core/floating-panel "main"]
-                       `[(db.h/persistent-set-props {::db.h/local-key   :ui/dock-side
-                                                     ::db.h/storage-key :fulcro.inspect.core/dock-side
-                                                     ::db.h/value       ~%}) :ui/dock-side])
-                     (mutations/set-value! this :ui/more-open? false))]
+  (let [tab-item (fn [{:keys [title html-title disabled? page]}]
+                   (dom/div #js {:className (cond-> (:tab css)
+                                              disabled? (str " " (:tab-disabled css))
+                                              (= tab page) (str " " (:tab-selected css)))
+                                 :title     html-title
+                                 :onClick   #(if-not disabled?
+                                               (mutations/set-value! this ::tab page))}
+                     title))]
     (dom/div #js {:className (:container css)
                   :onClick   #(if more-open? (mutations/set-value! this :ui/more-open? false))}
       (dom/div #js {:className (:tabs css)}
@@ -119,12 +111,11 @@
         (tab-item {:title "Transactions" :page ::page-transactions})
         (tab-item {:title "Network" :page ::page-network})
         (dom/div #js {:className (:flex css)})
-        #_
-        (dom/div #js {:className (:more css)
-                      :onClick   (fn [e]
-                                   (.stopPropagation e)
-                                   (mutations/toggle! this :ui/more-open?))}
-          (ui/icon :more_vert)))
+        #_(dom/div #js {:className (:more css)
+                        :onClick   (fn [e]
+                                     (.stopPropagation e)
+                                     (mutations/toggle! this :ui/more-open?))}
+            (ui/icon :more_vert)))
 
       (if more-open?
         (dom/div #js {:className (:more-panel css)
@@ -133,7 +124,7 @@
       (case tab
         ::page-db
         (dom/div #js {:className (:tab-content css)}
-          (data-history/data-history (fp/computed app-state {:target-app target-app})))
+          (data-history/data-history app-state))
 
         ::page-element
         (dom/div #js {:className (:tab-content css)}
@@ -141,7 +132,7 @@
 
         ::page-transactions
         (dom/div #js {:className (:tab-content css)}
-          (transactions/transaction-list (fp/computed transactions {:target-app target-app})))
+          (transactions/transaction-list transactions))
 
         ::page-network
         (dom/div #js {:className (:tab-content css)}

@@ -194,9 +194,8 @@
 
   Object
   (render [this]
-    (let [{::keys [tx-list active-tx tx-filter] :as props} (fp/props this)
+    (let [{::keys [tx-list active-tx tx-filter]} (fp/props this)
           css     (css/get-classnames TransactionList)
-          {:keys [target-app]} (fp/get-computed props)
           tx-list (if (seq tx-filter)
                     (filterv #(str/includes? (-> % :tx pr-str) tx-filter) tx-list)
                     tx-list)]

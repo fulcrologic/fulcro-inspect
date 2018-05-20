@@ -146,7 +146,7 @@
         (storage/tset! [::snapshots app-id] snapshots)))))
 
 (fp/defsc DataHistory
-  [this {::keys [history watcher current-index show-dom-preview? show-snapshots? snapshots]} {:keys [target-app]} css]
+  [this {::keys [history watcher current-index show-dom-preview? show-snapshots? snapshots]} _ css]
   {:initial-state (fn [content]
                     {::history-id        (random-uuid)
                      ::history           [(new-state content)]
@@ -205,7 +205,7 @@
           (ui/icon {:title "Foward one version"} :chevron_right))
 
         (ui/toolbar-action {:disabled at-end?
-                            :onClick  #(fp/transact! this `[(reset-app ~{:app target-app :target-state app-state})])}
+                            :onClick  #(fp/transact! this `[(reset-app ~{:target-state app-state})])}
           (ui/icon {:title "Reset App To This State"} :settings_backup_restore))
 
         (ui/toolbar-action {:onClick #(let [content (-> this fp/get-reconciler fp/app-state deref
