@@ -6,7 +6,8 @@ jobs:
     steps:
       - checkout
       - run: npm install 
-      - run: lein doo firefox automated-tests once
+      - run: shadow-cljs compile test-ci
+      - run: karma start --single-run
 workflows:
   version: 2
   fullstack:
