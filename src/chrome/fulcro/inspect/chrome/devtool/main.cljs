@@ -25,14 +25,20 @@
     (css/style-element this)
     (multi-inspector/multi-inspector root)))
 
-(def app-id-key :fulcro.inspect.core/app-id)
+(def app-uuid-key :fulcro.inspect.core/app-uuid)
 
 (defonce global-inspector* (atom nil))
+
+(def current-tab-id js/chrome.devtools.inspectedWindow.tabId)
+
+(defn post-message [port type data]
+  (.postMessage port #js {:fulcro-inspect-devtool-message (encode/write {:type type :data data :timestamp (js/Date.)})
+                          :tab-id                         current-tab-id}))
 
 (comment
   (-> @global-inspector* :reconciler fp/app-state deref
       (db.h/get-in-path [::data-history/history-id
-                         [app-id-key "add-item-demo"]
+                         [app-uuid-key "add-item-demo"]
                          ::data-history/watcher
                          :fulcro.inspect.ui.data-watcher/root-data
                          :fulcro.inspect.ui.data-viewer/content
@@ -61,27 +67,26 @@
            (mapv ::inspector/name) set))
 
 (defn dedupe-name [name]
-  (let [ids-in-use (inspector-app-names)]
-    (loop [new-id name]
-      (if (contains? ids-in-use new-id)
-        (recur (inc-id new-id))
-        new-id))))
+  (let [names-in-use (inspector-app-names)]
+    (loop [new-name name]
+      (if (contains? names-in-use new-name)
+        (recur (inc-id new-name))
+        new-name))))
 
-(defn start-app [{:fulcro.inspect.core/keys   [app-id]
-                  :fulcro.inspect.remote/keys [initial-state app-name]
+(defn start-app [{:fulcro.inspect.core/keys   [app-id app-uuid]
+                  :fulcro.inspect.remote/keys [initial-state]
                   ::keys                      [port]}]
   (let [inspector     @global-inspector*
-        app-name      (dedupe-name app-name)
         new-inspector (-> (fp/get-initial-state inspector/Inspector initial-state)
-                          (assoc ::inspector/id app-id)
-                          (assoc ::inspector/name app-name)
+                          (assoc ::inspector/id app-uuid)
+                          (assoc ::inspector/name (dedupe-name app-id))
                           ;(assoc ::inspector/target-app target-app)
-                          (assoc-in [::inspector/app-state ::data-history/history-id] [app-id-key app-id])
-                          (assoc-in [::inspector/app-state ::data-history/snapshots] (storage/tget [::data-history/snapshots (ui.h/normalize-name app-name)] []))
-                          (assoc-in [::inspector/network ::network/history-id] [app-id-key app-id])
-                          (assoc-in [::inspector/element ::element/panel-id] [app-id-key app-id])
+                          (assoc-in [::inspector/app-state ::data-history/history-id] [app-uuid-key app-uuid])
+                          (assoc-in [::inspector/app-state ::data-history/snapshots] (storage/tget [::data-history/snapshots app-id] []))
+                          (assoc-in [::inspector/network ::network/history-id] [app-uuid-key app-uuid])
+                          (assoc-in [::inspector/element ::element/panel-id] [app-uuid-key app-uuid])
                           ;(assoc-in [::inspector/element ::element/target-reconciler] (:reconciler target-app))
-                          (assoc-in [::inspector/transactions ::transactions/tx-list-id] [app-id-key app-id]))]
+                          (assoc-in [::inspector/transactions ::transactions/tx-list-id] [app-uuid-key app-uuid]))]
 
     (fp/transact! (:reconciler inspector) [::multi-inspector/multi-inspector "main"]
       [`(multi-inspector/add-inspector ~new-inspector)])
@@ -113,18 +118,14 @@
 
         nil))))
 
-(def current-tab-id js/chrome.devtools.inspectedWindow.tabId)
-
 (defn event-loop [app]
   (js/console.log "LISTEN TO PORT")
   (let [port (js/chrome.runtime.connect #js {:name "fulcro-inspect-devtool"})]
-    (js/console.log "REGISTER PING")
     (.addListener (.-onMessage port) #(handle-loop-event port %))
 
     (.postMessage port #js {:name   "init"
                             :tab-id current-tab-id})
-    (.postMessage port #js {:fulcro-inspect-devtool-message (encode/write {:type ::ping :data {:foo "bar"}})
-                            :tab-id                         current-tab-id})))
+    (post-message port :fulcro.inspect.client/request-page-apps {})))
 
 (defn start-global-inspector [options]
   (let [app  (fulcro/new-fulcro-client

@@ -11,24 +11,33 @@
 (defonce started?* (atom false))
 (defonce apps* (atom {}))
 
-(def app-id-key :fulcro.inspect.core/app-id)
+(def app-uuid-key :fulcro.inspect.core/app-uuid)
 
 (defn post-message [type data]
   (.postMessage js/window #js {:fulcro-inspect-remote-message (encode/write {:type type :data data :timestamp (js/Date.)})} "*"))
+
+(declare handle-devtool-message)
+
+(defn event-data [event]
+  (some-> event (gobj/getValueByKeys "data" "fulcro-inspect-devtool-message") encode/read))
 
 (defn listen-local-messages []
   (.addEventListener js/window "message"
     (fn [event]
       (when (and (= (.-source event) js/window)
                  (gobj/getValueByKeys event "data" "fulcro-inspect-devtool-message"))
-        (js/console.log "DEVTOOL MESSAGE" event)))
+        (js/console.log "DEVTOOL EVENT" event)
+        (handle-devtool-message (event-data event))))
     false))
 
 (defn find-remote-server []
   )
 
-(defn app-name [reconciler]
-  (or (some-> reconciler fp/app-state deref app-id-key)
+(defn app-uuid [reconciler]
+  (some-> reconciler fp/app-state deref app-uuid-key))
+
+(defn app-id [reconciler]
+  (or (some-> reconciler fp/app-state deref :fulcro.inspect.core/app-id)
       (some-> reconciler fp/app-root (gobj/get "displayName") symbol)
       (some-> reconciler fp/app-root fp/react-type (gobj/get "displayName") symbol)))
 
@@ -46,12 +55,12 @@
     (post-message ::ping {:msg-id (random-uuid)})))
 
 (defn update-inspect-state [app-id state]
-  (transact! [::data-history/history-id [app-id-key app-id]]
+  (transact! [::data-history/history-id [app-uuid-key app-id]]
              [`(data-history/set-content ~state) ::data-history/history]))
 
 (defn inspect-app [target-app]
   (let [state* (some-> target-app :reconciler :config :state)
-        app-id (app-name (:reconciler target-app))]
+        app-id (app-uuid (:reconciler target-app))]
 
     (inspect-network-init (-> target-app :networking :remote) target-app)
 
@@ -66,9 +75,9 @@
     (let [tx     (-> (merge info (select-keys env [:old-state :new-state :ref :component]))
                      (update :component #(gobj/get (fp/react-type %) "displayName"))
                      (set/rename-keys {:ref :ident-ref}))
-          app-id (app-name reconciler)]
+          app-id (app-uuid reconciler)]
       (if (-> reconciler fp/app-state deref ::initialized)
-        (transact! [:fulcro.inspect.ui.transactions/tx-list-id [app-id-key app-id]]
+        (transact! [:fulcro.inspect.ui.transactions/tx-list-id [app-uuid-key app-id]]
                    [`(fulcro.inspect.ui.transactions/add-tx ~tx) :fulcro.inspect.ui.transactions/tx-list])))))
 
 ;;; network
@@ -131,8 +140,8 @@
   ([remote network]
    (let [ts {::transform-query
              (fn [{::keys [request-id app]} edn]
-               (let [app-id (app-name (:reconciler app))]
-                 (transact! [::network/history-id [app-id-key app-id]]
+               (let [app-id (app-uuid (:reconciler app))]
+                 (transact! [::network/history-id [app-uuid-key app-id]]
                             [`(network/request-start ~{::network/remote      remote
                                                        ::network/request-id  request-id
                                                        ::network/request-edn edn})]))
@@ -140,16 +149,16 @@
 
              ::transform-response
              (fn [{::keys [request-id app]} response]
-               (let [app-id (app-name (:reconciler app))]
-                 (transact! [::network/history-id [app-id-key app-id]]
+               (let [app-id (app-uuid (:reconciler app))]
+                 (transact! [::network/history-id [app-uuid-key app-id]]
                             [`(network/request-finish ~{::network/request-id   request-id
                                                         ::network/response-edn response})]))
                response)
 
              ::transform-error
              (fn [{::keys [request-id app]} error]
-               (let [app-id (app-name (:reconciler app))]
-                 (transact! [::network/history-id [app-id-key app-id]]
+               (let [app-id (app-uuid (:reconciler app))]
+                 (transact! [::network/history-id [app-uuid-key app-id]]
                             [`(network/request-finish ~{::network/request-id request-id
                                                         ::network/error      error})]))
                error)}]
@@ -166,6 +175,16 @@
        :else
        (js/console.warn "Invalid network" {:network network})))))
 
+(defn handle-devtool-message [{:keys [type data]}]
+  (case type
+    :fulcro.inspect.client/request-page-apps
+    (doseq [{:keys [reconciler]} (vals @apps*)]
+      (post-message ::init-app {app-uuid-key    (app-uuid reconciler)
+                                ::app-name      (app-id reconciler)
+                                ::initial-state @(fp/app-state reconciler)}))
+
+    (js/console.log "Unknown message" type)))
+
 (defn install [_]
   (js/document.documentElement.setAttribute "__fulcro-inspect-remote-installed__" true)
 
@@ -180,14 +199,14 @@
 
        ::fulcro/app-started
        (fn [{:keys [reconciler] :as app}]
-         (let [state* (some-> reconciler fp/app-state)
-               app-id (random-uuid)]
-           (post-message ::init-app {app-id-key      app-id
-                                     ::app-name      (app-name reconciler)
-                                     ::initial-state @state*})
+         (let [state*   (some-> reconciler fp/app-state)
+               app-uuid (random-uuid)]
+           (post-message ::init-app {app-uuid-key                app-uuid
+                                     :fulcro.inspect.core/app-id (app-id reconciler)
+                                     ::initial-state             @state*})
 
-           (swap! apps* assoc app-id app)
-           (swap! state* assoc app-id-key app-id)
+           (swap! apps* assoc app-uuid app)
+           (swap! state* assoc app-uuid-key app-uuid)
 
            (inspect-app app))
          app)

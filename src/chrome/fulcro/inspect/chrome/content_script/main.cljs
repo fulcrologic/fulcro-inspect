@@ -24,7 +24,7 @@
       (fn [msg]
         (cond
           (gobj/getValueByKeys msg "fulcro-inspect-devtool-message")
-          (js/console.log "BG MESSAGE" msg)
+          (.postMessage js/window msg "*")
 
           :else
           (when-let [ch (some->> (gobj/getValueByKeys msg "__fulcro-insect-msg-id")
