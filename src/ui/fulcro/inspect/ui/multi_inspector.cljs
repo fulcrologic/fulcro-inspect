@@ -78,7 +78,7 @@
           (dom/div :.label "App")
           (dom/select {:value    (pr-str (::inspector/id current-app))
                        :onChange #(fp/transact! this `[(set-app {::inspector/id ~(read-string (.. % -target -value))})])}
-            (for [{::inspector/keys [id name]} (sort-by ::inspector/name inspectors)]
+            (for [{::inspector/keys [id name]} (sort-by (comp str ::inspector/name) inspectors)]
               (dom/option {:key   id
                            :value (pr-str id)}
                 (str name)))))))))
