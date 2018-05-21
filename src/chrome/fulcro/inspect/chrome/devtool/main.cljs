@@ -76,7 +76,7 @@
         new-name))))
 
 (defn start-app [{:fulcro.inspect.core/keys   [app-id app-uuid]
-                  :fulcro.inspect.remote/keys [initial-state]}]
+                  :fulcro.inspect.client/keys [initial-state]}]
   (let [inspector     @global-inspector*
         new-inspector (-> (fp/get-initial-state inspector/Inspector initial-state)
                           (assoc ::inspector/id app-uuid)
@@ -93,7 +93,7 @@
 
     new-inspector))
 
-(defn tx-run [{:fulcro.inspect.remote/keys [tx tx-ref]}]
+(defn tx-run [{:fulcro.inspect.client/keys [tx tx-ref]}]
   (let [{:keys [reconciler]} @global-inspector*]
     (if tx-ref
       (fp/transact! reconciler tx-ref tx)
@@ -107,13 +107,13 @@
   (when-let [{:keys [type data]} (event-data event)]
     (let [data (assoc data ::port port)]
       (case type
-        :fulcro.inspect.remote/init-app
+        :fulcro.inspect.client/init-app
         (start-app data)
 
-        :fulcro.inspect.remote/transact-client
+        :fulcro.inspect.client/transact-client
         (tx-run data)
 
-        :fulcro.inspect.remote/reset
+        :fulcro.inspect.client/reset
         (reset-inspector)
 
         nil))))

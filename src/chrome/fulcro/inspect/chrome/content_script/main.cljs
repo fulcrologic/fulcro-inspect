@@ -41,7 +41,7 @@
         (envelope-ack
           #js {:fulcro-inspect-remote-message
                (encode/write
-                 {:type :fulcro.inspect.remote/reset
+                 {:type :fulcro.inspect.client/reset
                   :data {}})}))
 
       (.addEventListener js/window "message"

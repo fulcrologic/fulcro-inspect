@@ -40,13 +40,20 @@
   (action [{:keys [state ref] :as env}]
     (let [history (get-in @state ref)]
       (when (not= current-index (::current-index history))
-        (let [content                 (get-in history [::history current-index ::state])
-              history-view-state-path (conj (fp/get-ident domv/DOMHistoryView {}) :app-state)]
-          (if (::show-dom-preview? history)
-            (swap! state assoc-in history-view-state-path content))
+        (let [content (get-in history [::history current-index ::state])]
           (h/swap-entity! env assoc ::current-index current-index)
           (watcher/update-state (assoc env :ref (::watcher history)) content)))))
-  (refresh [env] [:ui/historical-dom-view]))
+  (refresh [env] [:ui/historical-dom-view])
+  (remote [{:keys [ref state] :as env}]
+    (let [history (get-in @state ref)]
+      (if (::show-dom-preview? history)
+        (-> (db.h/remote-mutation env 'show-dom-preview)
+            (assoc-in [:params :state] (get-in history [::history current-index ::state])))
+        false))))
+
+(fm/defmutation hide-dom-preview [_]
+  (remote [env]
+    (db.h/remote-mutation env 'hide-dom-preview)))
 
 (fm/defmutation reset-app [_]
   (action [{:keys [state ref] :as env}]
@@ -177,7 +184,7 @@
                                          :cursor     "pointer"
                                          :width      "1px"}]
                    [(gs/> :.snapshots (gs/div (gs/nth-child "odd"))) {:background "#f5f5f5"}]]
-   :css-include   [ui/CSS watcher/DataWatcher domv/DOMHistoryView Snapshot]}
+   :css-include   [ui/CSS watcher/DataWatcher Snapshot]}
   (let [at-end?   (= (dec (count history)) current-index)
         app-state (-> watcher ::watcher/root-data :fulcro.inspect.ui.data-viewer/content)]
     (dom/div :.container
@@ -189,19 +196,16 @@
                       :type     "checkbox"}))
 
         (ui/toolbar-action {:disabled (= 0 current-index)
-                            :onClick  #(fp/transact! this (cond-> `[(navigate-history ~{::current-index (dec current-index)})]
-                                                            (-> this fp/props ::show-dom-preview?) (conj `(domv/show-dom-preview {}))))}
+                            :onClick  #(fp/transact! this `[(navigate-history ~{::current-index (dec current-index)})])}
           (ui/icon {:title "Back one version"} :chevron_left))
 
         (dom/input {:type      "range" :min "0" :max (dec (count history))
                     :value     (str current-index)
-                    :onMouseUp (fn [] (fp/transact! this `[(domv/hide-dom-preview {})]))
-                    :onChange  #(fp/transact! this (cond-> `[(navigate-history {::current-index ~(js/parseInt (.. % -target -value))})]
-                                                     (-> this fp/props ::show-dom-preview?) (conj `(domv/show-dom-preview {}))))})
+                    :onMouseUp (fn [] (fp/transact! this `[(hide-dom-preview {})]))
+                    :onChange  #(fp/transact! this `[(navigate-history {::current-index ~(js/parseInt (.. % -target -value))})])})
 
         (ui/toolbar-action {:disabled at-end?
-                            :onClick  #(fp/transact! this (cond-> `[(navigate-history ~{::current-index (inc current-index)})]
-                                                            (-> this fp/props ::show-dom-preview?) (conj `(domv/show-dom-preview {}))))}
+                            :onClick  #(fp/transact! this `[(navigate-history ~{::current-index (inc current-index)})])}
           (ui/icon {:title "Foward one version"} :chevron_right))
 
         (ui/toolbar-action {:disabled at-end?
@@ -224,13 +228,12 @@
 
         (if (and show-snapshots? (seq snapshots))
           (dom/div :.snapshots
-            #_
-            (ui/toolbar {}
-              (dom/div {:className (:flex ui/scss)})
-              (ui/toolbar-action {:disabled true}
-                (ui/icon {:title "Not implemented yet."} :file_upload))
-              (ui/toolbar-action {:disabled true}
-                (ui/icon {:title "Not implemented yet."} :file_download)))
+            #_(ui/toolbar {}
+                (dom/div {:className (:flex ui/scss)})
+                (ui/toolbar-action {:disabled true}
+                  (ui/icon {:title "Not implemented yet."} :file_upload))
+                (ui/toolbar-action {:disabled true}
+                  (ui/icon {:title "Not implemented yet."} :file_download)))
             (for [s (sort-by ::snapshot-label #(compare %2 %) snapshots)]
               (snapshot s {::current?           (= (get-in watcher [::watcher/root-data ::data-viewer/content])
                                                   (get s ::snapshot-db))
