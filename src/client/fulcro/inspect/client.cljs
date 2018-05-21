@@ -8,7 +8,9 @@
             [fulcro.inspect.ui.element-picker :as picker]
             [fulcro.inspect.remote.transit :as encode]
             [fulcro.inspect.ui.helpers :as ui.h]
-            [goog.object :as gobj]))
+            [fulcro.inspect.ui.dom-history-viewer :as dom-history]
+            [goog.object :as gobj]
+            [fulcro.client.localized-dom :as dom]))
 
 (defonce started?* (atom false))
 (defonce tools-app* (atom nil))
@@ -54,7 +56,7 @@
                      [`(fulcro.inspect.ui.data-history/set-content ~state) :fulcro.inspect.ui.data-history/history]))
 
 (defn inspect-app [{:keys [reconciler] :as app}]
-  (let [state* (some-> app :reconciler :config :state)
+  (let [state*   (some-> app :reconciler :config :state)
         app-uuid (random-uuid)]
 
     (inspect-network-init (-> app :networking :remote) app)
@@ -217,7 +219,31 @@
              (inspect-transact! [:fulcro.inspect.ui.element/panel-id [:fulcro.inspect.core/app-uuid app-uuid]]
                                 [`(fm/set-props {:ui/picking? false})])))}))
 
+    :fulcro.inspect.client/show-dom-preview
+    (let [{:fulcro.inspect.core/keys [app-uuid]} data
+          app-state              (:state data)
+          reconciler             (some-> @apps* (get app-uuid) :reconciler)
+          app-root-class         (fp/react-type (fp/app-root reconciler))
+          app-root-class-factory (fp/factory app-root-class)
+          root-query             (fp/get-query app-root-class app-state)
+          view-tree              (fp/db->tree root-query app-state app-state)
+          data                   (assoc data :state (vary-meta view-tree assoc :render-fn app-root-class-factory))]
+      (fp/transact! (:reconciler @tools-app*) [::dom-history/dom-viewer :singleton] [`(dom-history/show-dom-preview ~data)]))
+
+    :fulcro.inspect.client/hide-dom-preview
+    (fp/transact! (:reconciler @tools-app*) [::dom-history/dom-viewer :singleton] [`(dom-history/hide-dom-preview {})])
+
     (js/console.log "Unknown message" type)))
+
+(fp/defsc ClientRoot [this {:keys [history]}]
+  {:initial-state {:history {}}
+   :ident         (fn [] [::root "main"])
+   :query         [{:history (fp/get-query dom-history/DOMHistoryView)}]
+   :css-include   [picker/MarkerCSS dom-history/DOMHistoryView]}
+
+  (dom/div
+    (css/style-element this)
+    (dom-history/ui-dom-history-view history)))
 
 (defn install [_]
   (js/document.documentElement.setAttribute "__fulcro-inspect-remote-installed__" true)
@@ -227,11 +253,10 @@
 
     (reset! started?* true)
 
-    (css/upsert-css "fulcro-inspect-marker" picker/MarkerCSS)
-
-    (reset! tools-app*
-      (fulcro/new-fulcro-client
-        {}))
+    (let [app  (fulcro/new-fulcro-client)
+          node (js/document.createElement "div")]
+      (js/document.body.appendChild node)
+      (reset! tools-app* (fulcro/mount app ClientRoot node)))
 
     (fulcro/register-tool
       {::fulcro/tool-id

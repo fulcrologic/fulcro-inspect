@@ -26,6 +26,16 @@
   (fn [{:keys [send-message]} input]
     (send-message :fulcro.inspect.client/pick-element input)))
 
+(defmutation 'show-dom-preview
+  {}
+  (fn [{:keys [send-message]} input]
+    (send-message :fulcro.inspect.client/show-dom-preview input)))
+
+(defmutation 'hide-dom-preview
+  {}
+  (fn [{:keys [send-message]} input]
+    (send-message :fulcro.inspect.client/hide-dom-preview input)))
+
 (def parser
   (p/parser {::p/env     {::p/reader             [p/map-reader pc/all-async-readers]
                           ::pc/resolver-dispatch resolver-fn
