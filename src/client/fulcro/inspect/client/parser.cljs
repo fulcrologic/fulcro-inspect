@@ -1,4 +1,4 @@
-(ns fulcro.inspect.remote.parser
+(ns fulcro.inspect.client.parser
   (:require [com.wsscode.pathom.core :as p]
             [com.wsscode.pathom.connect :as pc]
             [com.wsscode.pathom.profile :as pp]))

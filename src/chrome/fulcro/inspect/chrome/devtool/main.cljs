@@ -12,11 +12,10 @@
             [fulcro.inspect.ui.element :as element]
             [fulcro.inspect.ui.network :as network]
             [fulcro.inspect.ui.transactions :as transactions]
-            [fulcro.inspect.remote.parser :as ui-parser]
+            [fulcro.inspect.client.parser :as ui-parser]
             [fulcro.client.localized-dom :as dom]
             [fulcro.inspect.remote.transit :as encode]
-            [fulcro.inspect.helpers :as db.h]
-            [fulcro.inspect.ui.helpers :as ui.h]))
+            [fulcro.inspect.helpers :as db.h]))
 
 (fp/defsc GlobalRoot [this {:keys [ui/root]}]
   {:initial-state (fn [params] {:ui/root (fp/get-initial-state multi-inspector/MultiInspector params)})

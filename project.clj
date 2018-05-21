@@ -13,7 +13,7 @@
                  [lein-doo "0.1.7" :scope "test"]
                  [fulcrologic/fulcro-spec "2.1.0-1" :scope "test" :exclusions [fulcrologic/fulcro]]]
 
-  :source-paths ["src/remote"]
+  :source-paths ["src/client"]
 
   :figwheel {:server-port 3389}
 
@@ -24,7 +24,7 @@
         :paths {:karma "node_modules/karma/bin/karma"}}
 
   :cljsbuild {:builds [{:id "noop"
-                        :source-paths ["src/remote" "src/chrome" "src/electron" "src/ui" "devcards"]}]}
+                        :source-paths ["src/client" "src/chrome" "src/electron" "src/ui" "devcards"]}]}
 
   :profiles {:dev {:plugins      [[lein-cljsbuild "1.1.7"]
                                   [lein-doo "0.1.8"]]

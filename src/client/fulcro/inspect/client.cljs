@@ -1,4 +1,4 @@
-(ns fulcro.inspect.remote
+(ns fulcro.inspect.client
   (:require [clojure.set :as set]
             [fulcro-css.css :as css]
             [fulcro.client :as fulcro]
