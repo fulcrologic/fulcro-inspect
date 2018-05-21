@@ -8,13 +8,12 @@
                  [org.clojure/clojurescript "1.9.946" :scope "provided"]
                  [fulcrologic/fulcro "2.5.2" :scope "provided"]
                  [com.wsscode/pathom "2.0.1"]
-                 [com.taoensso/sente "1.12.0"]
 
                  [org.clojure/tools.namespace "0.3.0-alpha4" :scope "test"]
                  [lein-doo "0.1.7" :scope "test"]
                  [fulcrologic/fulcro-spec "2.1.0-1" :scope "test" :exclusions [fulcrologic/fulcro]]]
 
-  :source-paths ["src/remote" "src/ui" "src/chrome" "src/electron"]
+  :source-paths ["src/remote"]
 
   :figwheel {:server-port 3389}
 
@@ -23,6 +22,9 @@
   ;; CI tests: Set up to support karma runner.
   :doo {:build "automated-tests"
         :paths {:karma "node_modules/karma/bin/karma"}}
+
+  :cljsbuild {:builds [{:id "noop"
+                        :source-paths ["src/remote" "src/chrome" "src/electron" "src/ui" "devcards"]}]}
 
   :profiles {:dev {:plugins      [[lein-cljsbuild "1.1.7"]
                                   [lein-doo "0.1.8"]]
