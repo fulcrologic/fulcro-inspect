@@ -10,7 +10,8 @@
     [goog.dom :as gdom]
     [goog.style :as gstyle]
     [fulcro.client.dom :as dom]
-    [fulcro.client.primitives :as fp :refer [get-query]]))
+    [fulcro.client.primitives :as fp :refer [get-query]]
+    [fulcro.inspect.ui.helpers :as ui.h]))
 
 (fp/defui ^:once Details
   static fp/InitialAppState
@@ -109,46 +110,54 @@
           (gobj/set "className" (-> MarkerCSS css/get-classnames :label))
           (->> (gdom/appendChild js/document.body))))))
 
-(defn react-instance [node]
+(defn react-raw-instance [node]
   (if-let [instance-key (->> (gobj/getKeys node)
                              (filter #(str/starts-with? % "__reactInternalInstance$"))
                              (first))]
     (gobj/get node instance-key)))
 
-(defn ensure-reconciler [x app]
+(defn react-instance [node]
+  (if-let [raw (react-raw-instance node)]
+    (or (gobj/getValueByKeys raw "_currentElement" "_owner" "_instance") ; react < 16
+        (gobj/getValueByKeys raw "return" "stateNode") ; react >= 16
+        )))
+
+(defn ensure-reconciler [x app-uuid]
   (try
     (when (some-> (fp/get-reconciler x) fp/app-state deref
-                  :fulcro.inspect.core/app-id (= app))
+                  :fulcro.inspect.core/app-uuid (= app-uuid))
       x)
     (catch :default _)))
 
-(defn pick-element [{::keys [on-pick app-id]
+(defn pick-element [{::keys [on-pick]
+                     :fulcro.inspect.core/keys [app-uuid]
                      :or    {on-pick identity}}]
   (let [marker       (marker-element)
         marker-label (marker-label-element)
         current      (atom nil)
         over-handler (fn [e]
                        (let [target (.-target e)]
-                         (when-let [instance (some-> target
-                                                     (react-instance)
-                                                     (gobj/getValueByKeys #js ["_currentElement" "_owner" "_instance"])
-                                                     (ensure-reconciler app-id))]
-                           (.stopPropagation e)
-                           (reset! current instance)
-                           (gdom/setTextContent marker-label (-> instance fp/react-type (gobj/get "displayName")))
+                         (loop [target target]
+                           (if target
+                             (if-let [instance (some-> target react-instance (ensure-reconciler app-uuid))]
+                               (do
+                                 (.stopPropagation e)
+                                 (reset! current instance)
+                                 (gdom/setTextContent marker-label (ui.h/react-display-name instance))
 
-                           (let [target' (js/ReactDOM.findDOMNode instance)
-                                 offset  (gstyle/getPageOffset target')
-                                 size    (gstyle/getSize target')]
-                             (gstyle/setStyle marker-label
-                               #js {:left (str (.-x offset) "px")
-                                    :top  (str (- (.-y offset) 36) "px")})
+                                 (let [target' (js/ReactDOM.findDOMNode instance)
+                                       offset  (gstyle/getPageOffset target')
+                                       size    (gstyle/getSize target')]
+                                   (gstyle/setStyle marker-label
+                                     #js {:left (str (.-x offset) "px")
+                                          :top  (str (- (.-y offset) 36) "px")})
 
-                             (gstyle/setStyle marker
-                               #js {:width  (str (.-width size) "px")
-                                    :height (str (.-height size) "px")
-                                    :left   (str (.-x offset) "px")
-                                    :top    (str (.-y offset) "px")})))))
+                                   (gstyle/setStyle marker
+                                     #js {:width  (str (.-width size) "px")
+                                          :height (str (.-height size) "px")
+                                          :left   (str (.-x offset) "px")
+                                          :top    (str (.-y offset) "px")})))
+                               (recur (gdom/getParentElement target)))))))
         pick-handler (fn self []
                        (on-pick @current)
 
@@ -173,7 +182,7 @@
       10)))
 
 (defn inspect-component [comp]
-  {::display-name (some-> comp fp/react-type (gobj/get "displayName"))
+  {::display-name (some-> comp ui.h/react-display-name)
    ::props        (fp/props comp)
    ::ident        (try
                     (fp/get-ident comp)
@@ -188,6 +197,10 @@
     (h/swap-in! env [::details] assoc ::ident nil)
     (h/remove-edge! env ::details)
     (h/create-entity! env Details details :set ::details)))
+
+(mutations/defmutation remote-pick-element [_]
+  (remote [env]
+    (h/remote-mutation env 'pick-element)))
 
 (fp/defui ^:once Panel
   static fp/InitialAppState
@@ -217,12 +230,7 @@
         (ui/toolbar {}
           (ui/toolbar-action (cond-> {:onClick #(do
                                                   (mutations/set-value! this :ui/picking? true)
-                                                  (pick-element {::app-id  (try (second panel-id) (catch :default _))
-                                                                 ::on-pick (fn [comp]
-                                                                             (if comp
-                                                                               (let [details (inspect-component comp)]
-                                                                                 (fp/transact! this [`(set-element ~details)]))
-                                                                               (mutations/set-value! this :ui/picking? false)))}))}
+                                                  (fp/transact! this [`(remote-pick-element {})]))}
                                picking? (assoc :className (:icon-active css)))
             (ui/icon :gps_fixed)))
         (if (::details props)

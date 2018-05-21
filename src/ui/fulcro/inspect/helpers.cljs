@@ -210,3 +210,7 @@
         (f s app))
       state
       apps)))
+
+(defn remote-mutation [{:keys [ast ref]} key]
+  (-> (assoc ast :key key)
+      (assoc-in [:params :fulcro.inspect.core/app-uuid] (ref-app-uuid ref))))

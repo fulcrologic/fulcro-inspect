@@ -42,3 +42,7 @@
        ([props] (real-factory props {}))
        ([props computed]
         (factory (fp/computed props computed)))))))
+
+(defn react-display-name [element]
+  (some-> element (gobj/get "displayName") symbol)
+  (some-> element fp/react-type (gobj/get "displayName") symbol))
