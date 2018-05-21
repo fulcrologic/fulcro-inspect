@@ -107,6 +107,17 @@
      (dom/img (h/props->html {:src code} props))
      (apply fulcro-icon name (apply concat props)))))
 
+(def arrow-right (icon {:style {:margin "-3px -5px"
+                                   :width "21px"
+                                   :height "20px"
+                                   :transform "rotate(-90deg)"}
+                        :title "Expand"} :arrow_drop_down))
+
+(def arrow-down (icon {:style {:margin "-3px -5px"
+                                  :width "21px"
+                                  :height "20px"}
+                       :title "Collapse"} :arrow_drop_down))
+
 (fp/defsc Row [this props]
   {:css [[:.container {:display "flex"}]]}
   (dom/div :.container props (fp/children this)))

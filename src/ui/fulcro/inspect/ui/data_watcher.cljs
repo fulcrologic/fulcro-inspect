@@ -5,7 +5,8 @@
             [fulcro-css.css :as css]
             [fulcro.client.dom :as dom]
             [fulcro.client.primitives :as fp]
-            [fulcro.inspect.ui.helpers :as h]))
+            [fulcro.inspect.ui.helpers :as h]
+            [fulcro.inspect.ui.core :as ui]))
 
 (declare WatchPin)
 
@@ -75,7 +76,7 @@
       (dom/div #js {:className (:toggle-row css)}
         (dom/div #js {:className (:toggle-button css)
                       :onClick   #(mutations/set-value! this :ui/expanded? (not expanded?))}
-          (if expanded? "▼" "▶"))
+          (if expanded? ui/arrow-down ui/arrow-right))
         (dom/div #js {:className (:path css)
                       :onClick   #(if delete-item (delete-item %))}
           (pr-str watch-path)))
