@@ -103,7 +103,6 @@
   (-> @global-inspector* :reconciler fp/app-state (reset! (fp/tree->db GlobalRoot (fp/get-initial-state GlobalRoot {}) true))))
 
 (defn handle-remote-message [port event]
-  (js/console.log "DEV EVENT" event)
   (when-let [{:keys [type data]} (event-data event)]
     (let [data (assoc data ::port port)]
       (case type
@@ -119,7 +118,6 @@
         nil))))
 
 (defn event-loop [app]
-  (js/console.log "LISTEN TO PORT")
   (let [port (js/chrome.runtime.connect #js {:name "fulcro-inspect-devtool"})]
     (.addListener (.-onMessage port) #(handle-remote-message port %))
 
@@ -135,7 +133,6 @@
       (go
         (try
           (ok (<! (parser {:send-message (fn [type data]
-                                           (js/console.log "SEND MESSAGE" @port*)
                                            (post-message @port* type data))} edn)))
           (catch :default e
             (error e)))))))

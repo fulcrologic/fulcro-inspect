@@ -63,9 +63,7 @@
               (when (= c timer)
                 (reset! port* (setup-new-port))
                 (recur))))
-          (recur)))
-
-      (js/console.log "LOOP READY")))
+          (recur)))))
 
   :ready)
 

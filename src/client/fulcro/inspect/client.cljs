@@ -31,7 +31,6 @@
     (fn [event]
       (when (and (= (.-source event) js/window)
                  (gobj/getValueByKeys event "data" "fulcro-inspect-devtool-message"))
-        (js/console.log "DEVTOOL EVENT" event)
         (handle-devtool-message (event-data event))))
     false))
 

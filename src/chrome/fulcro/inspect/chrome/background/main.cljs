@@ -6,7 +6,6 @@
 (defonce tools-conns* (atom {}))
 
 (defn handle-devtool-message [devtool-port message port]
-  (js/console.log "DEVTOOL MESSAGE" message @tools-conns* port)
   (cond
     (= "init" (gobj/get message "name"))
     (let [tab-id (gobj/get message "tab-id")]
@@ -18,7 +17,6 @@
       (.postMessage remote-port message))))
 
 (defn handle-remote-message [ch message port]
-  (js/console.log "REMOTE MESSAGE" message @tools-conns* port)
   (if (gobj/getValueByKeys message "fulcro-inspect-remote-message")
     (let [tab-id (gobj/getValueByKeys port "sender" "tab" "id")]
       (put! ch {:tab-id tab-id :message message})
@@ -29,8 +27,6 @@
 
 (js/chrome.runtime.onConnect.addListener
   (fn [port]
-    (js/console.log "NEW CONNECTION" port)
-
     (case (gobj/get port "name")
       "fulcro-inspect-remote"
       (let [background->devtool-chan (chan (async/sliding-buffer 1024))
