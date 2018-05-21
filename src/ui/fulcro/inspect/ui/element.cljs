@@ -11,7 +11,8 @@
     [goog.style :as gstyle]
     [fulcro.client.dom :as dom]
     [fulcro.client.primitives :as fp :refer [get-query]]
-    [fulcro.inspect.ui.helpers :as ui.h]))
+    [fulcro.inspect.ui.helpers :as ui.h]
+    [fulcro.inspect.remote.transit :as encode]))
 
 (fp/defui ^:once Details
   static fp/InitialAppState
@@ -183,7 +184,7 @@
 
 (defn inspect-component [comp]
   {::display-name (some-> comp ui.h/react-display-name)
-   ::props        (fp/props comp)
+   ::props        (encode/sanitize (fp/props comp))
    ::ident        (try
                     (fp/get-ident comp)
                     (catch :default _ nil))
