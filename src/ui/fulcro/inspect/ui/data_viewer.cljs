@@ -68,14 +68,22 @@
           (str i)))
       (render-data (update input :path conj i) x))))
 
+(def arrow-right (ui/icon {:style {:margin "-3px -5px"
+                                   :width "21px"
+                                   :height "20px"
+                                   :transform "rotate(-90deg)"}} :arrow_drop_down))
+(def arrow-down (ui/icon {:style {:margin "-3px -5px"
+                                  :width "21px"
+                                  :height "20px"}} :arrow_drop_down))
+
 (defn render-sequential [{:keys [css expanded path toggle open-close static?] :as input} content]
   (dom/div #js {:className (:data-row css)}
     (if (and (not static?) (> (count content) vec-max-inline))
       (dom/div #js {:onClick   #(toggle % path)
                     :className (:toggle-button css)}
         (if (expanded path)
-          "▼"
-          "▶")))
+          arrow-down
+          arrow-right)))
 
     (cond
       (expanded path)
@@ -89,7 +97,7 @@
           (dom/div #js {:key i :className (:list-inline-item css)}
             (render-data (update input :path conj i) x)))
         (if (> (count content) sequential-max-inline)
-          (dom/div #js {:className (:list-inline-item css)} "…"))
+          (dom/div #js {:className (:list-inline-item css)} "..."))
         (second open-close)))))
 
 (defn render-vector [input content]
@@ -109,8 +117,8 @@
       (dom/div #js {:onClick   #(toggle % path)
                     :className (:toggle-button css)}
         (if (expanded path)
-          "▼"
-          "▶")))
+          arrow-down
+          arrow-right)))
 
     (cond
       (empty? content)
@@ -161,11 +169,11 @@
         (if (> (count content) map-max-inline)
           ", ")
         (if (> (count content) map-max-inline)
-          (dom/div #js {:className (:list-inline-item css)} "…"))
+          (dom/div #js {:className (:list-inline-item css)} "..."))
         "}")
 
       :else
-      "{…}")))
+      "{...}")))
 
 (defn render-data [{:keys [css] :as input} content]
   (let [input (update input :expanded #(or % {}))]

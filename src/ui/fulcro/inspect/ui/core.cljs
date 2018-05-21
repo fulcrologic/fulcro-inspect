@@ -76,7 +76,7 @@
 (defn fulcro-icon
   "Gets an SVG representation of the given icon. See material-icon-paths."
   [icon-name
-   & {:keys [width height modifiers states className onClick title]}]
+   & {:keys [width height modifiers states className onClick title style]}]
   (assert (keyword? icon-name) "Icon name must be a keyword")
   (let [add-class  (fn [attrs])
         path-check (icon-name icons/material-icon-paths)
@@ -94,7 +94,8 @@
                     :height          "24"
                     :aria-labelledby "title"
                     :role            "img"
-                    :viewBox         "0 0 24 24"}
+                    :viewBox         "0 0 24 24"
+                    :style           style}
                    onClick (assoc :onClick #(onClick))))
         (dom/title nil (str title))
         (dom/path #js {:d path-check})))))

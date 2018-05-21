@@ -39,12 +39,12 @@
 
         (swap! remote-conns* assoc tab-id port)
 
-        (.. port -onMessage (addListener listener))
-        (.. port -onDisconnect
-          (addListener (fn [port]
-                         (.. port -onMessage (removeListener listener))
-                         (swap! remote-conns* dissoc tab-id)
-                         (async/close! background->devtool-chan))))
+        (.addListener (gobj/get port "onMessage") listener)
+        (.addListener (gobj/get port "onDisconnect")
+          (fn [port]
+            (.removeListener port "onMessage" listener)
+            (swap! remote-conns* dissoc tab-id)
+            (async/close! background->devtool-chan)))
 
         (go-loop []
           (when-let [{:keys [tab-id message] :as data} (<! background->devtool-chan)]
@@ -57,13 +57,13 @@
 
       "fulcro-inspect-devtool"
       (let [listener (partial handle-devtool-message port)]
-        (.. port -onMessage (addListener listener))
-        (.. port -onDisconnect
-          (addListener (fn [port]
-                         (.. port -onMessage (removeListener listener))
-                         (if-let [port-key (->> @tools-conns*
-                                                (keep (fn [[k v]] (if (= v port) k)))
-                                                (first))]
-                           (swap! tools-conns* dissoc port-key))))))
+        (.addListener (gobj/get port "onMessage") listener)
+        (.addListener (gobj/get port "onDisconnect")
+          (fn [port]
+            (.removeListener port "onMessage" listener)
+            (if-let [port-key (->> @tools-conns*
+                                   (keep (fn [[k v]] (if (= v port) k)))
+                                   (first))]
+              (swap! tools-conns* dissoc port-key)))))
 
       (js/console.log "Ignoring connection" (gobj/get port "name")))))
