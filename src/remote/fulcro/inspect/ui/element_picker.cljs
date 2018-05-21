@@ -4,7 +4,7 @@
             [goog.object :as gobj]
             [goog.dom :as gdom]
             [goog.style :as gstyle]
-            [cljsjs.react]
+            [fulcro.client.dom]
             [fulcro.client.primitives :as fp :refer [get-query]]
             [fulcro.inspect.ui.helpers :as ui.h]
             [fulcro.inspect.remote.transit :as encode]))
