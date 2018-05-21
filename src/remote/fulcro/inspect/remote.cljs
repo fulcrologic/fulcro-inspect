@@ -53,14 +53,23 @@
   (inspect-transact! [:fulcro.inspect.ui.data-history/history-id [app-uuid-key app-id]]
                      [`(fulcro.inspect.ui.data-history/set-content ~state) :fulcro.inspect.ui.data-history/history]))
 
-(defn inspect-app [target-app]
-  (let [state* (some-> target-app :reconciler :config :state)
-        app-id (app-uuid (:reconciler target-app))]
+(defn inspect-app [{:keys [reconciler] :as app}]
+  (let [state* (some-> app :reconciler :config :state)
+        app-uuid (random-uuid)]
 
-    (inspect-network-init (-> target-app :networking :remote) target-app)
+    (inspect-network-init (-> app :networking :remote) app)
 
-    (add-watch state* app-id
-      #(update-inspect-state app-id %4))))
+    (add-watch state* app-uuid
+      #(update-inspect-state app-uuid %4))
+
+    (swap! apps* assoc app-uuid app)
+    (swap! state* assoc app-uuid-key app-uuid)
+
+    (post-message ::init-app {app-uuid-key                app-uuid
+                              :fulcro.inspect.core/app-id (app-id reconciler)
+                              ::initial-state             @state*})
+
+    app))
 
 (defn inspect-tx [{:keys [reconciler] :as env} info]
   (if (fp/app-root reconciler)
@@ -229,18 +238,7 @@
        ::fulcro-inspect-remote
 
        ::fulcro/app-started
-       (fn [{:keys [reconciler] :as app}]
-         (let [state*   (some-> reconciler fp/app-state)
-               app-uuid (random-uuid)]
-           (post-message ::init-app {app-uuid-key                app-uuid
-                                     :fulcro.inspect.core/app-id (app-id reconciler)
-                                     ::initial-state             @state*})
-
-           (swap! apps* assoc app-uuid app)
-           (swap! state* assoc app-uuid-key app-uuid)
-
-           (inspect-app app))
-         app)
+       inspect-app
 
        ::fulcro/network-wrapper
        (fn [networks]
