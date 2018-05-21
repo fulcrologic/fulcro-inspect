@@ -60,18 +60,16 @@
     (inspect-network-init (-> target-app :networking :remote) target-app)
 
     (add-watch state* app-id
-      #(update-inspect-state app-id %4))
-
-    (swap! state* assoc ::initialized true)
-    #_new-inspector))
+      #(update-inspect-state app-id %4))))
 
 (defn inspect-tx [{:keys [reconciler] :as env} info]
-  (if (fp/app-root reconciler) ; ensure app is initialized
+  (if (fp/app-root reconciler)
     (let [tx     (-> (merge info (select-keys env [:old-state :new-state :ref :component]))
                      (update :component #(gobj/get (fp/react-type %) "displayName"))
                      (set/rename-keys {:ref :ident-ref}))
           app-id (app-uuid reconciler)]
-      (if (-> reconciler fp/app-state deref ::initialized)
+      ; ensure app is initialized
+      (if (-> reconciler fp/app-state deref :fulcro.inspect.core/app-uuid)
         (inspect-transact! [:fulcro.inspect.ui.transactions/tx-list-id [app-uuid-key app-id]]
                            [`(fulcro.inspect.ui.transactions/add-tx ~tx) :fulcro.inspect.ui.transactions/tx-list])))))
 
