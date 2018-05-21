@@ -201,7 +201,7 @@
       (picker/pick-element
         {:fulcro.inspect.core/app-uuid
          app-uuid
-         :fulcro.inspect.ui.element/on-pick
+         ::picker/on-pick
          (fn [comp]
            (if comp
              (let [details (picker/inspect-component comp)]

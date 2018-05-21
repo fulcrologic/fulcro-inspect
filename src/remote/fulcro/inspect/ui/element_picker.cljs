@@ -135,11 +135,11 @@
       10)))
 
 (defn inspect-component [comp]
-  {::display-name (some-> comp ui.h/react-display-name)
-   ::props        (encode/sanitize (fp/props comp))
-   ::ident        (try
-                    (fp/get-ident comp)
-                    (catch :default _ nil))
-   ::query        (try
-                    (some-> comp fp/react-type fp/get-query)
-                    (catch :default _ nil))})
+  {:fulcro.inspect.ui.element/display-name (some-> comp ui.h/react-display-name)
+   :fulcro.inspect.ui.element/props        (encode/sanitize (fp/props comp))
+   :fulcro.inspect.ui.element/ident        (try
+                                             (fp/get-ident comp)
+                                             (catch :default _ nil))
+   :fulcro.inspect.ui.element/query        (try
+                                             (some-> comp fp/react-type fp/get-query)
+                                             (catch :default _ nil))})
