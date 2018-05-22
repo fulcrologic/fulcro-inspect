@@ -148,7 +148,7 @@
           {:keys [ui/diff-computed? old-state new-state]} (get-in @state tx-ref)]
       (if-not diff-computed?
         (let [[add rem] (data/diff new-state old-state)
-              env' (assoc env :ident-ref tx-ref)]
+              env' (assoc env :ref tx-ref)]
           (h/create-entity! env' data-viewer/DataViewer add :set :ui/diff-add-view)
           (h/create-entity! env' data-viewer/DataViewer rem :set :ui/diff-rem-view)
           (swap! state update-in tx-ref assoc :ui/diff-computed? true)))
