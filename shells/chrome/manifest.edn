@@ -1,7 +1,12 @@
 {:manifest_version        2
  :name                    "Fulcro Inspect"
  :version                 "2.2.0"
- :description             "Developer tool to assist Fulcro applicatioins"
+ :description             "Developer tool to inspect Fulcro applications"
+
+ :icons                   {"16"  "icon-16.png"
+                           "48"  "icon-48.png"
+                           "128" "icon-128.png"}
+
  :content-scripts         [{:matches      ["<all_urls>"]
                             :shadow/entry fulcro.inspect.chrome.content-script.main
                             :run_at       "document_idle"}]
