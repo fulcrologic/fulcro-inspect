@@ -8,7 +8,7 @@
   (let [reader (ft/reader)]
     (t/read reader str)))
 
-(defn sanitize [x]
+(defn sanitize-fns [x]
   (walk/prewalk
     (fn [x]
       (if (fn? x)
@@ -16,8 +16,26 @@
         x))
     x))
 
+(defn sanitize [writer x]
+  (let [warned (atom #{})]
+    (walk/postwalk
+      (fn [x]
+        (try
+          (t/write writer x)
+          x
+          (catch :default _
+            (when-not (contains? @warned x)
+              (js/console.warn "Fulcro inspect failed to encode" x "\nThis means Fulcro Inspect had to walk your data to sanitize information, remove non serializable values on your app db to avoid slow encodings.")
+              (swap! warned conj x))
+
+            (pr-str x))))
+      x)))
+
 (defn write [x]
   (let [writer (ft/writer)]
-    (t/write writer x)))
+    (try
+      (t/write writer x)
+      (catch :default _
+        (t/write writer (sanitize writer x))))))
 
 (extend-type ty/UUID IUUID)

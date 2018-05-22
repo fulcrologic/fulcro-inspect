@@ -136,7 +136,7 @@
 
 (defn inspect-component [comp]
   {:fulcro.inspect.ui.element/display-name (some-> comp ui.h/react-display-name)
-   :fulcro.inspect.ui.element/props        (encode/sanitize (fp/props comp))
+   :fulcro.inspect.ui.element/props        (encode/sanitize-fns (fp/props comp))
    :fulcro.inspect.ui.element/ident        (try
                                              (fp/get-ident comp)
                                              (catch :default _ nil))

@@ -190,7 +190,7 @@
     (let [{:keys                     [target-state]
            :fulcro.inspect.core/keys [app-uuid]} data]
       (if-let [{:keys [reconciler]} (get @apps* app-uuid)]
-        (do
+        (let [target-state (assoc target-state :fulcro.inspect.core/app-uuid app-uuid)]
           (some-> reconciler fp/app-state (reset! target-state))
           (js/setTimeout #(fp/force-root-render! reconciler) 10))
         (js/console.log "Reset app on invalid uuid" app-uuid)))
