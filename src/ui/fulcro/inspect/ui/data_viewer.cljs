@@ -1,9 +1,7 @@
 (ns fulcro.inspect.ui.data-viewer
   (:require [fulcro.client.mutations :as mutations]
-            [fulcro-css.css :as css]
             [fulcro.inspect.ui.core :as ui]
-            [fulcro.inspect.helpers :as h]
-            [fulcro.client.dom :as dom]
+            [fulcro.client.localized-dom :as dom]
             [fulcro.client.primitives :as fp]))
 
 (declare DataViewer)
@@ -219,85 +217,75 @@
    :font-size   "12px"
    :white-space "nowrap"})
 
-(fp/defui ^:once DataViewer
-  static fp/InitialAppState
-  (initial-state [_ content] {::id       (random-uuid)
-                              ::content  content
-                              ::expanded {}})
+(fp/defsc DataViewer
+  [this
+   {::keys [content expanded elide-one? static?] :as props}
+   {::keys [path-action]}
+   css]
+  {:initial-state (fn [content] {::id       (random-uuid)
+                                 ::content  content
+                                 ::expanded {}})
+   :ident         [::id ::id]
+   :query         [::id ::content ::expanded]
+   :css           [[:.container css-code-font]
+                   [:.nil {:color "#808080"}]
+                   [:.string {:color "#c41a16"}]
+                   [:.keyword {:color "#881391"}]
+                   [:.symbol {:color "#134f91"}]
+                   [:.number {:color "#1c00cf"}]
+                   [:.boolean {:color "#009999"}]
 
-  static fp/Ident
-  (ident [_ props] [::id (::id props)])
+                   [:.data-row {:display     "flex"
+                                :margin-left "3px"}]
 
-  static fp/IQuery
-  (query [_] [::id ::content ::expanded])
+                   [:.list-inline {:display "flex"}]
+                   [:.list-inline-item {:margin "0 4px"}]
 
-  static css/CSS
-  (local-rules [_]
-    [[:.container css-code-font]
-     [:.nil {:color "#808080"}]
-     [:.string {:color "#c41a16"}]
-     [:.keyword {:color "#881391"}]
-     [:.symbol {:color "#134f91"}]
-     [:.number {:color "#1c00cf"}]
-     [:.boolean {:color "#009999"}]
+                   [:.list-container {:padding          "3px 12px"
+                                      :border-top       "2px solid rgba(60, 90, 60, 0.1)"
+                                      :margin           "0px 1px 1px"
+                                      :background-color "rgba(100, 255, 100, 0.08)"}]
 
-     [:.data-row {:display     "flex"
-                  :margin-left "3px"}]
+                   [:.toggle-button css-triangle]
 
-     [:.list-inline {:display "flex"}]
-     [:.list-inline-item {:margin "0 4px"}]
+                   [:.list-item {:display     "flex"
+                                 :align-items "flex-start"}]
+                   [:.list-item-index {:background    "#dddddd"
+                                       :border-right  "2px solid rgba(100, 100, 100, 0.2)"
+                                       :min-width     "35px"
+                                       :margin-bottom "1px"
+                                       :margin-right  "5px"
+                                       :padding       "0 3px"}]
 
-     [:.list-container {:padding          "3px 12px"
-                        :border-top       "2px solid rgba(60, 90, 60, 0.1)"
-                        :margin           "0px 1px 1px"
-                        :background-color "rgba(100, 255, 100, 0.08)"}]
+                   [:.map-container {:padding               "3px 12px"
+                                     :border-top            "2px solid rgba(60, 90, 60, 0.1)"
+                                     :margin                "0px 1px 1px"
+                                     :background-color      "rgba(100, 255, 100, 0.08)"
 
-     [:.toggle-button css-triangle]
+                                     :display               "grid"
+                                     :grid-template-columns "max-content 1fr"}]
 
-     [:.list-item {:display     "flex"
-                   :align-items "flex-start"}]
-     [:.list-item-index {:background    "#dddddd"
-                         :border-right  "2px solid rgba(100, 100, 100, 0.2)"
-                         :min-width     "35px"
-                         :margin-bottom "1px"
-                         :margin-right  "5px"
-                         :padding       "0 3px"}]
+                   [:.map-expanded-item {:grid-column-start "1"
+                                         :grid-column-end   "3"}]
 
-     [:.map-container {:padding               "3px 12px"
-                       :border-top            "2px solid rgba(60, 90, 60, 0.1)"
-                       :margin                "0px 1px 1px"
-                       :background-color      "rgba(100, 255, 100, 0.08)"
+                   [:.map-inline-key-item {:margin-left "4px"}]
+                   [:.map-inline-value-item {:margin-left "8px"}]
 
-                       :display               "grid"
-                       :grid-template-columns "max-content 1fr"}]
+                   [:.path-action {:cursor "pointer"}
+                    [:&:hover
+                     [:div {:text-decoration "underline"}]]]]}
 
-     [:.map-expanded-item {:grid-column-start "1"
-                           :grid-column-end   "3"}]
-
-     [:.map-inline-key-item {:margin-left "4px"}]
-     [:.map-inline-value-item {:margin-left "8px"}]
-
-     [:.path-action {:cursor "pointer"}
-      [:&:hover
-       [:div {:text-decoration "underline"}]]]])
-  (include-children [_] [])
-
-  Object
-  (render [this]
-    (let [{::keys [content expanded elide-one? static?] :as props} (fp/props this)
-          {::keys [path-action]} (fp/get-computed props)
-          css (css/get-classnames DataViewer)]
-      (dom/div #js {:className (:container css)}
-        (render-data {:expanded    expanded
-                      :static?     static?
-                      :elide-one?  elide-one?
-                      :toggle      #(fp/transact! this [`(toggle {::path       ~%2
-                                                                  ::propagate? ~(or (.-altKey %)
-                                                                                    (.-metaKey %))})])
-                      :css         css
-                      :path        []
-                      :path-action path-action}
-          content)))))
+  (dom/div :.container
+    (render-data {:expanded    expanded
+                  :static?     static?
+                  :elide-one?  elide-one?
+                  :toggle      #(fp/transact! this [`(toggle {::path       ~%2
+                                                              ::propagate? ~(or (.-altKey %)
+                                                                                (.-metaKey %))})])
+                  :css         css
+                  :path        []
+                  :path-action path-action}
+      content)))
 
 (let [factory (fp/factory DataViewer)]
   (defn data-viewer [props & [computed]]
