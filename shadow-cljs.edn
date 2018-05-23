@@ -35,11 +35,12 @@
                                         :devtools   {:devtools-url "http://localhost:9630"}
                                         :modules    {:main {:entries [fulcro.inspect.chrome.background.main]}}}
 
-                :chrome-devtool        {:target     :browser
-                                        :output-dir "shells/chrome/js/devtool"
-                                        :asset-path "js/devtool"
-                                        :devtools   {:devtools-url "http://localhost:9630"}
-                                        :modules    {:main {:entries [fulcro.inspect.chrome.devtool.main]}}}
+                :chrome-devtool        {:target           :browser
+                                        :output-dir       "shells/chrome/js/devtool"
+                                        :asset-path       "js/devtool"
+                                        :compiler-options {:closure-output-charset "US-ASCII"}
+                                        :devtools         {:devtools-url "http://localhost:9630"}
+                                        :modules          {:main {:entries [fulcro.inspect.chrome.devtool.main]}}}
 
                 :chrome-content-script {:target    :chrome-extension
                                         :output-to "shells/chrome/js/content-script/main.js"
