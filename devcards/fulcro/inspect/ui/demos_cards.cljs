@@ -2,11 +2,17 @@
   (:require
     [devcards.core :refer-macros [defcard]]
     [fulcro.client.cards :refer-macros [defcard-fulcro]]
+    [fulcro.i18n :as i18n :refer [tr]]
     [fulcro.client.primitives :as fp]
     [fulcro.client.localized-dom :as dom]
     [fulcro.client.mutations :as mutations]
     [fulcro.inspect.card-helpers :as card.helpers]
     [fulcro.inspect.helpers :as h]))
+
+(defn message-formatter [{::i18n/keys [localized-format-string locale format-options]}]
+  (let [locale-str (name locale)
+        formatter  (js/IntlMessageFormat. localized-format-string locale-str)]
+    (.format formatter (clj->js format-options))))
 
 (fp/defsc ListItem
   [this {::keys [title]}]
@@ -36,8 +42,11 @@
                 :value title
                 :onChange #(mutations/set-string! this ::title :event %)})
     (dom/button {:onClick #(fp/transact! this [`(add-item {::title ~title})])}
-      "Add item")
+                (tr "Add item"))
     (mapv list-item items)))
 
 (defcard-fulcro add-item-demo
-  (card.helpers/make-root AddItemDemo "add-item-demo"))
+  (card.helpers/make-root AddItemDemo "add-item-demo")
+  {}
+  {:fulcro {:reconciler-options {:shared {::i18n/message-formatter message-formatter}
+                                 :shared-fn ::i18n/current-locale}}})

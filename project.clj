@@ -26,10 +26,11 @@
   :cljsbuild {:builds [{:id "noop"
                         :source-paths ["src/client" "src/chrome" "src/electron" "src/ui" "devcards"]}]}
 
-  :profiles {:dev {:plugins      [[lein-cljsbuild "1.1.7"]
-                                  [lein-doo "0.1.8"]]
-
+  :profiles {:dev {:plugins [[lein-cljsbuild "1.1.7"]
+                             [lein-doo "0.1.8"]]
+                   :source-paths ["src" "devcards"]
                    :dependencies [[devcards "0.2.3" :exclusions [cljsjs/react cljsjs/react-dom]]
                                   [figwheel-sidecar "0.5.14" :exclusions [org.clojure/tools.nrepl]]
                                   [binaryage/devtools "0.9.9"]
+                                  [com.cemerick/piggieback "0.2.2"]
                                   [org.clojure/test.check "0.9.0"]]}})
