@@ -9,11 +9,12 @@
             [fulcro.inspect.ui.network :as network]
             [fulcro.inspect.ui.transactions :as transactions]
             [fulcro.inspect.ui.i18n :as i18n]
+            [fulcro.inspect.ui.oge :as oge]
             [fulcro.client.dom :as dom]
             [fulcro.client.primitives :as fp]
             [fulcro.inspect.helpers :as db.h]))
 
-(fp/defsc Inspector [this {::keys   [app-state tab element network transactions i18n]
+(fp/defsc Inspector [this {::keys   [app-state tab element network transactions i18n oge]
                            :ui/keys [more-open?]
                            :as      props} _ css]
   {:initial-state
@@ -28,6 +29,7 @@
       ::network      (fp/get-initial-state network/NetworkHistory nil)
       ::i18n         (fp/get-initial-state i18n/TranslationsViewer nil)
       ::transactions (fp/get-initial-state transactions/TransactionList [])
+      ::oge          (fp/get-initial-state oge/OgeView {})
       :ui/more-open? false})
 
    :ident
@@ -40,7 +42,8 @@
     {::element (fp/get-query element/Panel)}
     {::network (fp/get-query network/NetworkHistory)}
     {::i18n (fp/get-query i18n/TranslationsViewer)}
-    {::transactions (fp/get-query transactions/TransactionList)}]
+    {::transactions (fp/get-query transactions/TransactionList)}
+    {::oge (fp/get-query oge/OgeView)}]
 
    :css
    [[:.container {:display        "flex"
@@ -96,7 +99,8 @@
                   :margin "0 5px"}]]
 
    :css-include
-   [data-history/DataHistory network/NetworkHistory transactions/TransactionList element/Panel i18n/TranslationsViewer]}
+   [data-history/DataHistory network/NetworkHistory transactions/TransactionList
+    element/Panel i18n/TranslationsViewer oge/OgeView]}
 
   (let [tab-item (fn [{:keys [title html-title disabled? page]}]
                    (dom/div #js {:className (cond-> (:tab css)
@@ -113,8 +117,8 @@
         (tab-item {:title "Element" :page ::page-element})
         (tab-item {:title "Transactions" :page ::page-transactions})
         (tab-item {:title "Network" :page ::page-network})
+        (tab-item {:title "OgE" :page ::page-oge})
         (tab-item {:title "i18n" :page ::page-i18n})
-        (tab-item {:title "OgE" :disabled? true})
         (dom/div #js {:className (:flex css)})
         #_(dom/div #js {:className (:more css)
                         :onClick   (fn [e]
@@ -143,9 +147,13 @@
         (dom/div #js {:className (:tab-content css)}
           (network/network-history network))
 
+        ::page-oge
+        (dom/div #js {:className (:tab-content css)}
+          (oge/oge-view oge))
+
         ::page-i18n
         (dom/div #js {:className (:tab-content css)}
-                 (i18n/translations-viewer i18n))
+          (i18n/translations-viewer i18n))
 
         (dom/div #js {:className (:tab-content css)}
           "Invalid page " (pr-str tab))))))

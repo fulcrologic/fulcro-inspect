@@ -52,7 +52,7 @@
 
 (defn update-inspect-state [app-id state]
   (inspect-transact! [:fulcro.inspect.ui.data-history/history-id [app-uuid-key app-id]]
-                     [`(fulcro.inspect.ui.data-history/set-content ~state) :fulcro.inspect.ui.data-history/history]))
+    [`(fulcro.inspect.ui.data-history/set-content ~state) :fulcro.inspect.ui.data-history/history]))
 
 (defn inspect-app [{:keys [reconciler] :as app}]
   (let [state*   (some-> app :reconciler :config :state)
@@ -81,7 +81,7 @@
       ; ensure app is initialized
       (if (-> reconciler fp/app-state deref :fulcro.inspect.core/app-uuid)
         (inspect-transact! [:fulcro.inspect.ui.transactions/tx-list-id [app-uuid-key app-id]]
-                           [`(fulcro.inspect.ui.transactions/add-tx ~tx) :fulcro.inspect.ui.transactions/tx-list])))))
+          [`(fulcro.inspect.ui.transactions/add-tx ~tx) :fulcro.inspect.ui.transactions/tx-list])))))
 
 ;;; network
 
@@ -145,25 +145,25 @@
              (fn [{::keys [request-id app]} edn]
                (let [app-id (app-uuid (:reconciler app))]
                  (inspect-transact! [:fulcro.inspect.ui.network/history-id [app-uuid-key app-id]]
-                                    [`(fulcro.inspect.ui.network/request-start ~{:fulcro.inspect.ui.network/remote      remote
-                                                                                 :fulcro.inspect.ui.network/request-id  request-id
-                                                                                 :fulcro.inspect.ui.network/request-edn edn})]))
+                   [`(fulcro.inspect.ui.network/request-start ~{:fulcro.inspect.ui.network/remote      remote
+                                                                :fulcro.inspect.ui.network/request-id  request-id
+                                                                :fulcro.inspect.ui.network/request-edn edn})]))
                edn)
 
              ::transform-response
              (fn [{::keys [request-id app]} response]
                (let [app-id (app-uuid (:reconciler app))]
                  (inspect-transact! [:fulcro.inspect.ui.network/history-id [app-uuid-key app-id]]
-                                    [`(fulcro.inspect.ui.network/request-finish ~{:fulcro.inspect.ui.network/request-id   request-id
-                                                                                  :fulcro.inspect.ui.network/response-edn response})]))
+                   [`(fulcro.inspect.ui.network/request-finish ~{:fulcro.inspect.ui.network/request-id   request-id
+                                                                 :fulcro.inspect.ui.network/response-edn response})]))
                response)
 
              ::transform-error
              (fn [{::keys [request-id app]} error]
                (let [app-id (app-uuid (:reconciler app))]
                  (inspect-transact! [:fulcro.inspect.ui.network/history-id [app-uuid-key app-id]]
-                                    [`(fulcro.inspect.ui.network/request-finish ~{:fulcro.inspect.ui.network/request-id request-id
-                                                                                  :fulcro.inspect.ui.network/error      error})]))
+                   [`(fulcro.inspect.ui.network/request-finish ~{:fulcro.inspect.ui.network/request-id request-id
+                                                                 :fulcro.inspect.ui.network/error      error})]))
                error)}]
      (cond
        (implements? f.network/FulcroNetwork network)
@@ -214,9 +214,9 @@
            (if comp
              (let [details (picker/inspect-component comp)]
                (inspect-transact! [:fulcro.inspect.ui.element/panel-id [:fulcro.inspect.core/app-uuid app-uuid]]
-                                  [`(fulcro.inspect.ui.element/set-element ~details)]))
+                 [`(fulcro.inspect.ui.element/set-element ~details)]))
              (inspect-transact! [:fulcro.inspect.ui.element/panel-id [:fulcro.inspect.core/app-uuid app-uuid]]
-                                [`(fm/set-props {:ui/picking? false})])))}))
+               [`(fm/set-props {:ui/picking? false})])))}))
 
     :fulcro.inspect.client/show-dom-preview
     (let [{:fulcro.inspect.core/keys [app-uuid]} data
@@ -231,6 +231,16 @@
 
     :fulcro.inspect.client/hide-dom-preview
     (fp/transact! (:reconciler @tools-app*) [::dom-history/dom-viewer :singleton] [`(dom-history/hide-dom-preview {})])
+
+    :fulcro.inspect.client/network-request
+    (let [{:keys                          [query]
+           :fulcro.inspect.ui-parser/keys [msg-id]
+           :fulcro.inspect.core/keys      [app-uuid]} data]
+      (js/console.log "GOT NETWORK" data)
+      (when-let [app (get @apps* app-uuid)]
+        (js/console.log "Network tx" query app msg-id)
+        (post-message :fulcro.inspect.client/message-response {:fulcro.inspect.ui-parser/msg-id msg-id
+                                                               :fulcro.inspect.ui-parser/msg-response {:hello "World"}})))
 
     (js/console.log "Unknown message" type)))
 
