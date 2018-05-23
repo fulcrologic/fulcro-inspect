@@ -10,7 +10,11 @@
     [fulcro.client.mutations :as mutations]
     [clojure.test.check.generators :as gen]
     [fulcro.client.dom :as dom]
-    [cljs.spec.alpha :as s]))
+    [cljs.spec.alpha :as s]
+    [com.wsscode.pathom.connect :as pc]
+    [com.wsscode.pathom.core :as p]
+    [com.wsscode.pathom.profile :as pp]
+    [com.wsscode.pathom.fulcro.network :as pfn]))
 
 (def request-samples
   [{:in  [:hello :world]
@@ -222,15 +226,43 @@
       (dom/div #js {:key react-key}
         (name-loader root)))))
 
+(def indexes (atom {}))
+
+(defmulti resolver-fn pc/resolver-dispatch)
+(def defresolver (pc/resolver-factory resolver-fn indexes))
+
+(defmulti mutation-fn pc/mutation-dispatch)
+(def defmutation (pc/mutation-factory mutation-fn indexes))
+
+(defresolver 'name
+  {::pc/output [::name]}
+  (fn [_ _] {::name (gen/generate (s/gen ::name))}))
+
+(defresolver 'id-name
+  {::pc/input  #{::id}
+   ::pc/output [::name]}
+  (fn [_ _]
+    {::name (gen/generate (s/gen ::name))}))
+
+(def parser
+  (p/async-parser {::p/env     {::p/reader             [p/map-reader pc/all-async-readers]
+                                ::pc/resolver-dispatch resolver-fn
+                                ::pc/mutate-dispatch   mutation-fn
+                                ::pc/indexes           @indexes}
+                   ::p/mutate  pc/mutate-async
+                   ::p/plugins [p/request-cache-plugin
+                                pp/profile-plugin]}))
+
+(comment
+  (cljs.core.async/go
+    (js/console.log
+      (cljs.core.async/<!
+        (parser {} [{[::id "bla"] [::name]}])))))
+
 (defcard-fulcro network-sampler
   NameLoaderRoot
   {}
-  {:fulcro {:networking
-            (reify
-              f.network/FulcroNetwork
-              (send [this edn ok error]
-                (ok {[::id "name-loader"] {::name (gen/generate (s/gen ::name))}}))
-              (start [_]))}})
+  {:fulcro {:networking (pfn/local-network parser)}})
 
 (defcard-fulcro network-sampler-remote-i
   NameLoaderRoot
@@ -240,7 +272,7 @@
               f.network/FulcroRemoteI
               (transmit [this {::f.network/keys [edn ok-handler]}]
                 (ok-handler {:transaction edn
-                             :body {[::id "name-loader"] {::name (gen/generate (s/gen ::name))}}}))
+                             :body        {[::id "name-loader"] {::name (gen/generate (s/gen ::name))}}}))
               (abort [_ _]))}})
 
 (css/upsert-css "network" NetworkRoot)
