@@ -236,11 +236,16 @@
     (let [{:keys                          [query]
            :fulcro.inspect.ui-parser/keys [msg-id]
            :fulcro.inspect.core/keys      [app-uuid]} data]
-      (js/console.log "GOT NETWORK" data)
       (when-let [app (get @apps* app-uuid)]
-        (js/console.log "Network tx" query app msg-id)
-        (post-message :fulcro.inspect.client/message-response {:fulcro.inspect.ui-parser/msg-id msg-id
-                                                               :fulcro.inspect.ui-parser/msg-response {:hello "World"}})))
+        (let [remote (-> app :networking :remote)]
+          (when (implements? f.network/FulcroNetwork remote)
+            (f.network/send remote query
+              (fn [res]
+                (post-message :fulcro.inspect.client/message-response {:fulcro.inspect.ui-parser/msg-id msg-id
+                                                                               :fulcro.inspect.ui-parser/msg-response res}))
+              (fn [err]
+                (post-message :fulcro.inspect.client/message-response {:fulcro.inspect.ui-parser/msg-id msg-id
+                                                                       :fulcro.inspect.ui-parser/msg-response err})))))))
 
     (js/console.log "Unknown message" type)))
 
