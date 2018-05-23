@@ -34,6 +34,13 @@
                                        :external-config      {:fulcro.inspect/config {:launch-keystroke "ctrl-f"}}
                                        :parallel-build       true
                                        :source-map-timestamp true}}
+                       {:id           "i18n"
+                        :source-paths ["src" "devcards"]
+                        :compiler     {:main           fulcro.inspect.devcards
+                                       :devcards       true
+                                       :output-to      "resources/public/js/compiled/i18n.js"
+                                       :parallel-build true
+                                       :optimizations  :whitespace}}
                        {:id           "automated-tests"
                         :source-paths ["src" "test"]
                         :compiler     {:main          fulcro.inspect.ci-test-main
@@ -52,10 +59,11 @@
                                        :preloads      [devtools.preload fulcro.inspect.preload]
                                        :optimizations :none}}]}
 
-  :profiles {:dev {:plugins      [[lein-cljsbuild "1.1.7"]
-                                  [lein-doo "0.1.8"]]
-
+  :profiles {:dev {:plugins [[lein-cljsbuild "1.1.7"]
+                             [lein-doo "0.1.8"]]
+                   :source-paths ["src" "devcards"]
                    :dependencies [[devcards "0.2.3" :exclusions [cljsjs/react cljsjs/react-dom]]
                                   [figwheel-sidecar "0.5.14" :exclusions [org.clojure/tools.nrepl]]
                                   [binaryage/devtools "0.9.9"]
+                                  [com.cemerick/piggieback "0.2.2"]
                                   [org.clojure/test.check "0.9.0"]]}})

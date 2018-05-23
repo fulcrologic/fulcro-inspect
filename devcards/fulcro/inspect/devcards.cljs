@@ -9,6 +9,7 @@
             [fulcro.inspect.ui.element-cards]
             [fulcro.inspect.ui.network-cards]
             [fulcro.inspect.ui.transactions-cards]
+            [fulcro.inspect.ui.i18n-cards]
             [fulcro-css.css :as css]))
 
 (log/set-level :none)
