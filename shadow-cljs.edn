@@ -19,10 +19,11 @@
                                         :output-dir       "resources/public/js/devcards"
                                         :asset-path       "/js/devcards"
                                         :compiler-options {:devcards true}
-                                        :devtools         {:preloads     [devtools.preload fulcro.inspect.preload]
-                                                           :http-root    "resources/public"
-                                                           :http-port    8084
-                                                           :devtools-url "http://localhost:9630"}
+                                        :devtools         {:preloads           [devtools.preload fulcro.inspect.preload]
+                                                           :http-root          "resources/public"
+                                                           :http-port          8084
+                                                           :http-resource-root "."
+                                                           :devtools-url       "http://localhost:9630"}
                                         :modules          {:main {:entries [fulcro.inspect.devcards]}}}
 
                 :chrome                {:target        :chrome-extension
