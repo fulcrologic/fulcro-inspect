@@ -235,8 +235,10 @@
                 (ui/toolbar-action {:disabled true}
                   (ui/icon {:title "Not implemented yet."} :file_download)))
             (for [s (sort-by ::snapshot-label #(compare %2 %) snapshots)]
-              (snapshot s {::current?           (= (get-in watcher [::watcher/root-data ::data-viewer/content])
-                                                  (get s ::snapshot-db))
+              (snapshot s {::current?           (= (-> (get-in watcher [::watcher/root-data ::data-viewer/content])
+                                                       (dissoc :fulcro.inspect.core/app-uuid))
+                                                   (-> (get s ::snapshot-db)
+                                                       (dissoc :fulcro.inspect.core/app-uuid)))
                            ::on-delete-snapshot (fn [{::keys [snapshot-label] :as s}]
                                                   (if (js/confirm (str "Delete " snapshot-label " snapshot?"))
                                                     (fp/transact! this `[(delete-snapshot ~s)])))
