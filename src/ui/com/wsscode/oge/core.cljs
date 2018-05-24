@@ -139,6 +139,15 @@
 
                        :else
                        :.index-unavailable)]
+           :title (cond
+                    (fetch/loading? index-marker)
+                    "Loading index..."
+
+                    (::pc/index-io indexes)
+                    "Index ready"
+
+                    :else
+                    "Index unavailable")
            :onClick #(if-not (fetch/loading? index-marker) (update-index this))}))
       (codemirror/oge {:className           (:editor css)
                        :value               (or (str query) "")
