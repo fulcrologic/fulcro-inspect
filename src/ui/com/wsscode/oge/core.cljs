@@ -112,9 +112,10 @@
                              :background "#f6f7f8"}]
                    [:.index-state {:background    "#000"
                                    :border-radius "100%"
+                                   :cursor        "pointer"
                                    :width         "14px"
                                    :height        "14px"
-                                   :margin        "0 8px"
+                                   :margin        "3px 8px"
                                    :transition    "background 150ms"}
                     [:&.index-ready {:background "#36c74b"}]
                     [:&.index-loading {:background "#efe43b"}]
@@ -127,8 +128,6 @@
     (dom/div :.container {:className (if-not profile (:simple css))
                           :style     (clj->js style)}
       (dom/div :.title
-        (dom/button {:disabled (fetch/loading? index-marker)
-                     :onClick  #(update-index this)} "Update index")
         (dom/div :$flex)
         (dom/div :.index-state
           {:classes [(cond
@@ -139,7 +138,8 @@
                        :.index-ready
 
                        :else
-                       :.index-unavailable)]}))
+                       :.index-unavailable)]
+           :onClick #(if-not (fetch/loading? index-marker) (update-index this))}))
       (codemirror/oge {:className           (:editor css)
                        :value               (or (str query) "")
                        ::pc/indexes         (p/elide-not-found indexes)
