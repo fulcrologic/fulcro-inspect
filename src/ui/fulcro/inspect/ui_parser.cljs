@@ -26,9 +26,10 @@
           res-chan
           x
 
-          (throw (ex-info "Client request timeout" {:name    name
-                                                    :data    data
-                                                    ::msg-id msg-id})))))))
+          (throw (ex-info "Client request timeout"
+                   {:name    name
+                    :data    data
+                    ::msg-id msg-id})))))))
 
 (defresolver 'oge
   {::pc/output [:>/oge]}
