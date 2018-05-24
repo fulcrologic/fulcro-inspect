@@ -20,7 +20,15 @@
         msg-id   (random-uuid)]
     (swap! responses* assoc msg-id res-chan)
     (send-message name (assoc data ::msg-id msg-id))
-    res-chan))
+    (async/go
+      (let [[x c] (async/alts! [res-chan (async/timeout 10000)] :priority true)]
+        (case c
+          res-chan
+          x
+
+          (throw (ex-info "Client request timeout" {:name    name
+                                                    :data    data
+                                                    ::msg-id msg-id})))))))
 
 (defresolver 'oge
   {::pc/output [:>/oge]}
@@ -33,7 +41,6 @@
 (defresolver 'oge-index
   {::pc/output [::pc/indexes]}
   (fn [{:keys [query] :as env} _]
-    (js/console.log "REQUEST INDEX" query)
     (client-request env :fulcro.inspect.client/network-request
       {:query                        [{::pc/indexes query}]
        :fulcro.inspect.core/app-uuid (-> env :ast :params :fulcro.inspect.core/app-uuid)})))
