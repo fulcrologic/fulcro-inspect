@@ -9,7 +9,7 @@
             [fulcro.inspect.ui.network :as network]
             [fulcro.inspect.ui.transactions :as transactions]
             [fulcro.inspect.ui.i18n :as i18n]
-            [fulcro.inspect.ui.oge :as oge]
+            [com.wsscode.oge.core :as oge]
             [fulcro.client.dom :as dom]
             [fulcro.client.primitives :as fp]
             [fulcro.inspect.helpers :as db.h]))
@@ -29,7 +29,7 @@
       ::network      (fp/get-initial-state network/NetworkHistory nil)
       ::i18n         (fp/get-initial-state i18n/TranslationsViewer nil)
       ::transactions (fp/get-initial-state transactions/TransactionList [])
-      ::oge          (fp/get-initial-state oge/OgeView {})
+      ::oge          (fp/get-initial-state oge/Oge {})
       :ui/more-open? false})
 
    :ident
@@ -43,7 +43,7 @@
     {::network (fp/get-query network/NetworkHistory)}
     {::i18n (fp/get-query i18n/TranslationsViewer)}
     {::transactions (fp/get-query transactions/TransactionList)}
-    {::oge (fp/get-query oge/OgeView)}]
+    {::oge (fp/get-query oge/Oge)}]
 
    :css
    [[:.container {:display        "flex"
@@ -100,7 +100,7 @@
 
    :css-include
    [data-history/DataHistory network/NetworkHistory transactions/TransactionList
-    element/Panel i18n/TranslationsViewer oge/OgeView]}
+    element/Panel i18n/TranslationsViewer oge/Oge]}
 
   (let [tab-item (fn [{:keys [title html-title disabled? page]}]
                    (dom/div #js {:className (cond-> (:tab css)
@@ -149,7 +149,7 @@
 
         ::page-oge
         (dom/div #js {:className (:tab-content css)}
-          (oge/oge-view oge))
+          (oge/oge oge))
 
         ::page-i18n
         (dom/div #js {:className (:tab-content css)}

@@ -43,20 +43,20 @@
 
 (declare Oge)
 
+(defn trigger-index-load [reconciler ident]
+  (let [index-query (-> Oge fp/get-query (fp/focus-query [::pc/indexes])
+                        first ::pc/indexes)]
+    (fp/transact! reconciler ident
+      [(list 'fulcro/load {:target  (conj ident ::pc/indexes)
+                           :query   (with-meta
+                                      [{(list ::pc/indexes {:fulcro.inspect.core/app-uuid (db.h/ref-app-uuid ident)})
+                                        index-query}]
+                                      (meta (fp/get-query Oge)))
+                           :marker  (keyword "oge-index" (p/ident-value* ident))
+                           :refresh #{:ui/editor}})])))
+
 (defn update-index [this]
-  (try
-    (let [index-query (-> Oge fp/get-query (fp/focus-query [::pc/indexes])
-                          first ::pc/indexes)]
-      (fp/transact! this
-        [(list 'fulcro/load {:target  (conj (fp/get-ident this) ::pc/indexes)
-                             :query   (with-meta
-                                        [{(list ::pc/indexes {:fulcro.inspect.core/app-uuid (db.h/ref-app-uuid (fp/get-ident this))})
-                                          index-query}]
-                                        (meta (fp/get-query Oge)))
-                             :marker  (keyword "oge-index" (p/ident-value* (fp/get-ident this)))
-                             :refresh #{:ui/editor}})]))
-    (catch :default e
-      (js/console.error "Invalid query" e))))
+  (trigger-index-load (fp/get-reconciler this) (fp/get-ident this)))
 
 (fp/defsc Oge
   [this
@@ -119,6 +119,7 @@
                     [:&.index-ready {:background "#36c74b"}]
                     [:&.index-loading {:background "#efe43b"}]
                     [:&.index-unavailable {:background "#848484"}]]
+                   [:$flex {:flex "1"}]
                    [:$cm-atom-composite {:color "#ab890d"}]]
    :css-include   [ui/CSS]}
 

@@ -12,7 +12,7 @@
             [fulcro.inspect.ui.element :as element]
             [fulcro.inspect.ui.network :as network]
             [fulcro.inspect.ui.transactions :as transactions]
-            [fulcro.inspect.ui.oge :as oge]
+            [com.wsscode.oge.core :as oge]
             [fulcro.inspect.ui-parser :as ui-parser]
             [fulcro.client.localized-dom :as dom]
             [fulcro.inspect.remote.transit :as encode]
@@ -88,10 +88,12 @@
                           (assoc-in [::inspector/network ::network/history-id] [app-uuid-key app-uuid])
                           (assoc-in [::inspector/element ::element/panel-id] [app-uuid-key app-uuid])
                           (assoc-in [::inspector/transactions ::transactions/tx-list-id] [app-uuid-key app-uuid])
-                          (assoc-in [::inspector/oge ::oge/oge :oge/id] [app-uuid-key app-uuid]))]
+                          (assoc-in [::inspector/oge :oge/id] [app-uuid-key app-uuid]))]
 
     (fp/transact! (:reconciler inspector) [::multi-inspector/multi-inspector "main"]
       [`(multi-inspector/add-inspector ~new-inspector)])
+
+    (oge/trigger-index-load (:reconciler @global-inspector*) [:oge/id [app-uuid-key app-uuid]])
 
     new-inspector))
 
