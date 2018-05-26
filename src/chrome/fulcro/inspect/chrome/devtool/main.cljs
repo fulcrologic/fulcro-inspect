@@ -1,23 +1,22 @@
 (ns fulcro.inspect.chrome.devtool.main
-  (:require [fulcro.client :as fulcro]
-            [fulcro-css.css :as css]
-            [goog.object :as gobj]
-            [cljs.core.async :refer [go <! put!]]
+  (:require [cljs.core.async :refer [go <! put!]]
+            [com.wsscode.oge.core :as oge]
             [com.wsscode.pathom.fulcro.network :as pfn]
+            [fulcro-css.css :as css]
+            [fulcro.client :as fulcro]
+            [fulcro.client.localized-dom :as dom]
             [fulcro.client.primitives :as fp]
             [fulcro.inspect.lib.local-storage :as storage]
+            [fulcro.inspect.remote.transit :as encode]
+            [fulcro.inspect.ui-parser :as ui-parser]
             [fulcro.inspect.ui.data-history :as data-history]
+            [fulcro.inspect.ui.element :as element]
             [fulcro.inspect.ui.inspector :as inspector]
             [fulcro.inspect.ui.multi-inspector :as multi-inspector]
-            [fulcro.inspect.ui.element :as element]
+            [fulcro.inspect.ui.multi-oge :as multi-oge]
             [fulcro.inspect.ui.network :as network]
             [fulcro.inspect.ui.transactions :as transactions]
-            [fulcro.inspect.ui.multi-oge :as multi-oge]
-            [com.wsscode.oge.core :as oge]
-            [fulcro.inspect.ui-parser :as ui-parser]
-            [fulcro.client.localized-dom :as dom]
-            [fulcro.inspect.remote.transit :as encode]
-            [fulcro.inspect.helpers :as db.h]))
+            [goog.object :as gobj]))
 
 (fp/defsc GlobalRoot [this {:keys [ui/root]}]
   {:initial-state (fn [params] {:ui/root (fp/get-initial-state multi-inspector/MultiInspector params)})
@@ -38,21 +37,6 @@
 (defn post-message [port type data]
   (.postMessage port #js {:fulcro-inspect-devtool-message (encode/write {:type type :data data :timestamp (js/Date.)})
                           :tab-id                         current-tab-id}))
-
-(comment
-  (-> @global-inspector* :reconciler fp/app-state deref
-      (db.h/get-in-path [::data-history/history-id
-                         [app-uuid-key "add-item-demo"]
-                         ::data-history/watcher
-                         :fulcro.inspect.ui.data-watcher/root-data
-                         :fulcro.inspect.ui.data-viewer/content
-                         :fulcro.inspect.ui.demos-cards/todo-app-id])
-
-      ffirst
-      type)
-
-  (first *1)
-  (uuid? *1))
 
 (defn event-data [event]
   (some-> event (gobj/getValueByKeys "fulcro-inspect-remote-message") encode/read))
