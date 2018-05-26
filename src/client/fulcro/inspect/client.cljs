@@ -44,14 +44,14 @@
 (defn inspect-network-init [network app]
   (-> network :options ::app* (reset! app)))
 
-(defn inspect-transact!
+(defn transact-inspector!
   ([tx]
-   (post-message ::transact-client {::tx tx}))
+   (post-message ::transact-inspector {::tx tx}))
   ([ref tx]
-   (post-message ::transact-client {::tx-ref ref ::tx tx})))
+   (post-message ::transact-inspector {::tx-ref ref ::tx tx})))
 
 (defn update-inspect-state [app-id state]
-  (inspect-transact! [:fulcro.inspect.ui.data-history/history-id [app-uuid-key app-id]]
+  (transact-inspector! [:fulcro.inspect.ui.data-history/history-id [app-uuid-key app-id]]
     [`(fulcro.inspect.ui.data-history/set-content ~state) :fulcro.inspect.ui.data-history/history]))
 
 (defn inspect-app [{:keys [reconciler networking] :as app}]
@@ -82,7 +82,7 @@
           app-id (app-uuid reconciler)]
       ; ensure app is initialized
       (if (-> reconciler fp/app-state deref :fulcro.inspect.core/app-uuid)
-        (inspect-transact! [:fulcro.inspect.ui.transactions/tx-list-id [app-uuid-key app-id]]
+        (transact-inspector! [:fulcro.inspect.ui.transactions/tx-list-id [app-uuid-key app-id]]
           [`(fulcro.inspect.ui.transactions/add-tx ~tx) :fulcro.inspect.ui.transactions/tx-list])))))
 
 ;;; network
@@ -146,7 +146,7 @@
    (let [ts {::transform-query
              (fn [{::keys [request-id app]} edn]
                (let [app-uuid (app-uuid (:reconciler app))]
-                 (inspect-transact! [:fulcro.inspect.ui.network/history-id [app-uuid-key app-uuid]]
+                 (transact-inspector! [:fulcro.inspect.ui.network/history-id [app-uuid-key app-uuid]]
                    [`(fulcro.inspect.ui.network/request-start ~{:fulcro.inspect.ui.network/remote      remote
                                                                 :fulcro.inspect.ui.network/request-id  request-id
                                                                 :fulcro.inspect.ui.network/request-edn edn})]))
@@ -155,7 +155,7 @@
              ::transform-response
              (fn [{::keys [request-id app]} response]
                (let [app-uuid (app-uuid (:reconciler app))]
-                 (inspect-transact! [:fulcro.inspect.ui.network/history-id [app-uuid-key app-uuid]]
+                 (transact-inspector! [:fulcro.inspect.ui.network/history-id [app-uuid-key app-uuid]]
                    [`(fulcro.inspect.ui.network/request-finish ~{:fulcro.inspect.ui.network/request-id   request-id
                                                                  :fulcro.inspect.ui.network/response-edn response})]))
                response)
@@ -163,7 +163,7 @@
              ::transform-error
              (fn [{::keys [request-id app]} error]
                (let [app-uuid (app-uuid (:reconciler app))]
-                 (inspect-transact! [:fulcro.inspect.ui.network/history-id [app-uuid-key app-uuid]]
+                 (transact-inspector! [:fulcro.inspect.ui.network/history-id [app-uuid-key app-uuid]]
                    [`(fulcro.inspect.ui.network/request-finish ~{:fulcro.inspect.ui.network/request-id request-id
                                                                  :fulcro.inspect.ui.network/error      error})]))
                error)}]
@@ -216,9 +216,9 @@
          (fn [comp]
            (if comp
              (let [details (picker/inspect-component comp)]
-               (inspect-transact! [:fulcro.inspect.ui.element/panel-id [:fulcro.inspect.core/app-uuid app-uuid]]
+               (transact-inspector! [:fulcro.inspect.ui.element/panel-id [:fulcro.inspect.core/app-uuid app-uuid]]
                  [`(fulcro.inspect.ui.element/set-element ~details)]))
-             (inspect-transact! [:fulcro.inspect.ui.element/panel-id [:fulcro.inspect.core/app-uuid app-uuid]]
+             (transact-inspector! [:fulcro.inspect.ui.element/panel-id [:fulcro.inspect.core/app-uuid app-uuid]]
                [`(fm/set-props {:ui/picking? false})])))}))
 
     :fulcro.inspect.client/show-dom-preview

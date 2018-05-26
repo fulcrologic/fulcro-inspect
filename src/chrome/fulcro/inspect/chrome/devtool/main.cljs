@@ -100,7 +100,7 @@
         :fulcro.inspect.client/init-app
         (start-app data)
 
-        :fulcro.inspect.client/transact-client
+        :fulcro.inspect.client/transact-inspector
         (tx-run data)
 
         :fulcro.inspect.client/reset
