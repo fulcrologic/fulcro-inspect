@@ -1,4 +1,4 @@
-{:source-paths ["src/client" "src/ui" "src/chrome" "src/electron" "devcards" "test"]
+{:source-paths ["src/client" "src/ui" "src/chrome" "src/electron" "devcards" "test" "resources"]
 
  :dependencies [[org.clojure/core.async "0.4.474"]
                 [spec-coerce "1.0.0-alpha5"]
@@ -30,22 +30,12 @@
                                         :extension-dir "shells/chrome"
                                         :devtools      {:devtools-url "http://localhost:9630"}}
 
-                :chrome-background     {:target     :browser
-                                        :output-dir "shells/chrome/js/background"
-                                        :asset-path "js/background"
-                                        :devtools   {:devtools-url "http://localhost:9630"}
-                                        :modules    {:main {:entries [fulcro.inspect.chrome.background.main]}}}
-
                 :chrome-devtool        {:target           :browser
                                         :output-dir       "shells/chrome/js/devtool"
                                         :asset-path       "js/devtool"
                                         :compiler-options {:closure-output-charset "US-ASCII"}
                                         :devtools         {:devtools-url "http://localhost:9630"}
                                         :modules          {:main {:entries [fulcro.inspect.chrome.devtool.main]}}}
-
-                :chrome-content-script {:target    :chrome-extension
-                                        :output-to "shells/chrome/js/content-script/main.js"
-                                        :entry     fulcro.inspect.chrome.content-script.main}
 
                 :electron-main         {:target    :node-script
                                         :main      fulcro.inspect.electron.background.main/init

@@ -7,13 +7,24 @@
                            "48"  "icon-48.png"
                            "128" "icon-128.png"}
 
- :content-scripts         [{:matches      ["<all_urls>"]
-                            :shadow/entry fulcro.inspect.chrome.content-script.main
-                            :run_at       "document_idle"}]
+ :shadow/outputs          {:content-script
+                           {:chrome/options {:matches ["<all_urls>"]
+                                             :run_at  "document_idle"}
+                            :entries        [fulcro.inspect.chrome.content-script.main]}
+
+                           :background
+                           {:chrome/options {:persistent false}
+                            :entries        [fulcro.inspect.chrome.background.main]}}
+
  :permissions             ["file:///*" "http://*/*" "https://*/*"]
  :externally-connectable  {:ids ["*"]}
 
- :background              {:persistent   false
-                           :shadow/entry fulcro.inspect.chrome.background.main}
- :content-security-policy "script-src 'self' 'unsafe-eval'; object-src 'self'"
+ :content-security-policy ["default-src 'self';"
+                           "script-src 'self' 'unsafe-eval' http://localhost:9630;"
+                           "connect-src * data: blob: filesystem:;"
+                           "style-src 'self' data: chrome-extension-resource: 'unsafe-inline';"
+                           "img-src 'self' data: chrome-extension-resource:;"
+                           "frame-src 'self' data: chrome-extension-resource:;"
+                           "font-src 'self' data: chrome-extension-resource:;"
+                           "media-src * data: blob: filesystem:;"]
  :devtools-page           "devtools.html"}
