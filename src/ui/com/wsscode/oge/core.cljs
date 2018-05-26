@@ -15,7 +15,8 @@
             [com.wsscode.oge.ui.common :as ui]
             [fulcro.client.primitives :as fp]
             [fulcro.inspect.helpers :as db.h]
-            [fulcro.inspect.ui.helpers :as h]))
+            [fulcro.inspect.ui.helpers :as h]
+            [fulcro.inspect.ui.core :as cui]))
 
 (mutations/defmutation clear-errors [_]
   (action [{:keys [state]}]
@@ -120,6 +121,13 @@
                             :border-width "1px 0"}]
                    [:.flame {:grid-area  "flame"
                              :background "#f6f7f8"}]
+                   [:.remote-selector {:display     "flex"
+                                       :align-items "center"
+                                       :font-family cui/label-font-family
+                                       :font-size   cui/label-font-size
+                                       :color       cui/color-text-normal}]
+                   [:.remote-selector-label {:margin-right "8px"
+                                             :margin-left  "4px"}]
                    [:.index-state {:background    "#000"
                                    :border-radius "100%"
                                    :cursor        "pointer"
@@ -136,10 +144,13 @@
   (let [index-marker (get-in props [fetch/marker-table (keyword "oge-index" id)])]
     (dom/div :.container {:className (if-not profile (:simple css))}
       (dom/div :.title
-        (dom/select {:onChange #(on-switch-remote (read-string (.. % -target -value)))
-                     :value    (pr-str remote)}
-          (for [r remotes]
-            (dom/option {:key (pr-str r) :value (pr-str r)} (pr-str r))))
+        (if (> (count remotes) 1)
+          (dom/div :.remote-selector
+            (dom/div :.remote-selector-label "Remote:")
+            (dom/select {:onChange #(on-switch-remote (read-string (.. % -target -value)))
+                         :value    (pr-str remote)}
+              (for [r remotes]
+                (dom/option {:key (pr-str r) :value (pr-str r)} (pr-str r))))))
         (dom/div :.flex)
         (dom/div :.index-state
           {:classes [(cond
