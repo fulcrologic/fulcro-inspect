@@ -72,7 +72,7 @@
     ::pc/keys [indexes]
     :as       props}
    {:fulcro.inspect.client/keys [remotes]
-    :fulcro.inspect.core/keys   [app-uuid]}
+    ::keys                      [on-switch-remote]}
    css]
   {:initial-state (fn [remote] {:oge/id      (random-uuid)
                                 :oge/query   "[]"
@@ -136,7 +136,7 @@
   (let [index-marker (get-in props [fetch/marker-table (keyword "oge-index" id)])]
     (dom/div :.container {:className (if-not profile (:simple css))}
       (dom/div :.title
-        (dom/select {:onChange #(js/console.log (read-string (.. % -target -value)))
+        (dom/select {:onChange #(on-switch-remote (read-string (.. % -target -value)))
                      :value    (pr-str remote)}
           (for [r remotes]
             (dom/option {:key (pr-str r) :value (pr-str r)} (pr-str r))))

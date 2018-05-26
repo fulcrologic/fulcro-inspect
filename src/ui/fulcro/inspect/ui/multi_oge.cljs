@@ -2,7 +2,12 @@
   (:require [fulcro.client.primitives :as fp]
             [fulcro.client.localized-dom :as dom]
             [com.wsscode.oge.core :as oge]
-            [fulcro.inspect.helpers :as db.h]))
+            [fulcro.inspect.helpers :as db.h]
+            [fulcro.client.mutations :as fm]))
+
+(defn select-remote [this remote]
+  (fm/set-value! this ::active
+    [:oge/id [:fulcro.inspect.core/app-uuid (db.h/comp-app-uuid this) remote]]))
 
 (fp/defsc OgeView
   [this {::keys [oges active]}]
@@ -20,6 +25,7 @@
    :css           []
    :css-include   [oge/Oge]}
   (oge/oge active {:fulcro.inspect.client/remotes (mapv :oge/remote oges)
-                   :fulcro.inspect.core/app-uuid  (db.h/comp-app-uuid this)}))
+                   :fulcro.inspect.core/app-uuid  (db.h/comp-app-uuid this)
+                   ::oge/on-switch-remote         (partial select-remote this)}))
 
 (def oge-view (fp/factory OgeView {:keyfn ::id}))
