@@ -50,8 +50,8 @@
   ([ref tx]
    (post-message ::transact-inspector {::tx-ref ref ::tx tx})))
 
-(defn update-inspect-state [app-id state]
-  (transact-inspector! [:fulcro.inspect.ui.data-history/history-id [app-uuid-key app-id]]
+(defn update-inspect-state [app-uuid state]
+  (transact-inspector! [:fulcro.inspect.ui.data-history/history-id [app-uuid-key app-uuid]]
     [`(fulcro.inspect.ui.data-history/set-content ~state) :fulcro.inspect.ui.data-history/history]))
 
 (defn inspect-app [{:keys [reconciler networking] :as app}]
@@ -62,7 +62,7 @@
       (inspect-network-init n app))
 
     (add-watch state* app-uuid
-      #(update-inspect-state app-uuid %4))
+      #(post-message ::db-update {app-uuid-key app-uuid ::state %4}))
 
     (swap! apps* assoc app-uuid app)
     (swap! state* assoc app-uuid-key app-uuid)

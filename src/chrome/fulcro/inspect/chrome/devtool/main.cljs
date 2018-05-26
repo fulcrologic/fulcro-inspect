@@ -74,7 +74,7 @@
                           (assoc-in [::inspector/element ::element/panel-id] [app-uuid-key app-uuid])
                           (assoc-in [::inspector/transactions ::transactions/tx-list-id] [app-uuid-key app-uuid])
                           (assoc-in [::inspector/oge] (fp/get-initial-state multi-oge/OgeView {:app-uuid app-uuid
-                                                                                               :remotes remotes})))]
+                                                                                               :remotes  remotes})))]
 
     (fp/transact! (:reconciler inspector) [::multi-inspector/multi-inspector "main"]
       [`(multi-inspector/add-inspector ~new-inspector)])
@@ -93,12 +93,21 @@
 (defn reset-inspector []
   (-> @global-inspector* :reconciler fp/app-state (reset! (fp/tree->db GlobalRoot (fp/get-initial-state GlobalRoot {}) true))))
 
+(defn update-client-db [{:fulcro.inspect.core/keys   [app-uuid]
+                         :fulcro.inspect.client/keys [state]}]
+  (fp/transact! (:reconciler @global-inspector*)
+    [:fulcro.inspect.ui.data-history/history-id [app-uuid-key app-uuid]]
+    [`(fulcro.inspect.ui.data-history/set-content ~state) :fulcro.inspect.ui.data-history/history]))
+
 (defn handle-remote-message [{:keys [port event responses*]}]
   (when-let [{:keys [type data]} (event-data event)]
     (let [data (assoc data ::port port)]
       (case type
         :fulcro.inspect.client/init-app
         (start-app data)
+
+        :fulcro.inspect.client/db-update
+        (update-client-db data)
 
         :fulcro.inspect.client/transact-inspector
         (tx-run data)
@@ -107,10 +116,8 @@
         (reset-inspector)
 
         :fulcro.inspect.client/message-response
-        (do
-          (js/console.log "MESSAGE RESPONSE" data)
-          (if-let [res-chan (get @responses* (::ui-parser/msg-id data))]
-            (put! res-chan (::ui-parser/msg-response data))))
+        (if-let [res-chan (get @responses* (::ui-parser/msg-id data))]
+          (put! res-chan (::ui-parser/msg-response data)))
 
         nil))))
 
