@@ -7,66 +7,55 @@
     [fulcro.inspect.helpers :as h]
     [fulcro.inspect.ui.core :as ui]
     [fulcro.inspect.ui.data-viewer :as data-viewer]
-    [goog.object :as gobj]
-    [fulcro.client.dom :as dom]
+    [fulcro.client.localized-dom :as dom]
     [fulcro.client.primitives :as fp]
     [fulcro.inspect.helpers :as db.h]))
 
-(fp/defui ^:once TransactionRow
-  static fp/InitialAppState
-  (initial-state [_ {:keys [tx] :as transaction}]
-    (merge {::tx-id                     (random-uuid)
-            :fulcro.history/client-time (js/Date.)
-            :ui/tx-row-view             (fp/get-initial-state data-viewer/DataViewer tx)}
-           transaction))
+(fp/defsc TransactionRow
+  [this
+   {:ui/keys             [tx-row-view]
+    :fulcro.history/keys [client-time]
+    :as                  props}
+   {::keys [on-select selected? on-replay]}]
 
-  static fp/Ident
-  (ident [_ props] [::tx-id (::tx-id props)])
+  {:initial-state (fn [{:keys [tx] :as transaction}]
+                    (merge {::tx-id                     (random-uuid)
+                            :fulcro.history/client-time (js/Date.)
+                            :ui/tx-row-view             (fp/get-initial-state data-viewer/DataViewer tx)}
+                           transaction))
 
-  static fp/IQuery
-  (query [_]
-    [::tx-id :ident-ref :tx :fulcro.history/client-time
-     {:ui/tx-row-view (fp/get-query data-viewer/DataViewer)}])
+   :ident         [::tx-id ::tx-id]
+   :query         [::tx-id :ident-ref :tx :fulcro.history/client-time
+                   {:ui/tx-row-view (fp/get-query data-viewer/DataViewer)}]
+   :css           [[:.container {:display       "flex"
+                                 :cursor        "pointer"
+                                 :flex          "1"
+                                 :border-bottom "1px solid #eee"
+                                 :align-items   "center"
+                                 :padding       "5px 0"}
+                    [:.icon {:display "none"}]
+                    [:&:hover {:background ui/color-row-hover}
+                     [:.icon {:display "block"}]]
+                    [:&.selected {:background ui/color-row-selected}]]
 
-  static css/CSS
-  (local-rules [_] [[:.container {:display       "flex"
-                                  :cursor        "pointer"
-                                  :flex          "1"
-                                  :border-bottom "1px solid #eee"
-                                  :align-items   "center"
-                                  :padding       "5px 0"}
-                     [:.icon {:display "none"}]
-                     [:&:hover {:background ui/color-row-hover}
-                      [:.icon {:display "block"}]]
-                     [:&.selected {:background ui/color-row-selected}]]
+                   [:.data-container {:flex 1}]
+                   [:.icon {:margin "-5px 6px"}
+                    [:$c-icon {:fill      ui/color-icon-normal
+                               :transform "scale(0.7)"}
+                     [:&:hover {:fill ui/color-icon-strong}]]]
+                   [:.timestamp ui/css-timestamp]]
+   :css-include   [data-viewer/DataViewer]}
 
-                    [:.data-container {:flex 1}]
-                    [:.icon {:margin "-5px 6px"}
-                     [:$c-icon {:fill      ui/color-icon-normal
-                                :transform "scale(0.7)"}
-                      [:&:hover {:fill ui/color-icon-strong}]]]
-                    [:.timestamp ui/css-timestamp]])
-  (include-children [_] [data-viewer/DataViewer])
-
-  Object
-  (render [this]
-    (let [{:ui/keys             [tx-row-view]
-           :fulcro.history/keys [client-time]
-           :as                  props} (fp/props this)
-          {::keys [on-select selected? on-replay]} (fp/get-computed props)
-          css (css/get-classnames TransactionRow)]
-      (dom/div #js {:className (cond-> (:container css)
-                                 selected? (str " " (:selected css)))
-                    :onClick   #(if on-select (on-select props))}
-        (dom/div #js {:className (:timestamp css)} (ui/print-timestamp client-time))
-        (dom/div #js {:className (:data-container css)}
-          (data-viewer/data-viewer (assoc tx-row-view ::data-viewer/static? true)))
-        (if on-replay
-          (dom/div #js {:className (:icon css)
-                        :onClick   #(do
-                                      (.stopPropagation %)
-                                      (on-replay props))}
-            (ui/icon {:title "Replay mutation"} :refresh)))))))
+  (dom/div :.container {:classes [(if selected? :.selected)]
+                        :onClick #(if on-select (on-select props))}
+    (dom/div :.timestamp (ui/print-timestamp client-time))
+    (dom/div :.data-container
+      (data-viewer/data-viewer (assoc tx-row-view ::data-viewer/static? true)))
+    (if on-replay
+      (dom/div :.icon {:onClick #(do
+                                   (.stopPropagation %)
+                                   (on-replay props))}
+        (ui/icon {:title "Replay mutation"} :refresh)))))
 
 (let [factory (fp/factory TransactionRow {:keyfn ::tx-id})]
   (defn transaction-row [props computed]
@@ -167,68 +156,58 @@
     (-> (assoc ast :key 'transact)
         (assoc-in [:params :fulcro.inspect.core/app-uuid] (db.h/ref-app-uuid ref)))))
 
-(fp/defui ^:once TransactionList
-  static fp/InitialAppState
-  (initial-state [_ _]
-    {::tx-list-id (random-uuid)
-     ::tx-list    []
-     ::tx-filter  ""})
+(fp/defsc TransactionList
+  [this
+   {::keys [tx-list active-tx tx-filter]}]
+  {:initial-state (fn [_] {::tx-list-id (random-uuid)
+                           ::tx-list    []
+                           ::tx-filter  ""})
+   :ident         [::tx-list-id ::tx-list-id]
+   :query         [::tx-list-id ::tx-filter
+                   {::active-tx (fp/get-query Transaction)}
+                   {::tx-list (fp/get-query TransactionRow)}]
+   :css           [[:.container {:display        "flex"
+                                 :width          "100%"
+                                 :flex           "1"
+                                 :flex-direction "column"}]
 
-  static fp/Ident
-  (ident [_ props] [::tx-list-id (::tx-list-id props)])
+                   [:.transactions {:flex     "1"
+                                    :overflow "auto"}]]
+   :css-include   [Transaction TransactionRow ui/CSS]}
 
-  static fp/IQuery
-  (query [_] [::tx-list-id ::tx-filter
-              {::active-tx (fp/get-query Transaction)}
-              {::tx-list (fp/get-query TransactionRow)}])
+  (let [tx-list (if (seq tx-filter)
+                  (filterv #(str/includes? (-> % :tx pr-str) tx-filter) tx-list)
+                  tx-list)]
+    (dom/div :.container
+      (ui/toolbar {}
+        (ui/toolbar-action {:onClick #(fp/transact! this [`(clear-transactions {})])}
+          (ui/icon {:title "Clear transactions"} :do_not_disturb))
+        (ui/toolbar-separator)
+        (ui/toolbar-text-field {:placeholder "Filter"
+                                :value       tx-filter
+                                :onChange    #(mutations/set-string! this ::tx-filter :event %)}))
+      (dom/div :.transactions
+        (if (seq tx-list)
+          (->> tx-list
+               rseq
+               (mapv #(transaction-row %
+                        {::on-select
+                         (fn [tx]
+                           (fp/transact! this [`(select-tx ~tx)]))
 
-  static css/CSS
-  (local-rules [_] [[:.container {:display        "flex"
-                                  :width          "100%"
-                                  :flex           "1"
-                                  :flex-direction "column"}]
+                         ::on-replay
+                         (fn [{:keys [tx ident-ref]}]
+                           (fp/transact! this [`(replay-tx ~{:tx tx :tx-ref ident-ref})]))
 
-                    [:.transactions {:flex     "1"
-                                     :overflow "auto"}]])
-  (include-children [_] [Transaction TransactionRow ui/CSS])
-
-  Object
-  (render [this]
-    (let [{::keys [tx-list active-tx tx-filter]} (fp/props this)
-          css     (css/get-classnames TransactionList)
-          tx-list (if (seq tx-filter)
-                    (filterv #(str/includes? (-> % :tx pr-str) tx-filter) tx-list)
-                    tx-list)]
-      (dom/div #js {:className (:container css)}
-        (ui/toolbar {}
-          (ui/toolbar-action {:onClick #(fp/transact! this [`(clear-transactions {})])}
-            (ui/icon {:title "Clear transactions"} :do_not_disturb))
-          (ui/toolbar-separator)
-          (ui/toolbar-text-field {:placeholder "Filter"
-                                  :value       tx-filter
-                                  :onChange    #(mutations/set-string! this ::tx-filter :event %)}))
-        (dom/div #js {:className (:transactions css)}
-          (if (seq tx-list)
-            (->> tx-list
-                 rseq
-                 (mapv #(transaction-row %
-                          {::on-select
-                           (fn [tx]
-                             (fp/transact! this [`(select-tx ~tx)]))
-
-                           ::on-replay
-                           (fn [{:keys [tx ident-ref]}]
-                             (fp/transact! this [`(replay-tx ~{:tx tx :tx-ref ident-ref})]))
-
-                           ::selected?
-                           (= (::tx-id active-tx) (::tx-id %))})))))
-        (if active-tx
-          (ui/focus-panel {}
-            (ui/toolbar {::ui/classes [:details]}
-              (ui/toolbar-spacer)
-              (ui/toolbar-action {:onClick #(mutations/set-value! this ::active-tx nil)}
-                (ui/icon {:title "Close panel"} :clear)))
-            (ui/focus-panel-content {}
-              (transaction active-tx))))))))
+                         ::selected?
+                         (= (::tx-id active-tx) (::tx-id %))})))))
+      (if active-tx
+        (ui/focus-panel {}
+          (ui/toolbar {::ui/classes [:details]}
+            (ui/toolbar-spacer)
+            (ui/toolbar-action {:onClick #(mutations/set-value! this ::active-tx nil)}
+              (ui/icon {:title "Close panel"} :clear)))
+          (ui/focus-panel-content {}
+            (transaction active-tx)))))))
 
 (def transaction-list (fp/factory TransactionList {:keyfn ::tx-list-id}))
