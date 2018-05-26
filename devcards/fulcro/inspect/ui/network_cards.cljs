@@ -210,7 +210,8 @@
 (fp/defui ^:once NameLoaderRoot
   static fp/InitialAppState
   (initial-state [_ _] {:ui/react-key (random-uuid)
-                        :ui/root      (fp/get-initial-state NameLoader {})})
+                        :ui/root      (fp/get-initial-state NameLoader {})
+                        :fulcro.inspect.core/app-id "NameLoader"})
 
   static fp/IQuery
   (query [_] [{:ui/root (fp/get-query NameLoader)}
@@ -253,12 +254,6 @@
                    ::p/plugins [p/request-cache-plugin
                                 pp/profile-plugin]}))
 
-(comment
-  (cljs.core.async/go
-    (js/console.log
-      (cljs.core.async/<!
-        (parser {} [{[::id "bla"] [::name]}])))))
-
 (defcard-fulcro network-sampler
   NameLoaderRoot
   {}
@@ -274,5 +269,15 @@
                 (ok-handler {:transaction edn
                              :body        {[::id "name-loader"] {::name (gen/generate (s/gen ::name))}}}))
               (abort [_ _]))}})
+
+(defcard-fulcro multi-network
+  NameLoaderRoot
+  {}
+  {:fulcro {:networking
+            {:remote
+             (pfn/local-network parser)
+
+             :other
+             (pfn/local-network parser)}}})
 
 (css/upsert-css "network" NetworkRoot)

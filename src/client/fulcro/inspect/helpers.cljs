@@ -175,7 +175,7 @@
     id))
 
 (defn ref-app-uuid
-  "Extracts the app id from a reference."
+  "Extracts the app uuid from a ident."
   [ref]
   (assert (and (vector? ref)
                (vector? (second ref)))
@@ -190,7 +190,9 @@
                    app-uuid
                    :fulcro.inspect.core/app-id])))
 
-(defn comp-app-uuid [comp]
+(defn comp-app-uuid
+  "Read app uuid from a component"
+  [comp]
   (-> comp fp/get-ident ref-app-uuid))
 
 (defn all-apps [state]

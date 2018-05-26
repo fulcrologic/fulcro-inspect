@@ -42,7 +42,7 @@
       (some-> reconciler fp/app-root ui.h/react-display-name)))
 
 (defn inspect-network-init [network app]
-  (some-> network :options ::app* (reset! app)))
+  (-> network :options ::app* (reset! app)))
 
 (defn inspect-transact!
   ([tx]
@@ -54,11 +54,12 @@
   (inspect-transact! [:fulcro.inspect.ui.data-history/history-id [app-uuid-key app-id]]
     [`(fulcro.inspect.ui.data-history/set-content ~state) :fulcro.inspect.ui.data-history/history]))
 
-(defn inspect-app [{:keys [reconciler] :as app}]
+(defn inspect-app [{:keys [reconciler networking] :as app}]
   (let [state*   (some-> app :reconciler :config :state)
         app-uuid (random-uuid)]
 
-    (inspect-network-init (-> app :networking :remote) app)
+    (doseq [[_ n] networking]
+      (inspect-network-init n app))
 
     (add-watch state* app-uuid
       #(update-inspect-state app-uuid %4))
@@ -68,6 +69,7 @@
 
     (post-message ::init-app {app-uuid-key                app-uuid
                               :fulcro.inspect.core/app-id (app-id reconciler)
+                              ::remotes                   (sort-by (juxt #(not= :remote %) str) (keys networking))
                               ::initial-state             @state*})
 
     app))
@@ -143,8 +145,8 @@
   ([remote network]
    (let [ts {::transform-query
              (fn [{::keys [request-id app]} edn]
-               (let [app-id (app-uuid (:reconciler app))]
-                 (inspect-transact! [:fulcro.inspect.ui.network/history-id [app-uuid-key app-id]]
+               (let [app-uuid (app-uuid (:reconciler app))]
+                 (inspect-transact! [:fulcro.inspect.ui.network/history-id [app-uuid-key app-uuid]]
                    [`(fulcro.inspect.ui.network/request-start ~{:fulcro.inspect.ui.network/remote      remote
                                                                 :fulcro.inspect.ui.network/request-id  request-id
                                                                 :fulcro.inspect.ui.network/request-edn edn})]))
@@ -152,16 +154,16 @@
 
              ::transform-response
              (fn [{::keys [request-id app]} response]
-               (let [app-id (app-uuid (:reconciler app))]
-                 (inspect-transact! [:fulcro.inspect.ui.network/history-id [app-uuid-key app-id]]
+               (let [app-uuid (app-uuid (:reconciler app))]
+                 (inspect-transact! [:fulcro.inspect.ui.network/history-id [app-uuid-key app-uuid]]
                    [`(fulcro.inspect.ui.network/request-finish ~{:fulcro.inspect.ui.network/request-id   request-id
                                                                  :fulcro.inspect.ui.network/response-edn response})]))
                response)
 
              ::transform-error
              (fn [{::keys [request-id app]} error]
-               (let [app-id (app-uuid (:reconciler app))]
-                 (inspect-transact! [:fulcro.inspect.ui.network/history-id [app-uuid-key app-id]]
+               (let [app-uuid (app-uuid (:reconciler app))]
+                 (inspect-transact! [:fulcro.inspect.ui.network/history-id [app-uuid-key app-uuid]]
                    [`(fulcro.inspect.ui.network/request-finish ~{:fulcro.inspect.ui.network/request-id request-id
                                                                  :fulcro.inspect.ui.network/error      error})]))
                error)}]
@@ -181,9 +183,10 @@
 (defn handle-devtool-message [{:keys [type data]}]
   (case type
     :fulcro.inspect.client/request-page-apps
-    (doseq [{:keys [reconciler]} (vals @apps*)]
+    (doseq [{:keys [reconciler networking]} (vals @apps*)]
       (post-message ::init-app {app-uuid-key                (app-uuid reconciler)
                                 :fulcro.inspect.core/app-id (app-id reconciler)
+                                ::remotes                   (sort-by (juxt #(not= :remote %) str) (keys networking))
                                 ::initial-state             @(fp/app-state reconciler)}))
 
     :fulcro.inspect.client/reset-app-state
@@ -234,10 +237,11 @@
 
     :fulcro.inspect.client/network-request
     (let [{:keys                          [query]
+           :fulcro.inspect.client/keys    [remote]
            :fulcro.inspect.ui-parser/keys [msg-id]
            :fulcro.inspect.core/keys      [app-uuid]} data]
       (when-let [app (get @apps* app-uuid)]
-        (let [remote           (-> app :networking :remote)
+        (let [remote           (-> app :networking remote)
               response-handler (fn [res]
                                  (post-message :fulcro.inspect.client/message-response {:fulcro.inspect.ui-parser/msg-id       msg-id
                                                                                         :fulcro.inspect.ui-parser/msg-response res}))]

@@ -34,16 +34,20 @@
   {::pc/output [:>/oge]}
   (fn [{:keys [query] :as env} _]
     (async/go
-      {:>/oge (async/<! (client-request env :fulcro.inspect.client/network-request
-                          {:query                        query
-                           :fulcro.inspect.core/app-uuid (-> env :ast :params :fulcro.inspect.core/app-uuid)}))})))
+      (let [params (-> env :ast :params)]
+        {:>/oge (async/<! (client-request env :fulcro.inspect.client/network-request
+                            (-> (select-keys params [:fulcro.inspect.core/app-uuid
+                                                     :fulcro.inspect.client/remote])
+                                (assoc :query query))))}))))
 
 (defresolver 'oge-index
   {::pc/output [::pc/indexes]}
   (fn [{:keys [query] :as env} _]
-    (client-request env :fulcro.inspect.client/network-request
-      {:query                        [{::pc/indexes query}]
-       :fulcro.inspect.core/app-uuid (-> env :ast :params :fulcro.inspect.core/app-uuid)})))
+    (let [params (-> env :ast :params)]
+      (client-request env :fulcro.inspect.client/network-request
+        (-> (select-keys params [:fulcro.inspect.core/app-uuid
+                                 :fulcro.inspect.client/remote])
+            (assoc :query [{::pc/indexes query}]))))))
 
 (defmutation 'reset-app
   {}

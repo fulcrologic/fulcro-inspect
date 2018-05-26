@@ -12,6 +12,7 @@
             [fulcro.inspect.ui.element :as element]
             [fulcro.inspect.ui.network :as network]
             [fulcro.inspect.ui.transactions :as transactions]
+            [fulcro.inspect.ui.multi-oge :as multi-oge]
             [com.wsscode.oge.core :as oge]
             [fulcro.inspect.ui-parser :as ui-parser]
             [fulcro.client.localized-dom :as dom]
@@ -77,7 +78,7 @@
         new-name))))
 
 (defn start-app [{:fulcro.inspect.core/keys   [app-id app-uuid]
-                  :fulcro.inspect.client/keys [initial-state]}]
+                  :fulcro.inspect.client/keys [initial-state remotes]}]
   (let [inspector     @global-inspector*
         new-inspector (-> (fp/get-initial-state inspector/Inspector initial-state)
                           (assoc ::inspector/id app-uuid)
@@ -88,12 +89,14 @@
                           (assoc-in [::inspector/network ::network/history-id] [app-uuid-key app-uuid])
                           (assoc-in [::inspector/element ::element/panel-id] [app-uuid-key app-uuid])
                           (assoc-in [::inspector/transactions ::transactions/tx-list-id] [app-uuid-key app-uuid])
-                          (assoc-in [::inspector/oge :oge/id] [app-uuid-key app-uuid]))]
+                          (assoc-in [::inspector/oge] (fp/get-initial-state multi-oge/OgeView {:app-uuid app-uuid
+                                                                                               :remotes remotes})))]
 
     (fp/transact! (:reconciler inspector) [::multi-inspector/multi-inspector "main"]
       [`(multi-inspector/add-inspector ~new-inspector)])
 
-    (oge/trigger-index-load (:reconciler @global-inspector*) [:oge/id [app-uuid-key app-uuid]])
+    (doseq [r remotes]
+      (oge/trigger-index-load (:reconciler @global-inspector*) [:oge/id [app-uuid-key app-uuid r]] r))
 
     new-inspector))
 
@@ -133,8 +136,7 @@
                                                               :event      %
                                                               :responses* responses*}))
 
-    (.postMessage port #js {:name   "init"
-                            :tab-id current-tab-id})
+    (.postMessage port #js {:name "init" :tab-id current-tab-id})
     (post-message port :fulcro.inspect.client/request-page-apps {})
 
     port))
