@@ -31,14 +31,17 @@
                     ::msg-id msg-id})))))))
 
 (defresolver 'oge
-  {::pc/output [:>/oge]}
+  {::pc/output [:>/oge ::pp/profile]}
   (fn [{:keys [query] :as env} _]
     (async/go
-      (let [params (-> env :ast :params)]
-        {:>/oge (async/<! (client-request env :fulcro.inspect.client/network-request
-                            (-> (select-keys params [:fulcro.inspect.core/app-uuid
-                                                     :fulcro.inspect.client/remote])
-                                (assoc :query query))))}))))
+      (let [params    (-> env :ast :params)
+            response  (async/<! (client-request env :fulcro.inspect.client/network-request
+                                  (-> (select-keys params [:fulcro.inspect.core/app-uuid
+                                                           :fulcro.inspect.client/remote])
+                                      (assoc :query query))))
+            response' (dissoc response ::pp/profile)]
+        {::pp/profile (::pp/profile response)
+         :>/oge       response'}))))
 
 (defresolver 'oge-index
   {::pc/output [::pc/indexes]}
@@ -81,5 +84,4 @@
                                 ::pc/indexes           @indexes}
                    ::p/mutate  pc/mutate-async
                    ::p/plugins [p/error-handler-plugin
-                                p/request-cache-plugin
-                                pp/profile-plugin]}))
+                                p/request-cache-plugin]}))

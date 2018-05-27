@@ -12,7 +12,7 @@
     (.apply f obj (to-array args))))
 
 (defn render-flame [profile target]
-  (let [profile' (-> profile p.profile/profile->flame-graph clj->js)
+  (let [profile' (-> profile p.profile/profile->nvc clj->js)
         tooltip  (fn [d]
                    (let [name        (gobj/getValueByKeys d #js ["data" "name"])
                          value       (gobj/get d "value")

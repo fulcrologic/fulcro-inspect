@@ -25,22 +25,26 @@
     (let [result' (cond-> (-> @state (get-in ref) :oge/result')
                     (get @state ::p/errors) (assoc ::p/errors (->> (get @state ::p/errors)
                                                                    (into {} (map (fn [[k v]] [(vec (next k)) v]))))))
-          profile (some-> result' ::pp/profile :>/oge)
+          profile (some-> result' ::pp/profile)
           result  (with-out-str (cljs.pprint/pprint (dissoc result' ::pp/profile)))]
       (swap! state update-in ref merge {:oge/result  result
                                         :oge/profile profile}))))
 
 (defn oge-query [this query]
   (let [{:oge/keys [remote] :as props} (fp/props this)
-        {:fulcro.inspect.core/keys [app-uuid]} (fp/get-computed props)]
+        {:fulcro.inspect.core/keys [app-uuid]} (fp/get-computed props)
+        ident (fp/get-ident this)]
     (try
       (fp/transact! this [`(clear-errors {})
-                          (list 'fulcro/load {:target        (conj (fp/get-ident this) :oge/result')
+                          (list 'fulcro/load {:target        (conj ident :oge/result')
                                               :query         [{(list :>/oge {:fulcro.inspect.core/app-uuid app-uuid
                                                                              :fulcro.inspect.client/remote remote})
                                                                (conj (read-string query) ::pp/profile)}]
                                               :refresh       [:oge/result]
+                                              :marker        (keyword "oge-query" (p/ident-value* ident))
                                               :post-mutation `normalize-result})])
+      ; for some reason the load marker was missing to refresh ui sometimes without the next line
+      (js/setTimeout #(fp/transact! this [:oge/id]) 10)
       (catch :default e
         (js/console.error "Invalid query" e)))))
 
@@ -95,7 +99,9 @@
                                 :grid-template-areas (helpers/strings ["title title title"
                                                                        "editor divisor result"])}]
                     [:$CodeMirror {:height "100%" :width "100%" :position "absolute"}
-                     [:$cm-atom-composite {:color "#ab890d"}]]]
+                     [:$cm-atom-composite {:color "#ab890d"}]
+                     [:$cm-atom-ident {:color       "#219"
+                                       :font-weight "bold"}]]]
 
                    [:.title {:grid-area     "title"
                              :display       "flex"
@@ -139,7 +145,11 @@
                    [:.flex {:flex "1"}]]
    :css-include   [ui/CSS]}
 
-  (let [index-marker (get-in props [fetch/marker-table (keyword "oge-index" id)])]
+  (let [index-marker (get-in props [fetch/marker-table (keyword "oge-index" id)])
+        query-marker (get-in props [fetch/marker-table (keyword "oge-query" id)])
+        run-query    (fn [_]
+                       (when-not (fetch/loading? query-marker)
+                         (oge-query this (-> this fp/props :oge/query))))]
     (dom/div :.container {:className (if-not profile (:simple css))}
       (dom/div :.title
         (if (> (count remotes) 1)
@@ -169,14 +179,18 @@
 
                       :else
                       "Index unavailable")
-           :onClick #(if-not (fetch/loading? index-marker) (update-index this))}))
+           :onClick #(if-not (fetch/loading? index-marker) (update-index this))})
+        (dom/button :.run-button
+          {:onClick  run-query
+           :disabled (fetch/loading? query-marker)}
+          "Run query"))
       (codemirror/oge {:className           (:editor css)
                        :value               (or (str query) "")
                        ::pc/indexes         (p/elide-not-found indexes)
                        ::codemirror/options {::codemirror/extraKeys
-                                             {"Cmd-Enter"   (fn [_] (oge-query this (-> this fp/props :oge/query)))
-                                              "Ctrl-Enter"  (fn [_] (oge-query this (-> this fp/props :oge/query)))
-                                              "Shift-Enter" (fn [_] (oge-query this (-> this fp/props :oge/query)))
+                                             {"Cmd-Enter"   run-query
+                                              "Ctrl-Enter"  run-query
+                                              "Shift-Enter" run-query
                                               "Cmd-J"       "ogeJoin"
                                               "Ctrl-Space"  "autocomplete"}}
                        :onChange            #(mutations/set-value! this :oge/query %)})

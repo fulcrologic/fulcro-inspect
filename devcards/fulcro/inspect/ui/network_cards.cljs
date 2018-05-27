@@ -11,6 +11,7 @@
     [clojure.test.check.generators :as gen]
     [fulcro.client.dom :as dom]
     [cljs.spec.alpha :as s]
+    [cljs.core.async :as async :refer [go <!]]
     [com.wsscode.pathom.connect :as pc]
     [com.wsscode.pathom.core :as p]
     [com.wsscode.pathom.profile :as pp]
@@ -237,13 +238,18 @@
 
 (defresolver 'name
   {::pc/output [::name]}
-  (fn [_ _] {::name (gen/generate (s/gen ::name))}))
+  (fn [_ _]
+    (go
+      (<! (async/timeout 300))
+      {::name (gen/generate (s/gen ::name))})))
 
 (defresolver 'id-name
   {::pc/input  #{::id}
    ::pc/output [::name]}
   (fn [_ _]
-    {::name (gen/generate (s/gen ::name))}))
+    (go
+      (<! (async/timeout 300))
+      {::name (gen/generate (s/gen ::name))})))
 
 (def parser
   (p/async-parser {::p/env     {::p/reader             [p/map-reader pc/all-async-readers]
