@@ -7,10 +7,12 @@
 
 (defn ack-message [msg]
   (go
-    (let [id  (gobj/get msg "__fulcro-insect-msg-id")
-          res (<! (get @active-messages* id))]
-      (swap! active-messages* dissoc id)
-      res)))
+    (let [id  (gobj/get msg "__fulcro-insect-msg-id")]
+      (if-let [res (some-> (get @active-messages* id) (<!))]
+        (do
+          (swap! active-messages* dissoc id)
+          res)
+        nil))))
 
 (defn envelope-ack [data]
   (let [id   (str (random-uuid))]

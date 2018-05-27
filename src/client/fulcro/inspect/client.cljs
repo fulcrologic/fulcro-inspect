@@ -62,7 +62,9 @@
       (inspect-network-init n app))
 
     (add-watch state* app-uuid
-      #(post-message ::db-update {app-uuid-key app-uuid ::state %4}))
+      #(post-message ::db-update {app-uuid-key app-uuid
+                                  ::state %4
+                                  ::state-hash (hash %4)}))
 
     (swap! apps* assoc app-uuid app)
     (swap! state* assoc app-uuid-key app-uuid)
@@ -70,7 +72,8 @@
     (post-message ::init-app {app-uuid-key                app-uuid
                               :fulcro.inspect.core/app-id (app-id reconciler)
                               ::remotes                   (sort-by (juxt #(not= :remote %) str) (keys networking))
-                              ::initial-state             @state*})
+                              ::initial-state             @state*
+                              ::state-hash                (hash @state*)})
 
     app))
 
@@ -193,7 +196,8 @@
       (post-message ::init-app {app-uuid-key                (app-uuid reconciler)
                                 :fulcro.inspect.core/app-id (app-id reconciler)
                                 ::remotes                   (sort-by (juxt #(not= :remote %) str) (keys networking))
-                                ::initial-state             @(fp/app-state reconciler)}))
+                                ::initial-state             @(fp/app-state reconciler)
+                                ::state-hash                (hash @(fp/app-state reconciler))}))
 
     :fulcro.inspect.client/reset-app-state
     (let [{:keys                     [target-state]
