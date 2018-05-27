@@ -98,6 +98,7 @@
 
 (defn update-client-db [{:fulcro.inspect.core/keys   [app-uuid]
                          :fulcro.inspect.client/keys [state]}]
+  ; TODO the db-hash-index should have a limited size
   (let [{::keys [db-hash-index]} (-> @global-inspector* :reconciler :config :shared)]
     (swap! db-hash-index assoc (hash state) state))
 
