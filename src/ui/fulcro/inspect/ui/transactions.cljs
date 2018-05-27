@@ -18,15 +18,17 @@
     :as                  props}
    {::keys [on-select selected? on-replay]}]
 
-  {:initial-state (fn [{:keys [tx] :as transaction}]
+  {:initial-state (fn [{:fulcro.history/keys [tx] :as transaction}]
                     (merge {::tx-id                     (random-uuid)
                             :fulcro.history/client-time (js/Date.)
                             :ui/tx-row-view             (fp/get-initial-state data-viewer/DataViewer tx)}
                            transaction))
 
    :ident         [::tx-id ::tx-id]
-   :query         [::tx-id :fulcro.history/client-time
-                   :tx :ret :old-state :new-state :ident-ref :component :fulcro.history/network-sends
+   :query         [::tx-id
+                   :fulcro.history/client-time :fulcro.history/tx
+                   :fulcro.history/db-before :fulcro.history/db-after
+                   :fulcro.history/network-sends :ret :ident-ref :component
                    {:ui/tx-row-view (fp/get-query data-viewer/DataViewer)}]
    :css           [[:.container {:display       "flex"
                                  :cursor        "pointer"
@@ -69,18 +71,18 @@
                                old-state-view new-state-view
                                diff-add-view diff-rem-view]} computed]
   {:initial-state
-   (fn [{:keys                [tx ret new-state old-state]
-         :fulcro.history/keys [network-sends]
+   (fn [{:keys                [ret]
+         :fulcro.history/keys [tx network-sends db-before db-after]
          :as                  transaction}]
-     (let [[add rem] (data/diff new-state old-state)]
+     (let [[add rem] (data/diff db-after db-before)]
        (merge {::tx-id (random-uuid)}
               transaction
               {:ui/tx-view        (-> (fp/get-initial-state data-viewer/DataViewer tx)
                                       (assoc ::data-viewer/expanded {[] true}))
                :ui/ret-view       (fp/get-initial-state data-viewer/DataViewer ret)
                :ui/sends-view     (fp/get-initial-state data-viewer/DataViewer network-sends)
-               :ui/old-state-view (fp/get-initial-state data-viewer/DataViewer old-state)
-               :ui/new-state-view (fp/get-initial-state data-viewer/DataViewer new-state)
+               :ui/old-state-view (fp/get-initial-state data-viewer/DataViewer db-before)
+               :ui/new-state-view (fp/get-initial-state data-viewer/DataViewer db-after)
                :ui/diff-add-view  (fp/get-initial-state data-viewer/DataViewer add)
                :ui/diff-rem-view  (fp/get-initial-state data-viewer/DataViewer rem)
                :ui/full-computed? true})))
@@ -89,7 +91,10 @@
    [::tx-id ::tx-id]
 
    :query
-   [::tx-id ::timestamp :tx :ret :old-state :new-state :ident-ref :component :fulcro.history/network-sends
+   [::tx-id ::timestamp
+    :fulcro.history/client-time :fulcro.history/tx
+    :fulcro.history/db-before :fulcro.history/db-after
+    :fulcro.history/network-sends :ret :ident-ref :component
     :ui/full-computed?
     {:ui/tx-view (fp/get-query data-viewer/DataViewer)}
     {:ui/ret-view (fp/get-query data-viewer/DataViewer)}
