@@ -284,6 +284,11 @@
              (pfn/local-network parser)
 
              :other
-             (pfn/local-network parser)}}})
+             (reify
+               f.network/FulcroRemoteI
+               (transmit [this {::f.network/keys [edn ok-handler]}]
+                 (ok-handler {:transaction edn
+                              :body        {[::id "name-loader"] {::name (gen/generate (s/gen ::name))}}}))
+               (abort [_ _]))}}})
 
 (css/upsert-css "network" NetworkRoot)
