@@ -25,7 +25,8 @@
                            transaction))
 
    :ident         [::tx-id ::tx-id]
-   :query         [::tx-id :ident-ref :tx :fulcro.history/client-time
+   :query         [::tx-id :fulcro.history/client-time
+                   :tx :ret :old-state :new-state :ident-ref :component :fulcro.history/network-sends
                    {:ui/tx-row-view (fp/get-query data-viewer/DataViewer)}]
    :css           [[:.container {:display       "flex"
                                  :cursor        "pointer"
@@ -67,30 +68,43 @@
          :ui/keys             [tx-view ret-view sends-view
                                old-state-view new-state-view
                                diff-add-view diff-rem-view]} computed]
-  {:initial-state (fn [{:keys                [ret]
-                        :fulcro.history/keys [tx network-sends db-before db-after]
-                        :as                  transaction}]
-                    (merge (fp/get-initial-state TransactionRow transaction)
-                           transaction
-                           {::tx-id            (random-uuid)
-                            :ui/tx-view        (-> (fp/get-initial-state data-viewer/DataViewer tx)
-                                                   (assoc ::data-viewer/expanded {[] true}))
-                            :ui/ret-view       (fp/get-initial-state data-viewer/DataViewer ret)
-                            :ui/sends-view     (fp/get-initial-state data-viewer/DataViewer network-sends)
-                            :ui/old-state-view (fp/get-initial-state data-viewer/DataViewer db-before)
-                            :ui/new-state-view (fp/get-initial-state data-viewer/DataViewer db-after)}))
-   :ident         [::tx-id ::tx-id]
-   :query         [::tx-id ::timestamp :tx :ret :old-state :new-state :ident-ref :component :fulcro.history/network-sends
-                   {:ui/tx-view (fp/get-query data-viewer/DataViewer)}
-                   {:ui/ret-view (fp/get-query data-viewer/DataViewer)}
-                   {:ui/tx-row-view (fp/get-query data-viewer/DataViewer)}
-                   {:ui/sends-view (fp/get-query data-viewer/DataViewer)}
-                   {:ui/old-state-view (fp/get-query data-viewer/DataViewer)}
-                   {:ui/new-state-view (fp/get-query data-viewer/DataViewer)}
-                   {:ui/diff-add-view (fp/get-query data-viewer/DataViewer)}
-                   {:ui/diff-rem-view (fp/get-query data-viewer/DataViewer)}]
-   :css           [[:.container {:height "100%"}]]
-   :css-include   [data-viewer/DataViewer]}
+  {:initial-state
+   (fn [{:keys                [tx ret new-state old-state]
+         :fulcro.history/keys [network-sends]
+         :as                  transaction}]
+     (let [[add rem] (data/diff new-state old-state)]
+       (merge {::tx-id (random-uuid)}
+              transaction
+              {:ui/tx-view        (-> (fp/get-initial-state data-viewer/DataViewer tx)
+                                      (assoc ::data-viewer/expanded {[] true}))
+               :ui/ret-view       (fp/get-initial-state data-viewer/DataViewer ret)
+               :ui/sends-view     (fp/get-initial-state data-viewer/DataViewer network-sends)
+               :ui/old-state-view (fp/get-initial-state data-viewer/DataViewer old-state)
+               :ui/new-state-view (fp/get-initial-state data-viewer/DataViewer new-state)
+               :ui/diff-add-view  (fp/get-initial-state data-viewer/DataViewer add)
+               :ui/diff-rem-view  (fp/get-initial-state data-viewer/DataViewer rem)
+               :ui/full-computed? true})))
+
+   :ident
+   [::tx-id ::tx-id]
+
+   :query
+   [::tx-id ::timestamp :tx :ret :old-state :new-state :ident-ref :component :fulcro.history/network-sends
+    :ui/full-computed?
+    {:ui/tx-view (fp/get-query data-viewer/DataViewer)}
+    {:ui/ret-view (fp/get-query data-viewer/DataViewer)}
+    {:ui/tx-row-view (fp/get-query data-viewer/DataViewer)}
+    {:ui/sends-view (fp/get-query data-viewer/DataViewer)}
+    {:ui/old-state-view (fp/get-query data-viewer/DataViewer)}
+    {:ui/new-state-view (fp/get-query data-viewer/DataViewer)}
+    {:ui/diff-add-view (fp/get-query data-viewer/DataViewer)}
+    {:ui/diff-rem-view (fp/get-query data-viewer/DataViewer)}]
+
+   :css
+   [[:.container {:height "100%"}]]
+
+   :css-include
+   [data-viewer/DataViewer]}
   (let [css (css/get-classnames Transaction)]
     (dom/div #js {:className (:container css)}
       (ui/info {::ui/title "Ref"}
@@ -127,20 +141,18 @@
 
 (defmutation add-tx [tx]
   (action [env]
-    (h/create-entity! env Transaction tx :append ::tx-list)
+    (h/create-entity! env TransactionRow tx :append ::tx-list)
     (h/swap-entity! env update ::tx-list #(->> (take-last 100 %) vec))))
 
 (defmutation select-tx [tx]
   (action [env]
-    (let [{:keys [state ref] :as env} env
+    (let [{:keys [state ref]} env
           tx-ref (fp/ident Transaction tx)
-          {:keys [ui/diff-computed? old-state new-state]} (get-in @state tx-ref)]
-      (if-not diff-computed?
-        (let [[add rem] (data/diff new-state old-state)
-              env' (assoc env :ref tx-ref)]
-          (h/create-entity! env' data-viewer/DataViewer add :set :ui/diff-add-view)
-          (h/create-entity! env' data-viewer/DataViewer rem :set :ui/diff-rem-view)
-          (swap! state update-in tx-ref assoc :ui/diff-computed? true)))
+          {:ui/keys [full-computed?]
+           :as      transaction} (fp/db->tree (fp/get-query TransactionRow) (get-in @state tx-ref) @state)]
+      (if-not full-computed?
+        (swap! state h/merge-entity Transaction
+          (fp/get-initial-state Transaction transaction)))
       (swap! state update-in ref assoc ::active-tx tx-ref))))
 
 (defmutation clear-transactions [_]

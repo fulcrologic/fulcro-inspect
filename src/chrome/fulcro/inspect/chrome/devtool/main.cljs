@@ -95,6 +95,9 @@
 
 (defn update-client-db [{:fulcro.inspect.core/keys   [app-uuid]
                          :fulcro.inspect.client/keys [state]}]
+  (let [{::keys [db-hash-index]} (-> @global-inspector* :reconciler :config :shared)]
+    (swap! db-hash-index assoc (hash state) state))
+
   (fp/transact! (:reconciler @global-inspector*)
     [:fulcro.inspect.ui.data-history/history-id [app-uuid-key app-uuid]]
     [`(fulcro.inspect.ui.data-history/set-content ~state) :fulcro.inspect.ui.data-history/history]))
@@ -151,6 +154,9 @@
                      :started-callback
                      (fn [app]
                        (reset! port* (event-loop app responses*)))
+
+                     :shared
+                     {::db-hash-index (atom {})}
 
                      :networking
                      (make-network port* ui-parser/parser responses*))
