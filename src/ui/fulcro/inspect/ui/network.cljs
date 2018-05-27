@@ -5,8 +5,10 @@
             [fulcro.inspect.helpers :as h]
             [fulcro.inspect.ui.core :as ui]
             [fulcro.inspect.ui.data-viewer :as data-viewer]
-            [fulcro.client.dom :as dom]
-            [fulcro.client.primitives :as fp]))
+            [fulcro.client.localized-dom :as dom]
+            [fulcro.client.primitives :as fp]
+            [com.wsscode.oge.ui.flame-graph :as ui.flame]
+            [com.wsscode.pathom.profile :as pp]))
 
 (declare Request)
 
@@ -46,38 +48,31 @@
     (h/swap-entity! env assoc ::active-request nil ::remotes #{})
     (h/remove-edge! env ::requests)))
 
-(fp/defui ^:once RequestDetails
-  static fp/InitialAppState
-  (initial-state [_ _] {})
+(fp/defsc RequestDetails
+  [this
+   {:ui/keys [request-edn-view response-edn-view error-view]}]
+  {:ident [::request-id ::request-id]
+   :query [::request-id ::request-edn ::response-edn ::request-started-at ::request-finished-at ::error
+           {:ui/request-edn-view (fp/get-query data-viewer/DataViewer)}
+           {:ui/response-edn-view (fp/get-query data-viewer/DataViewer)}
+           {:ui/error-view (fp/get-query data-viewer/DataViewer)}]
+   :css   [[:.flame {:background "#f6f7f8"
+                     :width      "400px"}]]}
+  (dom/div
+    (ui/info {::ui/title "Request"}
+      (data-viewer/data-viewer request-edn-view))
 
-  static fp/Ident
-  (ident [_ props] [::request-id (::request-id props)])
+    (if response-edn-view
+      (ui/info {::ui/title "Response"}
+        (data-viewer/data-viewer response-edn-view)))
 
-  static fp/IQuery
-  (query [_] [::request-id ::request-edn ::response-edn ::request-started-at ::request-finished-at ::error
-              {:ui/request-edn-view (fp/get-query data-viewer/DataViewer)}
-              {:ui/response-edn-view (fp/get-query data-viewer/DataViewer)}
-              {:ui/error-view (fp/get-query data-viewer/DataViewer)}])
+    (if error-view
+      (ui/info {::ui/title "Error"}
+        (data-viewer/data-viewer error-view)))
 
-  static css/CSS
-  (local-rules [_] [])
-  (include-children [_] [])
-
-  Object
-  (render [this]
-    (let [{:ui/keys [request-edn-view response-edn-view error-view]} (fp/props this)
-          css (css/get-classnames RequestDetails)]
-      (dom/div #js {:className (:container css)}
-        (ui/info {::ui/title "Request"}
-          (data-viewer/data-viewer request-edn-view))
-
-        (if response-edn-view
-          (ui/info {::ui/title "Response"}
-            (data-viewer/data-viewer response-edn-view)))
-
-        (if error-view
-          (ui/info {::ui/title "Error"}
-            (data-viewer/data-viewer error-view)))))))
+    (if-let [profile (-> response-edn-view ::data-viewer/content ::pp/profile)]
+      (ui/info {::ui/title "Profile"}
+        (dom/div :.flame (ui.flame/flame-graph {:profile profile}))))))
 
 (def request-details (fp/factory RequestDetails))
 
