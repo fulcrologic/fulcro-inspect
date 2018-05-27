@@ -61,6 +61,19 @@
         (recur (inc-id new-name))
         new-name))))
 
+(def DB_HISTORY_BUFFER_SIZE 100)
+
+(defn db-index-add [db state]
+  (let [{::keys [history] :as db'}
+        (-> db
+            (assoc (hash state) state)
+            (update ::history conj (hash state)))]
+    (if (> (count history) DB_HISTORY_BUFFER_SIZE)
+      (-> db'
+          (dissoc (first history))
+          (update ::history #(vec (next %))))
+      db')))
+
 (defn start-app [{:fulcro.inspect.core/keys   [app-id app-uuid]
                   :fulcro.inspect.client/keys [initial-state remotes]}]
   (let [inspector     @global-inspector*
@@ -77,7 +90,7 @@
                                                                                                :remotes  remotes})))]
 
     (let [{::keys [db-hash-index]} (-> inspector :reconciler :config :shared)]
-      (swap! db-hash-index assoc (hash initial-state) initial-state))
+      (swap! db-hash-index db-index-add initial-state))
 
     (fp/transact! (:reconciler inspector) [::multi-inspector/multi-inspector "main"]
       [`(multi-inspector/add-inspector ~new-inspector)])
@@ -98,9 +111,8 @@
 
 (defn update-client-db [{:fulcro.inspect.core/keys   [app-uuid]
                          :fulcro.inspect.client/keys [state]}]
-  ; TODO the db-hash-index should have a limited size
   (let [{::keys [db-hash-index]} (-> @global-inspector* :reconciler :config :shared)]
-    (swap! db-hash-index assoc (hash state) state))
+    (swap! db-hash-index db-index-add state))
 
   (fp/transact! (:reconciler @global-inspector*)
     [:fulcro.inspect.ui.data-history/history-id [app-uuid-key app-uuid]]
@@ -173,7 +185,7 @@
                        (reset! port* (event-loop app responses*)))
 
                      :shared
-                     {::db-hash-index (atom {})}
+                     {::db-hash-index (atom {::history []})}
 
                      :networking
                      (make-network port* ui-parser/parser responses*))
