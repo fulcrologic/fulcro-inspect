@@ -4,8 +4,20 @@
             [fulcro.transit :as ft]
             [clojure.walk :as walk]))
 
+(deftype ErrorHandler []
+  Object
+  (tag [this v] "js-error")
+  (rep [this v] [(ex-message v) (ex-data v)])
+  (stringRep [this v] (ex-message v)))
+
+(def write-handlers
+  {cljs.core/ExceptionInfo (ErrorHandler.)})
+
+(def read-handlers
+  {"js-error" (fn [[msg data]] (ex-info msg data))})
+
 (defn read [str]
-  (let [reader (ft/reader)]
+  (let [reader (ft/reader {:handlers read-handlers})]
     (t/read reader str)))
 
 (defn sanitize-fns [x]
@@ -32,7 +44,7 @@
       x)))
 
 (defn write [x]
-  (let [writer (ft/writer)]
+  (let [writer (ft/writer {:handlers write-handlers})]
     (try
       (t/write writer x)
       (catch :default _
