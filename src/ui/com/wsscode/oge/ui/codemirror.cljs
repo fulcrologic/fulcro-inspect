@@ -63,6 +63,27 @@
 
 (fp/defui ^:once Editor
   Object
+  (componentDidMount [this]
+    (let [textarea   (gobj/get this "textNode")
+          options    (-> this fp/props ::options (or {}) clj->js)
+          process    (-> this fp/props ::process)
+          codemirror (js/CodeMirror.fromTextArea textarea options)]
+      (reset! oge-cache {})
+
+      (try
+        (.on codemirror "change" #(when (not= (gobj/get % "origin") "setValue")
+                                    (js/clearTimeout (gobj/get this "editorHold"))
+                                    (gobj/set this "editorHold"
+                                      (js/setTimeout
+                                        (fn []
+                                          (gobj/set this "editorHold" false))
+                                        800))
+                                    (prop-call this :onChange (.getValue %))))
+        (.setValue codemirror (-> this fp/props :value))
+        (if process (process codemirror))
+        (catch :default e (js/console.warn "Error setting up CodeMirror" e)))
+      (gobj/set this "codemirror" codemirror)))
+
   (componentWillReceiveProps [this {:keys     [value]
                                     ::pc/keys [indexes]}]
     (let [cm        (gobj/get this "codemirror")
@@ -79,26 +100,6 @@
         (let [cur-value (.getValue cm)]
           (if (and cm value (not= value cur-value))
             (.setValue cm value))))))
-
-  (componentDidMount [this]
-    (let [textarea   (gobj/get this "textNode")
-          options    (-> this fp/props ::options (or {}) clj->js)
-          process    (-> this fp/props ::process)
-          codemirror (js/CodeMirror.fromTextArea textarea options)]
-
-      (try
-        (.on codemirror "change" #(when (not= (gobj/get % "origin") "setValue")
-                                    (js/clearTimeout (gobj/get this "editorHold"))
-                                    (gobj/set this "editorHold"
-                                      (js/setTimeout
-                                        (fn []
-                                          (gobj/set this "editorHold" false))
-                                        800))
-                                    (prop-call this :onChange (.getValue %))))
-        (.setValue codemirror (-> this fp/props :value))
-        (if process (process codemirror))
-        (catch :default e (js/console.warn "Error setting up CodeMirror" e)))
-      (gobj/set this "codemirror" codemirror)))
 
   (componentWillUnmount [this]
     (if-let [cm (gobj/get this "codemirror")]
