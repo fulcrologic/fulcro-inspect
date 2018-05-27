@@ -209,22 +209,22 @@
                         :remote  80
                         :status  90
                         :time    70}]
-      (dom/div #js {:className (:container css)}
+      (dom/div {:className (:container css)}
         (ui/toolbar {}
           (ui/toolbar-action {:title   "Clear requests"
                               :onClick #(fp/transact! this [`(clear-requests {})])}
             (ui/icon :do_not_disturb)))
 
-        (dom/div #js {:className (:table css)}
-          (dom/div #js {:className (:table-header css)}
-            (dom/div #js {:style #js {:width (:started columns)}} "Started")
-            (dom/div #js {:className (:flex css)} "Request")
+        (dom/div {:className (:table css)}
+          (dom/div {:className (:table-header css)}
+            (dom/div {:style {:width (:started columns)}} "Started")
+            (dom/div {:className (:flex css)} "Request")
             (if show-remote?
-              (dom/div #js {:style #js {:width (:remote columns)}} "Remote"))
-            (dom/div #js {:style #js {:width (:status columns)}} "Status")
-            (dom/div #js {:style #js {:width (:time columns)}} "Time"))
+              (dom/div {:style {:width (:remote columns)}} "Remote"))
+            (dom/div {:style {:width (:status columns)}} "Status")
+            (dom/div {:style {:width (:time columns)}} "Time"))
 
-          (dom/div #js {:className (:table-body css)}
+          (dom/div {:className (:table-body css)}
             (if (seq requests)
               (->> requests
                    rseq

@@ -76,6 +76,9 @@
                           (assoc-in [::inspector/oge] (fp/get-initial-state multi-oge/OgeView {:app-uuid app-uuid
                                                                                                :remotes  remotes})))]
 
+    (let [{::keys [db-hash-index]} (-> inspector :reconciler :config :shared)]
+      (swap! db-hash-index assoc (hash initial-state) initial-state))
+
     (fp/transact! (:reconciler inspector) [::multi-inspector/multi-inspector "main"]
       [`(multi-inspector/add-inspector ~new-inspector)])
 
@@ -102,6 +105,16 @@
     [:fulcro.inspect.ui.data-history/history-id [app-uuid-key app-uuid]]
     [`(fulcro.inspect.ui.data-history/set-content ~state) :fulcro.inspect.ui.data-history/history]))
 
+(defn new-client-tx [{:fulcro.inspect.core/keys   [app-uuid]
+                      :fulcro.inspect.client/keys [tx]}]
+  (let [{::keys [db-hash-index]} (-> @global-inspector* :reconciler :config :shared)
+        tx (assoc tx
+             :fulcro.history/db-before (get @db-hash-index (:fulcro.history/db-before-hash tx))
+             :fulcro.history/db-after (get @db-hash-index (:fulcro.history/db-after-hash tx)))]
+    (fp/transact! (:reconciler @global-inspector*)
+      [:fulcro.inspect.ui.transactions/tx-list-id [app-uuid-key app-uuid]]
+      [`(fulcro.inspect.ui.transactions/add-tx ~tx) :fulcro.inspect.ui.transactions/tx-list])))
+
 (defn handle-remote-message [{:keys [port event responses*]}]
   (when-let [{:keys [type data]} (event-data event)]
     (let [data (assoc data ::port port)]
@@ -111,6 +124,9 @@
 
         :fulcro.inspect.client/db-update
         (update-client-db data)
+
+        :fulcro.inspect.client/new-client-transaction
+        (new-client-tx data)
 
         :fulcro.inspect.client/transact-inspector
         (tx-run data)

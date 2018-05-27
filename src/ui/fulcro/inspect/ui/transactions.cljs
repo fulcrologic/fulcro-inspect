@@ -28,7 +28,7 @@
    :query         [::tx-id
                    :fulcro.history/client-time :fulcro.history/tx
                    :fulcro.history/db-before :fulcro.history/db-after
-                   :fulcro.history/network-sends :ret :ident-ref :component
+                   :fulcro.history/network-sends :ident-ref :component
                    {:ui/tx-row-view (fp/get-query data-viewer/DataViewer)}]
    :css           [[:.container {:display       "flex"
                                  :cursor        "pointer"
@@ -67,19 +67,17 @@
 (fp/defsc Transaction
   [this {:keys                [ident-ref component]
          :fulcro.history/keys [network-sends]
-         :ui/keys             [tx-view ret-view sends-view
+         :ui/keys             [tx-view sends-view
                                old-state-view new-state-view
-                               diff-add-view diff-rem-view]} computed]
+                               diff-add-view diff-rem-view]}]
   {:initial-state
-   (fn [{:keys                [ret]
-         :fulcro.history/keys [tx network-sends db-before db-after]
+   (fn [{:fulcro.history/keys [tx network-sends db-before db-after]
          :as                  transaction}]
      (let [[add rem] (data/diff db-after db-before)]
        (merge {::tx-id (random-uuid)}
               transaction
               {:ui/tx-view        (-> (fp/get-initial-state data-viewer/DataViewer tx)
                                       (assoc ::data-viewer/expanded {[] true}))
-               :ui/ret-view       (fp/get-initial-state data-viewer/DataViewer ret)
                :ui/sends-view     (fp/get-initial-state data-viewer/DataViewer network-sends)
                :ui/old-state-view (fp/get-initial-state data-viewer/DataViewer db-before)
                :ui/new-state-view (fp/get-initial-state data-viewer/DataViewer db-after)
@@ -94,10 +92,9 @@
    [::tx-id ::timestamp
     :fulcro.history/client-time :fulcro.history/tx
     :fulcro.history/db-before :fulcro.history/db-after
-    :fulcro.history/network-sends :ret :ident-ref :component
+    :fulcro.history/network-sends :ident-ref :component
     :ui/full-computed?
     {:ui/tx-view (fp/get-query data-viewer/DataViewer)}
-    {:ui/ret-view (fp/get-query data-viewer/DataViewer)}
     {:ui/tx-row-view (fp/get-query data-viewer/DataViewer)}
     {:ui/sends-view (fp/get-query data-viewer/DataViewer)}
     {:ui/old-state-view (fp/get-query data-viewer/DataViewer)}
@@ -117,9 +114,6 @@
 
       (ui/info {::ui/title "Transaction"}
         (data-viewer/data-viewer tx-view))
-
-      (ui/info {::ui/title "Response"}
-        (data-viewer/data-viewer ret-view))
 
       (if (seq network-sends)
         (ui/info {::ui/title "Sends"}

@@ -74,16 +74,22 @@
 
     app))
 
-(defn inspect-tx [{:keys [reconciler] :as env} info]
+(defn inspect-tx [{:keys [reconciler] :as env}
+                  {:fulcro.history/keys [db-before db-after]
+                   :as                  info}]
   (if (fp/app-root reconciler)
-    (let [tx     (-> (merge info (select-keys env [:old-state :new-state :ref :component]))
-                     (update :component #(gobj/get (fp/react-type %) "displayName"))
-                     (set/rename-keys {:ref :ident-ref}))
-          app-id (app-uuid reconciler)]
+    (let [tx       (-> (merge info (select-keys env [:ref :component]))
+                       (update :component #(gobj/get (fp/react-type %) "displayName"))
+                       (set/rename-keys {:ref :ident-ref})
+                       (dissoc :old-state :new-state :tx :ret
+                         :fulcro.history/db-before :fulcro.history/db-after)
+                       (assoc :fulcro.history/db-before-hash (hash db-before)
+                              :fulcro.history/db-after-hash (hash db-after)))
+          app-uuid (app-uuid reconciler)]
       ; ensure app is initialized
-      (if (-> reconciler fp/app-state deref :fulcro.inspect.core/app-uuid)
-        (transact-inspector! [:fulcro.inspect.ui.transactions/tx-list-id [app-uuid-key app-id]]
-          [`(fulcro.inspect.ui.transactions/add-tx ~tx) :fulcro.inspect.ui.transactions/tx-list])))))
+      (when (-> reconciler fp/app-state deref :fulcro.inspect.core/app-uuid)
+        (post-message ::new-client-transaction {app-uuid-key app-uuid
+                                                ::tx         tx})))))
 
 ;;; network
 
