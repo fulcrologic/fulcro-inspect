@@ -163,9 +163,8 @@
         (swap! state #(reduce h/deep-remove-ref % tx-refs))))))
 
 (defmutation replay-tx [_]
-  (remote [{:keys [ast ref]}]
-    (-> (assoc ast :key 'transact)
-        (assoc-in [:params :fulcro.inspect.core/app-uuid] (db.h/ref-app-uuid ref)))))
+  (remote [env]
+    (db.h/remote-mutation env 'transact)))
 
 (fp/defsc TransactionList
   [this

@@ -4,19 +4,23 @@
             [com.wsscode.pathom.fulcro.network :as pfn]
             [fulcro-css.css :as css]
             [fulcro.client :as fulcro]
+            [fulcro.client.mutations :as fm]
             [fulcro.client.localized-dom :as dom]
             [fulcro.client.primitives :as fp]
+            [fulcro.i18n :as fulcro-i18n]
             [fulcro.inspect.lib.local-storage :as storage]
             [fulcro.inspect.remote.transit :as encode]
             [fulcro.inspect.ui-parser :as ui-parser]
             [fulcro.inspect.ui.data-history :as data-history]
             [fulcro.inspect.ui.element :as element]
+            [fulcro.inspect.ui.i18n :as i18n]
             [fulcro.inspect.ui.inspector :as inspector]
             [fulcro.inspect.ui.multi-inspector :as multi-inspector]
             [fulcro.inspect.ui.multi-oge :as multi-oge]
             [fulcro.inspect.ui.network :as network]
             [fulcro.inspect.ui.transactions :as transactions]
-            [goog.object :as gobj]))
+            [goog.object :as gobj]
+            [com.wsscode.pathom.core :as p]))
 
 (fp/defsc GlobalRoot [this {:keys [ui/root]}]
   {:initial-state (fn [params] {:ui/root (fp/get-initial-state multi-inspector/MultiInspector params)})
@@ -87,6 +91,11 @@
                           (assoc-in [::inspector/app-state ::data-history/snapshots] (storage/tget [::data-history/snapshots app-id] []))
                           (assoc-in [::inspector/network ::network/history-id] [app-uuid-key app-uuid])
                           (assoc-in [::inspector/element ::element/panel-id] [app-uuid-key app-uuid])
+                          (assoc-in [::inspector/i18n ::i18n/id] [app-uuid-key app-uuid])
+                          (assoc-in [::inspector/i18n ::i18n/current-locale] (-> (get-in initial-state (-> initial-state ::fulcro-i18n/current-locale))
+                                                                                 ::fulcro-i18n/locale))
+                          (assoc-in [::inspector/i18n ::i18n/locales] (->> initial-state ::fulcro-i18n/locale-by-id vals vec
+                                                                           (mapv #(vector (::fulcro-i18n/locale %) (:ui/locale-name %)))))
                           (assoc-in [::inspector/transactions ::transactions/tx-list-id] [app-uuid-key app-uuid])
                           (assoc-in [::inspector/oge] (fp/get-initial-state multi-oge/OgeView {:app-uuid app-uuid
                                                                                                :remotes  remotes})))]
@@ -116,9 +125,14 @@
   (let [{::keys [db-hash-index]} (-> @global-inspector* :reconciler :config :shared)]
     (swap! db-hash-index db-index-add state state-hash))
 
+  (if-let [current-locale (-> state ::fulcro-i18n/current-locale p/ident-value*)]
+    (fp/transact! (:reconciler @global-inspector*)
+      [::i18n/id [app-uuid-key app-uuid]]
+      [`(fm/set-props ~{::i18n/current-locale current-locale})]))
+
   (fp/transact! (:reconciler @global-inspector*)
-    [:fulcro.inspect.ui.data-history/history-id [app-uuid-key app-uuid]]
-    [`(fulcro.inspect.ui.data-history/set-content ~state) :fulcro.inspect.ui.data-history/history]))
+    [::data-history/history-id [app-uuid-key app-uuid]]
+    [`(data-history/set-content ~state) ::data-history/history]))
 
 (defn new-client-tx [{:fulcro.inspect.core/keys   [app-uuid]
                       :fulcro.inspect.client/keys [tx]}]

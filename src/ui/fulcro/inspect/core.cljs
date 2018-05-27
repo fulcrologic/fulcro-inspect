@@ -245,6 +245,7 @@
   (some-> network :options ::app* (reset! app)))
 
 (defn i18n-init [app-id reconciler]
+  #_
   (swap! inspect-i18n/reconciler-by-app-id assoc app-id reconciler))
 
 (defn inspect-app [app-id target-app]
@@ -259,9 +260,9 @@
                           (assoc-in [::inspector/element ::element/panel-id] [::app-id app-id])
                           (assoc-in [::inspector/element ::element/target-reconciler] (:reconciler target-app))
                           (assoc-in [::inspector/i18n ::inspect-i18n/id] [::app-id app-id])
-                          (assoc-in [::inspector/i18n ::inspect-i18n/current-locale] (get-in (-> target-app :reconciler fp/app-state deref)   
-                                                                                             (-> target-app :reconciler fp/app-state deref ::fulcro-i18n/current-locale)))
-                          (assoc-in [::inspector/i18n ::inspect-i18n/locales] (-> target-app :reconciler fp/app-state deref ::fulcro-i18n/locale-by-id vals vec))
+                          (assoc-in [::inspector/i18n ::inspect-i18n/current-locale] (get-in @state*
+                                                                                             (-> @state* ::fulcro-i18n/current-locale)))
+                          (assoc-in [::inspector/i18n ::inspect-i18n/locales] (-> @state* ::fulcro-i18n/locale-by-id vals vec))
                           (assoc-in [::inspector/transactions ::transactions/tx-list-id] [::app-id app-id]))]
 
     (fp/transact! (:reconciler inspector) [::multi-inspector/multi-inspector "main"]
