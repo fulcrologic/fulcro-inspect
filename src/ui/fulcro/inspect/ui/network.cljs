@@ -20,13 +20,15 @@
 
 (defmutation request-finish [{::keys [response-edn error] :as request}]
   (action [env]
-    (let [{:keys [ref state] :as env} env]
-      (when (get-in @state (fp/ident Request request)) ; prevent adding back a done request
-        (when (get-in @state (conj ref :ui/request-edn-view))
+    (let [{:keys [state] :as env} env
+          request-ref (fp/ident Request request)
+          env' (assoc env :ref request-ref)]
+      (when (get-in @state request-ref) ; prevent adding back a cleared request
+        (when (get-in @state (conj request-ref :ui/request-edn-view))
           (if response-edn
-            (h/create-entity! env data-viewer/DataViewer response-edn :set :ui/response-edn-view))
+            (h/create-entity! env' data-viewer/DataViewer response-edn :set :ui/response-edn-view))
           (if error
-            (h/create-entity! env data-viewer/DataViewer error :set :ui/error-view)))
+            (h/create-entity! env' data-viewer/DataViewer error :set :ui/error-view)))
 
         (swap! state h/merge-entity Request (assoc request ::request-finished-at (js/Date.)))))))
 

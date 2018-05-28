@@ -6,6 +6,7 @@
 - Add i18n page: switch locales from inspector. Thanks @mitchelkuijpers!
 - Improved element picker algorithm, now it should be better at picking items.
 - Remember watches by app id.
+- Add flamegraph profile on network details (when profile data is requested).
 
 ## [2.1.0]
 - New feature: record/restore snapshots from app state
