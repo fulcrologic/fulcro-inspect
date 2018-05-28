@@ -26,7 +26,8 @@
 (fp/defsc GlobalRoot [this {:keys [ui/root]}]
   {:initial-state (fn [params] {:ui/root (fp/get-initial-state multi-inspector/MultiInspector params)})
    :query         [{:ui/root (fp/get-query multi-inspector/MultiInspector)}]
-   :css           [[:body {:margin "0" :padding "0" :box-sizing "border-box"}]]
+   :css           [[:html {:overflow "hidden"}]
+                   [:body {:margin "0" :padding "0" :box-sizing "border-box"}]]
    :css-include   [multi-inspector/MultiInspector]}
 
   (dom/div
