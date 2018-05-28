@@ -19,4 +19,4 @@ msgstr ""
 
 #: ../public/js/compiled/i18n.js:56853
 msgid "Add item"
-msgstr ""
+msgstr "Adicionar item"

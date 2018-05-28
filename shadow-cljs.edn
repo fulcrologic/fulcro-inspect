@@ -1,0 +1,60 @@
+{:source-paths ["src/client" "src/ui" "src/chrome" "src/electron" "devcards" "test" "resources"]
+
+ :dependencies [[org.clojure/core.async "0.4.474"]
+                [spec-coerce "1.0.0-alpha5"]
+                [fulcrologic/fulcro "2.5.4"]
+                [fulcrologic/fulcro-inspect "2.1.0"]
+                [com.wsscode/pathom "2.0.1"]
+                [com.taoensso/sente "1.12.0"]
+                [binaryage/devtools "0.9.9"]
+                [devcards "0.2.4" :exclusions [cljsjs/react cljsjs/react-dom]]
+                [fulcrologic/fulcro-spec "2.1.0-1" :scope "test" :exclusions [fulcrologic/fulcro]]]
+
+ :http         {:host "localhost"
+                :port 9630}
+
+ :nrepl        {:port 63104}
+
+ :builds       {:devcards              {:target           :browser
+                                        :output-dir       "resources/public/js/devcards"
+                                        :asset-path       "/js/devcards"
+                                        :compiler-options {:devcards true}
+                                        :devtools         {:preloads           [devtools.preload fulcro.inspect.preload]
+                                                           :http-root          "resources/public"
+                                                           :http-port          8084
+                                                           :http-resource-root "."
+                                                           :devtools-url       "http://localhost:9630"}
+                                        :modules          {:main {:entries [fulcro.inspect.devcards]}}}
+
+                :chrome                {:target        :chrome-extension
+                                        :extension-dir "shells/chrome"
+                                        :devtools      {:devtools-url "http://localhost:9630"}}
+
+                :chrome-devtool        {:target           :browser
+                                        :output-dir       "shells/chrome/js/devtool"
+                                        :asset-path       "js/devtool"
+                                        :compiler-options {:closure-output-charset "US-ASCII"}
+                                        :devtools         {:devtools-url "http://localhost:9630"}
+                                        :modules          {:main {:entries [fulcro.inspect.chrome.devtool.main]}}}
+
+                :electron-main         {:target    :node-script
+                                        :main      fulcro.inspect.electron.background.main/init
+                                        :devtools  {:devtools-url "http://localhost:9630"}
+                                        :output-to "shells/electron/js/background/main.js"}
+
+                :electron-renderer     {:target     :browser
+                                        :modules    {:main {:entries [fulcro.inspect.electron.renderer.main]}}
+                                        :devtools   {:devtools-url "http://localhost:9630"}
+                                        :output-dir "shells/electron/js/renderer"
+                                        :asset-path "js/renderer"}
+
+                :test-dev              {:target    :browser-test
+                                        :test-dir  "resources/public/js/test"
+                                        :ns-regexp "-spec$"
+                                        :devtools  {:http-port          8021
+                                                    :http-resource-root "public"
+                                                    :http-root          "resources/public/js/test"}}
+
+                :test-ci               {:target    :karma
+                                        :output-to "target/ci.js"
+                                        :ns-regexp "-spec$"}}}

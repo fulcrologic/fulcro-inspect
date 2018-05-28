@@ -10,7 +10,12 @@
     [fulcro.client.mutations :as mutations]
     [clojure.test.check.generators :as gen]
     [fulcro.client.dom :as dom]
-    [cljs.spec.alpha :as s]))
+    [cljs.spec.alpha :as s]
+    [cljs.core.async :as async :refer [go <!]]
+    [com.wsscode.pathom.connect :as pc]
+    [com.wsscode.pathom.core :as p]
+    [com.wsscode.pathom.profile :as pp]
+    [com.wsscode.pathom.fulcro.network :as pfn]))
 
 (def request-samples
   [{:in  [:hello :world]
@@ -206,7 +211,8 @@
 (fp/defui ^:once NameLoaderRoot
   static fp/InitialAppState
   (initial-state [_ _] {:ui/react-key (random-uuid)
-                        :ui/root      (fp/get-initial-state NameLoader {})})
+                        :ui/root      (fp/get-initial-state NameLoader {})
+                        :fulcro.inspect.core/app-id "NameLoader"})
 
   static fp/IQuery
   (query [_] [{:ui/root (fp/get-query NameLoader)}
@@ -222,15 +228,42 @@
       (dom/div #js {:key react-key}
         (name-loader root)))))
 
+(def indexes (atom {}))
+
+(defmulti resolver-fn pc/resolver-dispatch)
+(def defresolver (pc/resolver-factory resolver-fn indexes))
+
+(defmulti mutation-fn pc/mutation-dispatch)
+(def defmutation (pc/mutation-factory mutation-fn indexes))
+
+(defresolver 'name
+  {::pc/output [::name]}
+  (fn [_ _]
+    (go
+      (<! (async/timeout 300))
+      {::name (gen/generate (s/gen ::name))})))
+
+(defresolver 'id-name
+  {::pc/input  #{::id}
+   ::pc/output [::name]}
+  (fn [_ _]
+    (go
+      (<! (async/timeout 300))
+      {::name (gen/generate (s/gen ::name))})))
+
+(def parser
+  (p/async-parser {::p/env     {::p/reader             [p/map-reader pc/all-async-readers]
+                                ::pc/resolver-dispatch resolver-fn
+                                ::pc/mutate-dispatch   mutation-fn
+                                ::pc/indexes           @indexes}
+                   ::p/mutate  pc/mutate-async
+                   ::p/plugins [p/request-cache-plugin
+                                pp/profile-plugin]}))
+
 (defcard-fulcro network-sampler
   NameLoaderRoot
   {}
-  {:fulcro {:networking
-            (reify
-              f.network/FulcroNetwork
-              (send [this edn ok error]
-                (ok {[::id "name-loader"] {::name (gen/generate (s/gen ::name))}}))
-              (start [_]))}})
+  {:fulcro {:networking (pfn/local-network parser)}})
 
 (defcard-fulcro network-sampler-remote-i
   NameLoaderRoot
@@ -240,7 +273,22 @@
               f.network/FulcroRemoteI
               (transmit [this {::f.network/keys [edn ok-handler]}]
                 (ok-handler {:transaction edn
-                             :body {[::id "name-loader"] {::name (gen/generate (s/gen ::name))}}}))
+                             :body        {[::id "name-loader"] {::name (gen/generate (s/gen ::name))}}}))
               (abort [_ _]))}})
+
+(defcard-fulcro multi-network
+  NameLoaderRoot
+  {}
+  {:fulcro {:networking
+            {:remote
+             (pfn/local-network parser)
+
+             :other
+             (reify
+               f.network/FulcroRemoteI
+               (transmit [this {::f.network/keys [edn ok-handler]}]
+                 (ok-handler {:transaction edn
+                              :body        {[::id "name-loader"] {::name (gen/generate (s/gen ::name))}}}))
+               (abort [_ _]))}}})
 
 (css/upsert-css "network" NetworkRoot)

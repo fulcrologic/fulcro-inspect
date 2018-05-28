@@ -1,0 +1,30 @@
+{:manifest_version        2
+ :name                    "Fulcro Inspect"
+ :version                 "0.0.1"
+ :description             "Developer tool to inspect Fulcro applications"
+
+ :icons                   {"16"  "icon-16.png"
+                           "48"  "icon-48.png"
+                           "128" "icon-128.png"}
+
+ :shadow/outputs          {:content-script
+                           {:chrome/options {:matches ["<all_urls>"]
+                                             :run_at  "document_idle"}
+                            :entries        [fulcro.inspect.chrome.content-script.main]}
+
+                           :background
+                           {:chrome/options {:persistent false}
+                            :entries        [fulcro.inspect.chrome.background.main]}}
+
+ :permissions             ["file:///*" "http://*/*" "https://*/*"]
+ :externally-connectable  {:ids ["*"]}
+
+ :content-security-policy ["default-src 'self';"
+                           "script-src 'self' 'unsafe-eval' http://localhost:9630;"
+                           "connect-src * data: blob: filesystem:;"
+                           "style-src 'self' data: chrome-extension-resource: 'unsafe-inline';"
+                           "img-src 'self' data: chrome-extension-resource:;"
+                           "frame-src 'self' data: chrome-extension-resource:;"
+                           "font-src 'self' data: chrome-extension-resource:;"
+                           "media-src * data: blob: filesystem:;"]
+ :devtools-page           "devtools.html"}

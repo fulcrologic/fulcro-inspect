@@ -124,3 +124,16 @@
     (h/vec-remove-index 0 [5 6]) => [6]
     (h/vec-remove-index 1 [5 6]) => [5]
     (h/vec-remove-index 1 [:a :b :c]) => [:a :c]))
+
+(specification "normalize-id"
+  (assertions
+    (h/normalize-id 'sym) => 'sym
+    (h/normalize-id :key) => :key
+    (h/normalize-id "str") => "str"
+    (h/normalize-id 'sym-0) => 'sym
+    (h/normalize-id :key-10) => :key
+    (h/normalize-id "str-42") => "str"))
+
+(specification "ref-app-id"
+  (assertions
+    (h/ref-app-uuid [:x [:y "abc"]]) => "abc"))
