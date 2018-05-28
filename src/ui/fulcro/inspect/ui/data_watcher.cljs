@@ -29,20 +29,25 @@
                          #(update-watchers % new-state watches))))))
 
 (defmutation add-data-watch [{:keys [path]}]
-  (action [env]
-    (let [{:keys [ref state]} env
-          content (as-> (get-in @state (conj ref ::root-data)) <>
-                    (get-in @state (conj <> ::f.data-viewer/content))
-                    (get-in <> path))]
-      (db.h/create-entity! env WatchPin {:path path :content content}
-        :prepend ::watches))))
+  (action [{:keys [ref state] :as env}]
+    (let [app-id (db.h/ref-app-id @state ref)]
+      (doseq [app-uuid (db.h/matching-apps @state app-id)
+              :let [ref     [::id [:fulcro.inspect.core/app-uuid app-uuid]]
+                    content (as-> (get-in @state (conj ref ::root-data)) <>
+                              (get-in @state (conj <> ::f.data-viewer/content))
+                              (get-in <> path))]]
+        (db.h/create-entity! (assoc env :ref [::id [:fulcro.inspect.core/app-uuid app-uuid]])
+          WatchPin {:path path :content content}
+          :prepend ::watches)))))
 
 (defmutation remove-data-watch [{:keys [index]}]
-  (action [env]
-    (let [{:keys [ref state]} env
-          watch-ref (get-in @state (conj ref ::watches index))]
-      (swap! state db.h/deep-remove-ref watch-ref)
-      (swap! state update-in (conj ref ::watches) #(db.h/vec-remove-index index %)))))
+  (action [{:keys [ref state]}]
+    (let [app-id (db.h/ref-app-id @state ref)]
+      (doseq [app-uuid (db.h/matching-apps @state app-id)
+              :let [ref       [::id [:fulcro.inspect.core/app-uuid app-uuid]]
+                    watch-ref (get-in @state (conj ref ::watches index))]]
+        (swap! state db.h/deep-remove-ref watch-ref)
+        (swap! state update-in (conj ref ::watches) #(db.h/vec-remove-index index %))))))
 
 (fp/defsc WatchPin
   [this {::keys   [watch-path data-viewer]
