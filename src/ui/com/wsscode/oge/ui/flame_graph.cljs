@@ -45,6 +45,7 @@
 
   (componentWillReceiveProps [this {:keys [profile]}]
     (when (not= profile (-> this om/props :profile))
+      (gobj/set (gobj/get this "root") "innerHTML" "")
       (render-flame profile (gobj/get this "root"))))
 
   (render [this]
