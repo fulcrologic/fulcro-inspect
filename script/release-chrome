@@ -1,0 +1,9 @@
+#!/bin/bash
+
+shadow-cljs release chrome chrome-devtool
+mkdir -p releases
+rm -rf releases/chrome
+cp -rf shells/chrome releases
+cd releases/chrome
+rm -rf icons.sketch js/devtool/cljs-runtime/ js/devtool/manifest.edn manifest.edn out/cljs-runtime screenshot-*
+zip -r ../fulcro-inspect-chrome-$(jq -r '.version' manifest.json).zip *
