@@ -7,7 +7,7 @@ jobs:
       - checkout
       - run: npm install
       - run: ./node_modules/.bin/shadow-cljs compile test-ci
-      - run: karma start --single-run
+      - run: ./node_modules/.bin/karma start --single-run
 workflows:
   version: 2
   fullstack:
