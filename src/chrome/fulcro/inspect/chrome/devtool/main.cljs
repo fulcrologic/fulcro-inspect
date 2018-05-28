@@ -90,6 +90,10 @@
                           (assoc ::inspector/name (dedupe-name app-id))
                           (assoc-in [::inspector/app-state ::data-history/history-id] [app-uuid-key app-uuid])
                           (assoc-in [::inspector/app-state ::data-history/watcher ::data-watcher/id] [app-uuid-key app-uuid])
+                          (assoc-in [::inspector/app-state ::data-history/watcher ::data-watcher/watches]
+                            (->> (storage/get [::data-watcher/watches app-id] [])
+                                 (mapv #(fp/get-initial-state data-watcher/WatchPin {:path %
+                                                                                     :content (get-in initial-state %)}))))
                           (assoc-in [::inspector/app-state ::data-history/snapshots] (storage/tget [::data-history/snapshots app-id] []))
                           (assoc-in [::inspector/network ::network/history-id] [app-uuid-key app-uuid])
                           (assoc-in [::inspector/element ::element/panel-id] [app-uuid-key app-uuid])

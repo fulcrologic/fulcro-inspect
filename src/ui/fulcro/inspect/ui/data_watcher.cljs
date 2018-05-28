@@ -5,6 +5,7 @@
             [fulcro-css.css :as css]
             [fulcro.client.dom :as dom]
             [fulcro.client.primitives :as fp]
+            [fulcro.inspect.lib.local-storage :as storage]
             [fulcro.inspect.ui.helpers :as h]
             [fulcro.inspect.ui.core :as ui]))
 
@@ -38,16 +39,21 @@
                               (get-in <> path))]]
         (db.h/create-entity! (assoc env :ref [::id [:fulcro.inspect.core/app-uuid app-uuid]])
           WatchPin {:path path :content content}
-          :prepend ::watches)))))
+          :prepend ::watches))
+
+      (storage/update! [::watches app-id] #(into [path] %)))))
 
 (defmutation remove-data-watch [{:keys [index]}]
-  (action [{:keys [ref state]}]
+  (action [{:keys [ref state] :as env}]
     (let [app-id (db.h/ref-app-id @state ref)]
       (doseq [app-uuid (db.h/matching-apps @state app-id)
               :let [ref       [::id [:fulcro.inspect.core/app-uuid app-uuid]]
-                    watch-ref (get-in @state (conj ref ::watches index))]]
+                    watch-ref (get-in @state (conj ref ::watches index))
+                    env'      (assoc env :ref ref)]]
         (swap! state db.h/deep-remove-ref watch-ref)
-        (swap! state update-in (conj ref ::watches) #(db.h/vec-remove-index index %))))))
+        (db.h/swap-entity! env' update ::watches #(db.h/vec-remove-index index %)))
+
+      (storage/update! [::watches app-id] #(db.h/vec-remove-index index %)))))
 
 (fp/defsc WatchPin
   [this {::keys   [watch-path data-viewer]

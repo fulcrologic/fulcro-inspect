@@ -1,5 +1,12 @@
 # Change Log
 
+## [2.2.0-beta1]
+- New remote architecture, the client now lives outside of the browser.
+- Add Query pane, allows for running queries on app remotes.
+- Add i18n page: switch locales from inspector. Thanks @mitchelkuijpers!
+- Improved element picker algorithm, now it should be better at picking items.
+- Remember watches by app id.
+
 ## [2.1.0]
 - New feature: record/restore snapshots from app state
 - Fix: improved function that resets app state
