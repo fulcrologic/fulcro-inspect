@@ -5,8 +5,8 @@ jobs:
       - image: circleci/clojure:lein-2.8.1-node-browsers
     steps:
       - checkout
-      - run: npm install 
-      - run: shadow-cljs compile test-ci
+      - run: npm install
+      - run: ./node_modules/.bin/shadow-cljs compile test-ci
       - run: karma start --single-run
 workflows:
   version: 2
