@@ -103,6 +103,8 @@
                      [:$cm-atom-ident {:color       "#219"
                                        :font-weight "bold"}]]]
 
+                   [:$CodeMirror-hint {:font-size "10px"}]
+
                    [:.title {:grid-area     "title"
                              :display       "flex"
                              :align-items   "center"
