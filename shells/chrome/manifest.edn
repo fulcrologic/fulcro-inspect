@@ -4,6 +4,7 @@
  :description             "Developer tool to inspect Fulcro applications"
 
  :icons                   {"16"  "icon-16.png"
+                           "32"  "icon-32.png"
                            "48"  "icon-48.png"
                            "128" "icon-128.png"}
 
@@ -27,4 +28,13 @@
                            "frame-src 'self' data: chrome-extension-resource:;"
                            "font-src 'self' data: chrome-extension-resource:;"
                            "media-src * data: blob: filesystem:;"]
- :devtools-page           "devtools.html"}
+
+ :browser-action          {:default-icon  {"16"  "icon-16-disabled.png"
+                                           "32"  "icon-32-disabled.png"
+                                           "48"  "icon-48-disabled.png"
+                                           "128" "icon-128-disabled.png"}
+                           :default-popup "popups/disabled.html"}
+
+ :devtools-page           "devtools.html"
+
+ }

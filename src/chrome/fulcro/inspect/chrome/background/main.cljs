@@ -16,14 +16,32 @@
           remote-port (get @remote-conns* tab-id)]
       (.postMessage remote-port message))))
 
+(defn set-icon-and-popup [tab-id]
+  (js/chrome.browserAction.setIcon
+    #js {:tabId tab-id
+         :path  #js {"16"  "icon-16.png"
+                     "32"  "icon-32.png"
+                     "48"  "icon-48.png"
+                     "128" "icon-128.png"}})
+  (js/chrome.browserAction.setPopup
+    #js {:tabId tab-id
+         :popup "popups/enabled.html"}))
+
 (defn handle-remote-message [ch message port]
-  (if (gobj/getValueByKeys message "fulcro-inspect-remote-message")
+  (cond
+    ; send message to devtool
+    (gobj/getValueByKeys message "fulcro-inspect-remote-message")
     (let [tab-id (gobj/getValueByKeys port "sender" "tab" "id")]
       (put! ch {:tab-id tab-id :message message})
 
       ; ack message received
       (when-let [id (gobj/getValueByKeys message "__fulcro-insect-msg-id")]
-        (.postMessage port #js {:ack "ok" "__fulcro-insect-msg-id" id})))))
+        (.postMessage port #js {:ack "ok" "__fulcro-insect-msg-id" id})))
+
+    ; set icon and popup
+    (gobj/getValueByKeys message "fulcro-inspect-fulcro-detected")
+    (let [tab-id (gobj/getValueByKeys port "sender" "tab" "id")]
+      (set-icon-and-popup tab-id))))
 
 (js/chrome.runtime.onConnect.addListener
   (fn [port]

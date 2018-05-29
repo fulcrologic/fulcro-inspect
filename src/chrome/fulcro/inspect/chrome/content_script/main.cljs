@@ -39,6 +39,10 @@
     (let [content-script->background-chan (chan (async/sliding-buffer 1024))
           port*                           (atom (setup-new-port))]
 
+      ; set browser icon
+      (.postMessage @port* #js {:fulcro-inspect-fulcro-detected true})
+
+      ; clear inspector
       (put! content-script->background-chan
         (envelope-ack
           #js {:fulcro-inspect-remote-message
