@@ -56,7 +56,7 @@
         (.addListener (gobj/get port "onMessage") listener)
         (.addListener (gobj/get port "onDisconnect")
           (fn [port]
-            (.removeListener port "onMessage" listener)
+            (.removeListener (gobj/get port "onMessage") listener)
             (swap! remote-conns* dissoc tab-id)
             (async/close! background->devtool-chan)))
 
@@ -74,7 +74,7 @@
         (.addListener (gobj/get port "onMessage") listener)
         (.addListener (gobj/get port "onDisconnect")
           (fn [port]
-            (.removeListener port "onMessage" listener)
+            (.removeListener (gobj/get port "onMessage") listener)
             (if-let [port-key (->> @tools-conns*
                                    (keep (fn [[k v]] (if (= v port) k)))
                                    (first))]
