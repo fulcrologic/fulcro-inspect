@@ -76,12 +76,6 @@
     (add-watch state* app-uuid
       #(db-update app app-uuid %4))
 
-    #_
-    (add-watch state* app-uuid
-      #(post-message ::db-update {app-uuid-key app-uuid
-                                  ::state %4
-                                  ::state-hash (hash %4)}))
-
     (swap! apps* assoc app-uuid app)
     (swap! state* assoc app-uuid-key app-uuid)
 
