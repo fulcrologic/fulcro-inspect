@@ -73,7 +73,7 @@
 (defn db-index-add
   ([db state] (db-index-add db state (hash state)))
   ([db state state-hash]
-   (misc/fixed-size-assoc DB_HISTORY_BUFFER_SIZE db state state-hash)))
+   (misc/fixed-size-assoc DB_HISTORY_BUFFER_SIZE db state-hash state)))
 
 (defn start-app [{:fulcro.inspect.core/keys   [app-id app-uuid]
                   :fulcro.inspect.client/keys [initial-state state-hash remotes]}]
@@ -102,7 +102,7 @@
                                                                                                :remotes  remotes})))]
 
     (let [{::keys [db-hash-index]} (-> inspector :reconciler :config :shared)]
-      (swap! db-hash-index db-index-add initial-state state-hash))
+      (swap! db-hash-index db-index-add (dissoc initial-state :fulcro.inspect.client/state-hash) state-hash))
 
     (fp/transact! (:reconciler inspector) [::multi-inspector/multi-inspector "main"]
       [`(multi-inspector/add-inspector ~new-inspector)])
