@@ -9,6 +9,7 @@
             [fulcro.client.primitives :as fp]
             [fulcro.i18n :as fulcro-i18n]
             [fulcro.inspect.lib.local-storage :as storage]
+            [fulcro.inspect.lib.misc :as misc]
             [fulcro.inspect.remote.transit :as encode]
             [fulcro.inspect.ui-parser :as ui-parser]
             [fulcro.inspect.ui.data-history :as data-history]
@@ -72,19 +73,12 @@
 (defn db-index-add
   ([db state] (db-index-add db state (hash state)))
   ([db state state-hash]
-   (let [{::keys [history] :as db'}
-         (-> db
-             (assoc state-hash state)
-             (update ::history conj state-hash))]
-     (if (> (count history) DB_HISTORY_BUFFER_SIZE)
-       (-> db'
-           (dissoc (first history))
-           (update ::history #(vec (next %))))
-       db'))))
+   (misc/fixed-size-assoc DB_HISTORY_BUFFER_SIZE db state state-hash)))
 
 (defn start-app [{:fulcro.inspect.core/keys   [app-id app-uuid]
                   :fulcro.inspect.client/keys [initial-state state-hash remotes]}]
   (let [inspector     @global-inspector*
+        initial-state (assoc initial-state :fulcro.inspect.client/state-hash state-hash)
         new-inspector (-> (fp/get-initial-state inspector/Inspector initial-state)
                           (assoc ::inspector/id app-uuid)
                           (assoc :fulcro.inspect.core/app-id app-id)
@@ -137,9 +131,10 @@
       [::i18n/id [app-uuid-key app-uuid]]
       [`(fm/set-props ~{::i18n/current-locale current-locale})]))
 
-  (fp/transact! (:reconciler @global-inspector*)
-    [::data-history/history-id [app-uuid-key app-uuid]]
-    [`(data-history/set-content ~state) ::data-history/history]))
+  (let [state (assoc state :fulcro.inspect.client/state-hash state-hash)]
+    (fp/transact! (:reconciler @global-inspector*)
+      [::data-history/history-id [app-uuid-key app-uuid]]
+      [`(data-history/set-content ~state) ::data-history/history])))
 
 (defn new-client-tx [{:fulcro.inspect.core/keys   [app-uuid]
                       :fulcro.inspect.client/keys [tx]}]
@@ -208,7 +203,7 @@
                        (reset! port* (event-loop app responses*)))
 
                      :shared
-                     {::db-hash-index (atom {::history []})}
+                     {::db-hash-index (atom {})}
 
                      :networking
                      (make-network port* ui-parser/parser responses*))

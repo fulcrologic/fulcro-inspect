@@ -1,6 +1,6 @@
 {:manifest_version        2
  :name                    "Fulcro Inspect"
- :version                 "0.0.2"
+ :version                 "0.0.3"
  :description             "Developer tool to inspect Fulcro applications"
 
  :icons                   {"16"  "icon-16.png"
@@ -35,6 +35,4 @@
                                            "128" "icon-128-disabled.png"}
                            :default-popup "popups/disabled.html"}
 
- :devtools-page           "devtools.html"
-
- }
+ :devtools-page           "devtools.html"}

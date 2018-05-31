@@ -10,7 +10,8 @@
             [fulcro.inspect.ui.helpers :as ui.h]
             [fulcro.inspect.ui.dom-history-viewer :as dom-history]
             [goog.object :as gobj]
-            [fulcro.client.localized-dom :as dom]))
+            [fulcro.client.localized-dom :as dom]
+            [fulcro.inspect.lib.misc :as misc]))
 
 (defonce started?* (atom false))
 (defonce tools-app* (atom nil))
@@ -50,9 +51,20 @@
   ([ref tx]
    (post-message ::transact-inspector {::tx-ref ref ::tx tx})))
 
-(defn update-inspect-state [app-uuid state]
-  (transact-inspector! [:fulcro.inspect.ui.data-history/history-id [app-uuid-key app-uuid]]
-    [`(fulcro.inspect.ui.data-history/set-content ~state) :fulcro.inspect.ui.data-history/history]))
+(def MAX_HISTORY_SIZE 100)
+
+(defn update-state-history [app state]
+  (swap! (-> app :reconciler :state) update ::state-history
+    #(misc/fixed-size-assoc MAX_HISTORY_SIZE % (hash state) state)))
+
+(defn db-update [app app-uuid state]
+  (update-state-history app state)
+  (post-message ::db-update {app-uuid-key app-uuid
+                             ::state      state
+                             ::state-hash (hash state)}))
+
+(defn db-from-history [app state-hash]
+  (some-> app :reconciler :state deref ::state-history (get state-hash)))
 
 (defn inspect-app [{:keys [reconciler networking] :as app}]
   (let [state*   (some-> app :reconciler :config :state)
@@ -62,6 +74,10 @@
       (inspect-network-init n app))
 
     (add-watch state* app-uuid
+      #(db-update app app-uuid %4))
+
+    #_
+    (add-watch state* app-uuid
       #(post-message ::db-update {app-uuid-key app-uuid
                                   ::state %4
                                   ::state-hash (hash %4)}))
@@ -69,6 +85,7 @@
     (swap! apps* assoc app-uuid app)
     (swap! state* assoc app-uuid-key app-uuid)
 
+    (update-state-history app @state*)
     (post-message ::init-app {app-uuid-key                app-uuid
                               :fulcro.inspect.core/app-id (app-id reconciler)
                               ::remotes                   (sort-by (juxt #(not= :remote %) str) (keys networking))
@@ -233,7 +250,8 @@
 
     :fulcro.inspect.client/show-dom-preview
     (let [{:fulcro.inspect.core/keys [app-uuid]} data
-          app-state              (:state data)
+          app                    (some-> @apps* (get app-uuid))
+          app-state              (db-from-history app (::state-hash data))
           reconciler             (some-> @apps* (get app-uuid) :reconciler)
           app-root-class         (fp/react-type (fp/app-root reconciler))
           app-root-class-factory (fp/factory app-root-class)

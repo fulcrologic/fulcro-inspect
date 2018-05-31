@@ -15,8 +15,10 @@
 (def ^:dynamic *max-history* 100)
 
 (defn new-state [content]
-  {::state     content
-   ::timestamp (js/Date.)})
+  (let [hash (get content :fulcro.inspect.client/state-hash)]
+    {::state                           (dissoc content :fulcro.inspect.client/state-hash)
+     ::timestamp                       (js/Date.)
+     :fulcro.inspect.client/state-hash hash}))
 
 (fm/defmutation ^:intern set-content [content]
   (action [env]
@@ -27,7 +29,7 @@
         (do
           (if-not (= current-index (dec *max-history*))
             (h/swap-entity! env update ::current-index inc))
-          (watcher/update-state (assoc env :ref watcher) content))
+          (watcher/update-state (assoc env :ref watcher) (dissoc content :fulcro.inspect.client/state-hash)))
 
         (if (= *max-history* (count history))
           (h/swap-entity! env update ::current-index dec)))
@@ -48,7 +50,8 @@
     (let [history (get-in @state ref)]
       (if (::show-dom-preview? history)
         (-> (db.h/remote-mutation env 'show-dom-preview)
-            (assoc-in [:params :state] (get-in history [::history current-index ::state])))
+            (assoc-in [:params :fulcro.inspect.client/state-hash]
+              (get-in history [::history current-index :fulcro.inspect.client/state-hash])))
         false))))
 
 (fm/defmutation hide-dom-preview [_]
@@ -160,7 +163,7 @@
                      ::current-index     0
                      ::show-dom-preview? true
                      ::show-snapshots?   true
-                     ::watcher           (fp/get-initial-state watcher/DataWatcher content)
+                     ::watcher           (fp/get-initial-state watcher/DataWatcher (dissoc content :fulcro.inspect.client/state-hash))
                      ::snapshots         []})
    :ident         [::history-id ::history-id]
    :query         [::history-id ::history ::current-index ::show-dom-preview? ::show-snapshots?
