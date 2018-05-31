@@ -3,6 +3,7 @@
 ## [2.2.0-beta2]
 - Fix devtool scroll going away from panel
 - Fix network not updating when it's finished while open 
+- Faster scrubbing 
 
 ## [2.2.0-beta1]
 - New remote architecture, the client now lives outside of the browser.

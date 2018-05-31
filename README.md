@@ -30,6 +30,11 @@ The inspector will find the running Fulcro application, and be ready to inspect 
 To launch the inspector, use the `ctrl-f` keystroke on your keyboard (unless you changed the
 configuration to something else).
 
+## Chrome extension
+
+From version `2.2.0` and on, Fulcro inspect will run in some separated client.
+You can download the chrome devtool at: https://chrome.google.com/webstore/detail/fulcro-inspect/meeijplnfjcihnhkpanepcaffklobaal
+
 ### DB Tab
 
 The DB tab contains the state of the app.
