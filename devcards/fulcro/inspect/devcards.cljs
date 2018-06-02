@@ -9,10 +9,7 @@
             [fulcro.inspect.ui.element-cards]
             [fulcro.inspect.ui.network-cards]
             [fulcro.inspect.ui.transactions-cards]
-            [fulcro.inspect.ui.i18n-cards]
-            [fulcro-css.css :as css]))
+            [fulcro.inspect.ui.i18n-cards]))
 
 (log/set-level :none)
 (devcards.core/start-devcard-ui!)
-
-(css/upsert-css "fulcro.inspector" fulcro.inspect.core/GlobalRoot)
