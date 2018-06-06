@@ -1,5 +1,9 @@
 # Change Log
 
+## [2.2.0-beta5]
+- Fix bug that prevented app to start when it was too quick
+- Don't process events unless user has the extension installed
+
 ## [2.2.0-beta4]
 - Support forcing app to re-render (use the same reset state button)
 - Use transit default handlers to fallback encoding (fast finally!)
