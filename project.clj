@@ -5,9 +5,9 @@
   :license {:name "MIT Public License"
             :url  "https://opensource.org/licenses/MIT"}
   :dependencies [[org.clojure/clojure "1.9.0" :scope "provided"]
-                 [org.clojure/clojurescript "1.9.946" :scope "provided"]
-                 [fulcrologic/fulcro "2.5.2" :scope "provided"]
-                 [com.wsscode/pathom "2.0.1"]
+                 [org.clojure/clojurescript "1.10.238" :scope "provided"]
+                 [fulcrologic/fulcro "2.5.7" :scope "provided"]
+                 [com.wsscode/pathom "2.0.4"]
 
                  [org.clojure/tools.namespace "0.3.0-alpha4" :scope "test"]
                  [lein-doo "0.1.7" :scope "test"]
