@@ -11,28 +11,41 @@
             [fulcro.inspect.ui.dom-history-viewer :as dom-history]
             [goog.object :as gobj]
             [fulcro.client.localized-dom :as dom]
-            [fulcro.inspect.lib.misc :as misc]))
+            [fulcro.inspect.lib.misc :as misc]
+            [clojure.core.async :as async]))
 
 (defonce started?* (atom false))
 (defonce tools-app* (atom nil))
 (defonce apps* (atom {}))
+(defonce send-ch (async/chan (async/dropping-buffer 1024)))
 
 (def app-uuid-key :fulcro.inspect.core/app-uuid)
 
 (defn post-message [type data]
-  (.postMessage js/window #js {:fulcro-inspect-remote-message (encode/write {:type type :data data :timestamp (js/Date.)})} "*"))
+  (async/put! send-ch [type data]))
 
 (declare handle-devtool-message)
 
 (defn event-data [event]
   (some-> event (gobj/getValueByKeys "data" "fulcro-inspect-devtool-message") encode/read))
 
+(defn start-send-message-loop []
+  (async/go-loop []
+    (when-let [[type data] (async/<! send-ch)]
+      (.postMessage js/window (clj->js {:fulcro-inspect-remote-message (encode/write {:type type :data data :timestamp (js/Date.)})}) "*")
+      (recur))))
+
 (defn listen-local-messages []
   (.addEventListener js/window "message"
     (fn [event]
-      (when (and (= (.-source event) js/window)
-                 (gobj/getValueByKeys event "data" "fulcro-inspect-devtool-message"))
-        (handle-devtool-message (event-data event))))
+      (cond
+        (and (= (.-source event) js/window)
+             (gobj/getValueByKeys event "data" "fulcro-inspect-devtool-message"))
+        (handle-devtool-message (event-data event))
+
+        (and (= (.-source event) js/window)
+             (gobj/getValueByKeys event "data" "fulcro-inspect-start-consume"))
+        (start-send-message-loop)))
     false))
 
 (defn app-uuid [reconciler]
@@ -73,11 +86,7 @@
     (doseq [[_ n] networking]
       (inspect-network-init n app))
 
-    (add-watch state* app-uuid
-      #(db-update app app-uuid %4))
-
     (swap! apps* assoc app-uuid app)
-    (swap! state* assoc app-uuid-key app-uuid)
 
     (update-state-history app @state*)
     (post-message ::init-app {app-uuid-key                app-uuid
@@ -85,6 +94,11 @@
                               ::remotes                   (sort-by (juxt #(not= :remote %) str) (keys networking))
                               ::initial-state             @state*
                               ::state-hash                (hash @state*)})
+
+    (add-watch state* app-uuid
+      #(db-update app app-uuid %4))
+
+    (swap! state* assoc app-uuid-key app-uuid)
 
     app))
 

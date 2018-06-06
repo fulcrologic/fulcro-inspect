@@ -54,8 +54,9 @@
         (fn [event]
           (when (and (= (.-source event) js/window)
                      (gobj/getValueByKeys event "data" "fulcro-inspect-remote-message"))
-            (put! content-script->background-chan (envelope-ack (gobj/get event "data")))))
-        false)
+            (put! content-script->background-chan (envelope-ack (gobj/get event "data"))))))
+
+      (.postMessage js/window #js {:fulcro-inspect-start-consume true} "*")
 
       (go-loop []
         (when-let [data (<! content-script->background-chan)]
