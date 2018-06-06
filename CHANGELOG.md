@@ -1,5 +1,8 @@
 # Change Log
 
+## [2.2.0-beta4]
+- Support forcing app to re-render (use the same reset state button)
+
 ## [2.2.0-beta3]
 - Don't load indexes on app start
 - Optimised sanitization (still slow)

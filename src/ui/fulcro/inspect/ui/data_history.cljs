@@ -211,9 +211,11 @@
                             :onClick  #(fp/transact! this `[(navigate-history ~{::current-index (inc current-index)})])}
           (ui/icon {:title "Foward one version"} :chevron_right))
 
-        (ui/toolbar-action {:disabled at-end?
-                            :onClick  #(fp/transact! this `[(reset-app ~{:target-state app-state})])}
-          (ui/icon {:title "Reset App To This State"} :settings_backup_restore))
+        (ui/toolbar-action {:onClick
+                            (if at-end?
+                              #(fp/transact! this `[(reset-app {})])
+                              #(fp/transact! this `[(reset-app ~{:target-state app-state})]))}
+          (ui/icon {:title (if at-end? "Force app re-render" "Reset App To This State")} :settings_backup_restore))
 
         (ui/toolbar-action {:onClick #(let [content (-> this fp/get-reconciler fp/app-state deref
                                                         (h/get-in-path [::watcher/id (::watcher/id watcher) ::watcher/root-data ::data-viewer/content]))]
