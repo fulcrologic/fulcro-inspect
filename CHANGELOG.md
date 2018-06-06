@@ -1,5 +1,9 @@
 # Change Log
 
+## [2.2.0-beta3]
+- Don't load indexes on app start
+- Optimised sanitization (still slow)
+
 ## [2.2.0-beta2]
 - Fix devtool scroll going away from panel
 - Fix network not updating when it's finished while open 
