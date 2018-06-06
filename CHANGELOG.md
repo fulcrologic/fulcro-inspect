@@ -2,6 +2,7 @@
 
 ## [2.2.0-beta4]
 - Support forcing app to re-render (use the same reset state button)
+- Use transit default handlers to fallback encoding (fast finally!)
 
 ## [2.2.0-beta3]
 - Don't load indexes on app start
