@@ -32,15 +32,17 @@
   (let [warned (atom #{})]
     (walk/postwalk
       (fn [x]
-        (try
-          (t/write writer x)
+        (if (coll? x)
           x
-          (catch :default _
-            (when-not (contains? @warned x)
-              (js/console.warn "Fulcro inspect failed to encode" x "\nThis means Fulcro Inspect had to walk your data to sanitize information, remove non serializable values on your app db to avoid slow encodings.")
-              (swap! warned conj x))
+          (try
+            (t/write writer x)
+            x
+            (catch :default _
+              (when-not (contains? @warned x)
+                (js/console.warn "Fulcro inspect failed to encode" x "\nThis means Fulcro Inspect had to walk your data to sanitize information, remove non serializable values on your app db to avoid slow encodings.")
+                (swap! warned conj x))
 
-            (pr-str x))))
+              (pr-str x)))))
       x)))
 
 (defn write [x]
