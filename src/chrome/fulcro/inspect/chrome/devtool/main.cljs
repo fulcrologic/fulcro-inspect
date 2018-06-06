@@ -107,9 +107,6 @@
     (fp/transact! (:reconciler inspector) [::multi-inspector/multi-inspector "main"]
       [`(multi-inspector/add-inspector ~new-inspector)])
 
-    (doseq [r remotes]
-      (oge/trigger-index-load (:reconciler @global-inspector*) [:oge/id [app-uuid-key app-uuid r]] r))
-
     new-inspector))
 
 (defn tx-run [{:fulcro.inspect.client/keys [tx tx-ref]}]
