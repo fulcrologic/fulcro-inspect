@@ -2,6 +2,7 @@
 
 ## [2.2.0-beta6]
 - Fix event source check, prevent JS errors from externals messages
+- Support disposing apps
 
 ## [2.2.0-beta5]
 - Fix bug that prevented app to start when it was too quick

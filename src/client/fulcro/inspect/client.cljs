@@ -79,6 +79,10 @@
 (defn db-from-history [app state-hash]
   (some-> app :reconciler :state deref ::state-history (get state-hash)))
 
+(defn dispose-app [app-uuid]
+  (swap! apps* dissoc app-uuid)
+  (post-message ::dispose-app {app-uuid-key app-uuid}))
+
 (defn inspect-app [{:keys [reconciler networking] :as app}]
   (let [state*   (some-> app :reconciler :config :state)
         app-uuid (random-uuid)]

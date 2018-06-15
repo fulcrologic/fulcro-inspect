@@ -32,7 +32,6 @@
 
    :ident         (fn [] [::multi-inspector "main"])
    :query         [{::inspectors [::inspector/id ::inspector/name]}
-                   {[:fulcro.inspect.core/floating-panel "main"] [:ui/visible?]}
                    {::current-app (fp/get-query inspector/Inspector)}]
    :css           [[:.container {:display        "flex"
                                  :flex-direction "column"
@@ -59,28 +58,20 @@
                    [:body {:margin 0 :padding 0}]]
    :css-include   [inspector/Inspector]}
 
-  (let [keystroke (or (fp/shared this [:options :launch-keystroke]) "ctrl-f")
-        {:ui/keys [visible?]} (get props [:fulcro.inspect.core/floating-panel "main"])]
-    (dom/div :.container
-      #_(events/key-listener {::events/action    #(fp/transact! (fp/get-reconciler this) [:fulcro.inspect.core/floating-panel "main"]
-                                                    `[(db.h/persistent-set-props {::db.h/local-key   :ui/visible?
-                                                                                  ::db.h/storage-key :fulcro.inspect.core/dock-visible?
-                                                                                  ::db.h/value       ~(not visible?)}) :ui/visible?])
-                              ::events/keystroke keystroke
-                              ::events/target    #(.closest (dom/node this) "body")})
-      (css/style-element this)
-      (if current-app
-        (inspector/inspector current-app)
-        (dom/div :.no-app
-          (dom/div "No app connected.")))
-      (if (> (count inspectors) 1)
-        (dom/div :.selector
-          (dom/div :.label "App")
-          (dom/select {:value    (pr-str (::inspector/id current-app))
-                       :onChange #(fp/transact! this `[(set-app {::inspector/id ~(read-string (.. % -target -value))})])}
-            (for [{::inspector/keys [id name]} (sort-by (comp str ::inspector/name) inspectors)]
-              (dom/option {:key   id
-                           :value (pr-str id)}
-                (str name)))))))))
+  (dom/div :.container
+    (css/style-element this)
+    (if current-app
+      (inspector/inspector current-app)
+      (dom/div :.no-app
+        (dom/div "No app connected.")))
+    (if (> (count inspectors) 1)
+      (dom/div :.selector
+        (dom/div :.label "App")
+        (dom/select {:value    (pr-str (::inspector/id current-app))
+                     :onChange #(fp/transact! this `[(set-app {::inspector/id ~(read-string (.. % -target -value))})])}
+          (for [{::inspector/keys [id name]} (sort-by (comp str ::inspector/name) inspectors)]
+            (dom/option {:key   id
+                         :value (pr-str id)}
+              (str name))))))))
 
 (def multi-inspector (fp/factory MultiInspector {:keyfn ::multi-inspector}))

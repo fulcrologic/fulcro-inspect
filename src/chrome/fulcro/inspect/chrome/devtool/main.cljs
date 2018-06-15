@@ -22,7 +22,8 @@
             [fulcro.inspect.ui.network :as network]
             [fulcro.inspect.ui.transactions :as transactions]
             [goog.object :as gobj]
-            [com.wsscode.pathom.core :as p]))
+            [com.wsscode.pathom.core :as p]
+            [fulcro.inspect.helpers :as db.h]))
 
 (fp/defsc GlobalRoot [this {:keys [ui/root]}]
   {:initial-state (fn [params] {:ui/root (fp/get-initial-state multi-inspector/MultiInspector params)})
@@ -75,6 +76,8 @@
   ([db state state-hash]
    (misc/fixed-size-assoc DB_HISTORY_BUFFER_SIZE db state-hash state)))
 
+(defonce last-disposed-app* (atom nil))
+
 (defn start-app [{:fulcro.inspect.core/keys   [app-id app-uuid]
                   :fulcro.inspect.client/keys [initial-state state-hash remotes]}]
   (let [inspector     @global-inspector*
@@ -87,7 +90,7 @@
                           (assoc-in [::inspector/app-state ::data-history/watcher ::data-watcher/id] [app-uuid-key app-uuid])
                           (assoc-in [::inspector/app-state ::data-history/watcher ::data-watcher/watches]
                             (->> (storage/get [::data-watcher/watches app-id] [])
-                                 (mapv #(fp/get-initial-state data-watcher/WatchPin {:path %
+                                 (mapv #(fp/get-initial-state data-watcher/WatchPin {:path    %
                                                                                      :content (get-in initial-state %)}))))
                           (assoc-in [::inspector/app-state ::data-history/snapshots] (storage/tget [::data-history/snapshots app-id] []))
                           (assoc-in [::inspector/network ::network/history-id] [app-uuid-key app-uuid])
@@ -107,7 +110,27 @@
     (fp/transact! (:reconciler inspector) [::multi-inspector/multi-inspector "main"]
       [`(multi-inspector/add-inspector ~new-inspector)])
 
+    (when (= app-id @last-disposed-app*)
+      (fp/transact! (:reconciler inspector) [::multi-inspector/multi-inspector "main"]
+        [`(multi-inspector/set-app {::inspector/id ~app-uuid})]))
+
     new-inspector))
+
+(defn dispose-app [{:fulcro.inspect.core/keys [app-uuid]}]
+  (let [{:keys [reconciler]} @global-inspector*
+        state (fp/app-state reconciler)
+        inspector-ref [::inspector/id app-uuid]
+        app-id (get (get-in @state inspector-ref) :fulcro.inspect.core/app-id)]
+    (swap! state db.h/deep-remove-ref inspector-ref)
+    (swap! state update-in [::multi-inspector/multi-inspector "main" ::multi-inspector/inspectors]
+      (fn [x] (filterv #(not= inspector-ref %) x)))
+
+    (when (= (get-in @state [::multi-inspector/multi-inspector "main" ::multi-inspector/current-app])
+           inspector-ref)
+      (reset! last-disposed-app* app-id)
+      (js/setTimeout #(reset! last-disposed-app* nil) 800)
+      (swap! state assoc-in [::multi-inspector/multi-inspector "main" ::multi-inspector/current-app]
+        (first (get-in @state [::multi-inspector/multi-inspector "main" ::multi-inspector/inspectors]))))))
 
 (defn tx-run [{:fulcro.inspect.client/keys [tx tx-ref]}]
   (let [{:keys [reconciler]} @global-inspector*]
@@ -161,6 +184,9 @@
 
         :fulcro.inspect.client/reset
         (reset-inspector)
+
+        :fulcro.inspect.client/dispose-app
+        (dispose-app data)
 
         :fulcro.inspect.client/message-response
         (if-let [res-chan (get @responses* (::ui-parser/msg-id data))]
