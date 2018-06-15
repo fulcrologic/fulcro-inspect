@@ -1,5 +1,8 @@
 # Change Log
 
+## [2.2.0-beta6]
+- Fix event source check, prevent JS errors from externals messages
+
 ## [2.2.0-beta5]
 - Fix bug that prevented app to start when it was too quick
 - Don't process events unless user has the extension installed
