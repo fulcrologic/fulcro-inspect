@@ -52,7 +52,7 @@
 
       (.addEventListener js/window "message"
         (fn [event]
-          (when (and (= (.-source event) js/window)
+          (when (and (identical? (.-source event) js/window)
                      (gobj/getValueByKeys event "data" "fulcro-inspect-remote-message"))
             (put! content-script->background-chan (envelope-ack (gobj/get event "data"))))))
 

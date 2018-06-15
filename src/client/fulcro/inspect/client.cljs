@@ -39,11 +39,11 @@
   (.addEventListener js/window "message"
     (fn [event]
       (cond
-        (and (= (.-source event) js/window)
+        (and (identical? (.-source event) js/window)
              (gobj/getValueByKeys event "data" "fulcro-inspect-devtool-message"))
         (handle-devtool-message (event-data event))
 
-        (and (= (.-source event) js/window)
+        (and (identical? (.-source event) js/window)
              (gobj/getValueByKeys event "data" "fulcro-inspect-start-consume"))
         (start-send-message-loop)))
     false))
