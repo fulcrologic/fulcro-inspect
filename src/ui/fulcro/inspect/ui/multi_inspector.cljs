@@ -21,6 +21,18 @@
       (if (nil? current)
         (swap! state update-in ref assoc ::current-app inspector-ref)))))
 
+(mutations/defmutation remove-inspector [{::inspector/keys [id]}]
+  (action [{:keys [state ref] :as env}]
+    (let [inspector-ref [::inspector/id id]]
+      (swap! state db.h/deep-remove-ref inspector-ref)
+      (db.h/swap-entity! env update ::inspectors
+        (fn [x] (filterv #(not= inspector-ref %) x)))
+
+      (when (= (get-in @state (conj ref ::current-app))
+              inspector-ref)
+        (db.h/swap-entity! env assoc ::current-app
+          (first (get-in @state (conj ref ::inspectors))))))))
+
 (mutations/defmutation set-app [{::inspector/keys [id]}]
   (action [env]
     (let [{:keys [ref state]} env]

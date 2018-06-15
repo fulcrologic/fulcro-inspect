@@ -111,6 +111,7 @@
       [`(multi-inspector/add-inspector ~new-inspector)])
 
     (when (= app-id @last-disposed-app*)
+      (reset! last-disposed-app* nil)
       (fp/transact! (:reconciler inspector) [::multi-inspector/multi-inspector "main"]
         [`(multi-inspector/set-app {::inspector/id ~app-uuid})]))
 
@@ -118,19 +119,17 @@
 
 (defn dispose-app [{:fulcro.inspect.core/keys [app-uuid]}]
   (let [{:keys [reconciler]} @global-inspector*
-        state (fp/app-state reconciler)
+        state         (fp/app-state reconciler)
         inspector-ref [::inspector/id app-uuid]
-        app-id (get (get-in @state inspector-ref) :fulcro.inspect.core/app-id)]
-    (swap! state db.h/deep-remove-ref inspector-ref)
-    (swap! state update-in [::multi-inspector/multi-inspector "main" ::multi-inspector/inspectors]
-      (fn [x] (filterv #(not= inspector-ref %) x)))
+        app-id        (get (get-in @state inspector-ref) :fulcro.inspect.core/app-id)]
 
-    (when (= (get-in @state [::multi-inspector/multi-inspector "main" ::multi-inspector/current-app])
-           inspector-ref)
+    (if (= (get-in @state [::multi-inspector/multi-inspector "main" ::multi-inspector/current-app])
+          inspector-ref)
       (reset! last-disposed-app* app-id)
-      (js/setTimeout #(reset! last-disposed-app* nil) 800)
-      (swap! state assoc-in [::multi-inspector/multi-inspector "main" ::multi-inspector/current-app]
-        (first (get-in @state [::multi-inspector/multi-inspector "main" ::multi-inspector/inspectors]))))))
+      (reset! last-disposed-app* nil))
+
+    (fp/transact! reconciler [::multi-inspector/multi-inspector "main"]
+      [`(multi-inspector/remove-inspector {::inspector/id ~app-uuid})])))
 
 (defn tx-run [{:fulcro.inspect.client/keys [tx tx-ref]}]
   (let [{:keys [reconciler]} @global-inspector*]
