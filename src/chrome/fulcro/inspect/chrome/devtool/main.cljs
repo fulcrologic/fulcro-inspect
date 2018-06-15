@@ -166,6 +166,11 @@
       [:fulcro.inspect.ui.transactions/tx-list-id [app-uuid-key app-uuid]]
       [`(fulcro.inspect.ui.transactions/add-tx ~tx) :fulcro.inspect.ui.transactions/tx-list])))
 
+(defn set-active-app [{:fulcro.inspect.core/keys [app-uuid]}]
+  (let [inspector @global-inspector*]
+    (fp/transact! (:reconciler inspector) [::multi-inspector/multi-inspector "main"]
+      [`(multi-inspector/set-app {::inspector/id ~app-uuid})])))
+
 (defn handle-remote-message [{:keys [port event responses*]}]
   (when-let [{:keys [type data]} (event-data event)]
     (let [data (assoc data ::port port)]
@@ -187,6 +192,9 @@
 
         :fulcro.inspect.client/dispose-app
         (dispose-app data)
+
+        :fulcro.inspect.client/set-active-app
+        (set-active-app data)
 
         :fulcro.inspect.client/message-response
         (if-let [res-chan (get @responses* (::ui-parser/msg-id data))]

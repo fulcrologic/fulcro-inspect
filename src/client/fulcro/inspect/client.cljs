@@ -83,6 +83,9 @@
   (swap! apps* dissoc app-uuid)
   (post-message ::dispose-app {app-uuid-key app-uuid}))
 
+(defn set-active-app [app-uuid]
+  (post-message ::set-active-app {app-uuid-key app-uuid}))
+
 (defn inspect-app [{:keys [reconciler networking] :as app}]
   (let [state*   (some-> app :reconciler :config :state)
         app-uuid (random-uuid)]
