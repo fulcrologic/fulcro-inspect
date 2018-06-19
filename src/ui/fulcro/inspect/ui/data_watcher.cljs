@@ -98,7 +98,7 @@
 (def watch-pin (fp/factory WatchPin {:keyfn ::watch-id}))
 
 (fp/defsc DataWatcher
-  [this {::keys [root-data watches] :as props} _]
+  [this {::keys [root-data watches] :as props} {:keys [search]}]
   {:initial-state (fn [state] {::id        (random-uuid)
                                ::root-data (fp/get-initial-state f.data-viewer/DataViewer state)
                                ::watches   []})
@@ -122,7 +122,8 @@
         watches
         (range))
       (f.data-viewer/data-viewer root-data
-        {::f.data-viewer/path-action
+        {::f.data-viewer/search search
+         ::f.data-viewer/path-action
          #(fp/transact! this [`(add-data-watch {:path ~%})])}))))
 
 (def data-watcher (fp/factory DataWatcher))
