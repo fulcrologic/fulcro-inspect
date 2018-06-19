@@ -2,7 +2,8 @@
   (:require [fulcro.client.mutations :as mutations]
             [fulcro.inspect.ui.core :as ui]
             [fulcro.client.localized-dom :as dom]
-            [fulcro.client.primitives :as fp]))
+            [fulcro.client.primitives :as fp]
+            [clojure.string :as str]))
 
 (declare DataViewer)
 
@@ -43,15 +44,15 @@
 
 (defn keyable? [x]
   (or (nil? x)
-      (string? x)
-      (keyword? x)
-      (number? x)
-      (boolean? x)
-      (symbol? x)
-      (uuid? x)
-      (fp/tempid? x)
-      (and (vector? x)
-           (<= (count x) vec-max-inline))))
+    (string? x)
+    (keyword? x)
+    (number? x)
+    (boolean? x)
+    (symbol? x)
+    (uuid? x)
+    (fp/tempid? x)
+    (and (vector? x)
+      (<= (count x) vec-max-inline))))
 
 (declare render-data)
 
@@ -66,7 +67,7 @@
           (str i)))
       (render-data (update input :path conj i) x))))
 
-(defn render-sequential [{:keys [css expanded path toggle open-close static?] :as input} content]
+(defn render-sequential [{:keys [css search expanded path toggle open-close static?] :as input} content]
   (dom/div #js {:className (:data-row css)}
     (if (and (not static?) (> (count content) vec-max-inline))
       (dom/div #js {:onClick   #(toggle % path)
@@ -99,11 +100,11 @@
 (defn render-set [input content]
   (render-sequential (assoc input :open-close ["#{" "}"]) content))
 
-(defn render-map [{:keys [css expanded path toggle path-action elide-one? static?] :as input} content]
+(defn render-map [{:keys [css search expanded path toggle path-action elide-one? static?] :as input} content]
   (dom/div #js {:className (:data-row css)}
     (if (and (not static?)
-             (or (not elide-one?)
-                 (> 1 (count content))))
+          (or (not elide-one?)
+            (> 1 (count content))))
       (dom/div #js {:onClick   #(toggle % path)
                     :className (:toggle-button css)}
         (if (expanded path)
@@ -118,44 +119,44 @@
       (if (every? keyable? (keys content))
         (dom/div #js {:className (:map-container css)}
           (->> content
-               (sort-by (comp str first))
-               (mapv (fn [[k v]]
-                       (if (expanded (conj path k))
-                         [(dom/div #js {:key (str k "-key")}
-                            (dom/div #js {:className (:list-item-index css)}
-                              (if path-action
-                                (dom/div #js {:className (:path-action css)
-                                              :onClick   #(path-action (conj path k))}
-                                  (render-data input k))
-                                (render-data input k))))
-                          (dom/div #js {:key (str k "-key-space")})
-                          (dom/div #js {:className (:map-expanded-item css)
-                                        :key       (str k "-value")} (render-data (update input :path conj k) v))]
-                         [(dom/div #js {:key (str k "-key")}
-                            (dom/div #js {:className (:list-item-index css)}
-                              (if path-action
-                                (dom/div #js {:className (:path-action css)
-                                              :onClick   #(path-action (conj path k))}
-                                  (render-data input k))
-                                (render-data input k))))
-                          (dom/div #js {:key (str k "-value")} (render-data (update input :path conj k) v))])))
-               (apply concat)))
+            (sort-by (comp str first))
+            (mapv (fn [[k v]]
+                    (if (expanded (conj path k))
+                      [(dom/div #js {:key (str k "-key")}
+                         (dom/div #js {:className (:list-item-index css)}
+                           (if path-action
+                             (dom/div #js {:className (:path-action css)
+                                           :onClick   #(path-action (conj path k))}
+                               (render-data input k))
+                             (render-data input k))))
+                       (dom/div #js {:key (str k "-key-space")})
+                       (dom/div #js {:className (:map-expanded-item css)
+                                     :key       (str k "-value")} (render-data (update input :path conj k) v))]
+                      [(dom/div #js {:key (str k "-key")}
+                         (dom/div #js {:className (:list-item-index css)}
+                           (if path-action
+                             (dom/div #js {:className (:path-action css)
+                                           :onClick   #(path-action (conj path k))}
+                               (render-data input k))
+                             (render-data input k))))
+                       (dom/div #js {:key (str k "-value")} (render-data (update input :path conj k) v))])))
+            (apply concat)))
 
         (dom/div #js {:className (:list-container css)}
           (render-ordered-list input content)))
 
       (or (expanded (vec (butlast path)))
-          (empty? path))
+        (empty? path))
       (dom/div #js {:className (:list-inline css)}
         "{"
         (->> content
-             (sort-by (comp str first))
-             (take map-max-inline)
-             (mapv (fn [[k v]]
-                     [(dom/div #js {:className (:map-inline-key-item css) :key (str k "-key")} (render-data input k))
-                      (dom/div #js {:className (:map-inline-value-item css) :key (str k "-value")} (render-data (update input :path conj k) v))]))
-             (interpose ", ")
-             (apply concat))
+          (sort-by (comp str first))
+          (take map-max-inline)
+          (mapv (fn [[k v]]
+                  [(dom/div #js {:className (:map-inline-key-item css) :key (str k "-key")} (render-data input k))
+                   (dom/div #js {:className (:map-inline-value-item css) :key (str k "-value")} (render-data (update input :path conj k) v))]))
+          (interpose ", ")
+          (apply concat))
         (if (> (count content) map-max-inline)
           ", ")
         (if (> (count content) map-max-inline)
@@ -165,29 +166,68 @@
       :else
       "{...}")))
 
-(defn render-data [{:keys [css] :as input} content]
+(defn matches? [s search]
+  (and (string? s) (seq s) (string? search) (seq search) (str/includes? (str/lower-case s) (str/lower-case search))))
+
+(defn highlight
+  "Emit DOM for highlighting the given search string if it is contained withing the string s. Otherwise returns s."
+  [s search]
+  (if (matches? s search)
+    (dom/span {:style {:backgroundColor "yellow"}} s)
+    s))
+
+(defn paths-that-match
+  "Returns a vector of paths that match the given search string in data. The retuned list of paths will be prefixed with
+  path-to-here."
+  [path-to-here data search]
+  (cond
+    (map? data) (reduce
+                  (fn [result k]
+                    (let [new-path (conj path-to-here k)
+                          p        (paths-that-match new-path (get data k) search)]
+                      (if (seq p)
+                        (concat result p)
+                        result)))
+                  []
+                  (keys data))
+    (or (vector? data) (list? data)) (reduce
+                                       (fn [result [idx d]]
+                                         (let [new-path (conj path-to-here idx)
+                                               p        (paths-that-match new-path d search)]
+                                           (if (seq p)
+                                             (concat result p)
+                                             result)))
+                                       []
+                                       (map-indexed (fn [i d] [i d]) data))
+    (set? data) (if (some #(matches? (str %) search) data) [path-to-here] [])
+    (and (string? data) (matches? data search)) [path-to-here]
+    :otherwise []))
+
+(defn render-data [{:keys [css search] :as input} content]
   (let [input (update input :expanded #(or % {}))]
     (cond
       (nil? content)
       (dom/div #js {:className (:nil css)} "nil")
 
       (string? content)
-      (dom/div #js {:className (:string css)} (pr-str content))
+      (dom/div #js {:className (:string css)} (highlight (pr-str content) search))
 
       (keyword? content)
-      (dom/div #js {:className (:keyword css)} (str content))
+      (dom/div #js {:className (:keyword css)} (highlight (str content) search))
 
       (symbol? content)
-      (dom/div #js {:className (:symbol css)} (str content))
+      (dom/div #js {:className (:symbol css)} (highlight (str content) search))
 
       (number? content)
-      (dom/div #js {:className (:number css)} (str content))
+      (dom/div #js {:className (:number css)} (highlight (str content) search))
 
       (boolean? content)
-      (dom/div #js {:className (:boolean css)} (str content))
+      (dom/div #js {:className (:boolean css)} (highlight (str content) search))
 
       (uuid? content)
-      (dom/div #js {:className (:uuid css)} "#uuid " (dom/span {:className (:string css)} (str "\"" content "\"")))
+      (dom/div #js {:className (:uuid css)} "#uuid " (dom/span {:className (:string css)} (highlight
+                                                                                            (str "\"" content "\"")
+                                                                                            search)))
 
       (map? content)
       (render-map input content)
@@ -202,7 +242,7 @@
       (render-set input content)
 
       :else
-      (dom/div #js {:className (:unknown css)} (str content)))))
+      (dom/div #js {:className (:unknown css)} (highlight (str content) search)))))
 
 (def css-triangle
   {:font-family    ui/label-font-family
@@ -220,7 +260,7 @@
 (fp/defsc DataViewer
   [this
    {::keys [content expanded elide-one? static?] :as props}
-   {::keys [path-action]}
+   {::keys [path-action search]}
    css]
   {:initial-state (fn [content] {::id       (random-uuid)
                                  ::content  content
@@ -278,14 +318,37 @@
   (dom/div :.container
     (render-data {:expanded    expanded
                   :static?     static?
+                  :search      search
                   :elide-one?  elide-one?
                   :toggle      #(fp/transact! this [`(toggle {::path       ~%2
                                                               ::propagate? ~(or (.-altKey %)
-                                                                                (.-metaKey %))})])
+                                                                              (.-metaKey %))})])
                   :css         css
                   :path        []
                   :path-action path-action}
       content)))
+
+(defn all-subvecs [v]
+  (:result
+    (reduce
+      (fn [{:keys [last result] :as acc} i]
+        (assoc acc :last (conj last i) :result (conj result (conj last i))))
+      {:last [] :result []} v)))
+
+(mutations/defmutation search-expand [{:keys [viewer search]}]
+  (action [{:keys [state]}]
+    (let [data-view-ident (fp/get-ident DataViewer viewer)
+          expanded-path   (conj data-view-ident ::expanded)]
+      (swap! state update-in expanded-path
+        (fn [old paths] (reduce (fn [acc p]
+                                  (if (> (count p) 1)
+                                    (reduce
+                                      (fn [acc2 subpath]
+                                        (assoc acc2 subpath true))
+                                      acc
+                                      (all-subvecs (butlast p)))
+                                    acc)) old paths))
+        (paths-that-match [] (::content viewer) search)))))
 
 (let [factory (fp/factory DataViewer)]
   (defn data-viewer [props & [computed]]

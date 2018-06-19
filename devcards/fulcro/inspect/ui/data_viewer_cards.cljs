@@ -7,14 +7,15 @@
     [fulcro.client.cards :refer-macros [defcard-fulcro]]
     [fulcro.inspect.ui.data-viewer :as f.i.data-viewer]
     [fulcro.client.dom :as dom]
-    [fulcro.client.primitives :as fp]))
+    [fulcro.client.primitives :as fp]
+    [fulcro.client.mutations :as m :refer [defmutation]]))
 
 (defn make-root [Root app-id]
   (fp/ui
     static fp/InitialAppState
     (initial-state [_ params] {:fulcro.inspect.core/app-id app-id
-                               :ui/react-key (random-uuid)
-                               :ui/root      (fp/get-initial-state Root params)})
+                               :ui/react-key               (random-uuid)
+                               :ui/root                    (fp/get-initial-state Root params)})
 
     static fp/IQuery
     (query [_] [:ui/react-key
@@ -32,6 +33,20 @@
           (factory root))))))
 
 (def DataViewerRoot (make-root f.i.data-viewer/DataViewer ::data-viewer))
+
+(fp/defsc SearchDisplay [this {:keys [ui/search viewer]}]
+  {:query         [:ui/search {:viewer (fp/get-query f.i.data-viewer/DataViewer)}]
+   :ident         (fn [] [:X 1])
+   :initial-state (fn [params] {:ui/search "" :viewer (fp/get-initial-state f.i.data-viewer/DataViewer params)})}
+  (dom/div
+    (dom/input {:value search :onChange #(m/set-string! this :ui/search :event %)})
+    (dom/button {:onClick #(fp/transact! this `[(f.i.data-viewer/search-expand ~{:viewer viewer :search search})])} "Recursive Search")
+    (f.i.data-viewer/data-viewer viewer {::f.i.data-viewer/search search})))
+
+(def SearchRoot (make-root SearchDisplay ::data-search))
+
+(defn init-search-state-atom [data]
+  (atom (fp/tree->db SearchRoot (fp/get-initial-state SearchRoot data) true)))
 
 (defn init-state-atom [comp data]
   (atom (fp/tree->db comp (fp/get-initial-state comp data) true)))
@@ -125,5 +140,9 @@
   DataViewerRoot
   (init-state-atom DataViewerRoot
     {:a 3 :b 10 :foo {:barr ["baz" "there"]}}))
+
+(defcard-fulcro search-against-map
+  SearchRoot
+  (init-search-state-atom {:a "hello" :b {:x "dude" :y {:z [{:ac "123"} {:ac "456"}]}}}))
 
 (css/upsert-css "data-viewer" f.i.data-viewer/DataViewer)

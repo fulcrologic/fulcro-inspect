@@ -19,3 +19,6 @@ package-lock.json
 node_modules
 /shells/chrome/manifest.json
 /releases
+.shadow-cljs
+.DS_Store
+shells/chrome/js

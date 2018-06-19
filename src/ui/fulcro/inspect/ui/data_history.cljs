@@ -10,7 +10,8 @@
             [fulcro.inspect.ui.dom-history-viewer :as domv]
             [fulcro.inspect.helpers :as h]
             [fulcro.inspect.ui.helpers :as ui.h]
-            [fulcro.inspect.helpers :as db.h]))
+            [fulcro.inspect.helpers :as db.h]
+            [fulcro.client.mutations :as m]))
 
 (def ^:dynamic *max-history* 100)
 
@@ -25,7 +26,7 @@
     (let [{:keys [state ref]} env
           {::keys [watcher current-index history]} (get-in @state ref)]
       (if (or (= 0 (count history))
-              (= current-index (dec (count history))))
+            (= current-index (dec (count history))))
         (do
           (if-not (= current-index (dec *max-history*))
             (h/swap-entity! env update ::current-index inc))
@@ -35,8 +36,8 @@
           (h/swap-entity! env update ::current-index dec)))
 
       (h/swap-entity! env update ::history #(->> (conj % (new-state content))
-                                                 (take-last *max-history*)
-                                                 (vec))))))
+                                              (take-last *max-history*)
+                                              (vec))))))
 
 (fm/defmutation ^:intern navigate-history [{::keys [current-index]}]
   (action [{:keys [state ref] :as env}]
@@ -50,8 +51,8 @@
     (let [history (get-in @state ref)]
       (if (::show-dom-preview? history)
         (-> (db.h/remote-mutation env 'show-dom-preview)
-            (assoc-in [:params :fulcro.inspect.client/state-hash]
-              (get-in history [::history current-index :fulcro.inspect.client/state-hash])))
+          (assoc-in [:params :fulcro.inspect.client/state-hash]
+            (get-in history [::history current-index :fulcro.inspect.client/state-hash])))
         false))))
 
 (fm/defmutation hide-dom-preview [_]
@@ -64,7 +65,7 @@
   (refresh [_] [::current-index])
   (remote [{:keys [ast ref]}]
     (-> (assoc ast :key 'reset-app)
-        (assoc-in [:params :fulcro.inspect.core/app-uuid] (db.h/ref-app-uuid ref)))))
+      (assoc-in [:params :fulcro.inspect.core/app-uuid] (db.h/ref-app-uuid ref)))))
 
 (fp/defsc Snapshot
   [this
@@ -156,17 +157,18 @@
         (storage/tset! [::snapshots app-id] snapshots)))))
 
 (fp/defsc DataHistory
-  [this {::keys [history watcher current-index show-dom-preview? show-snapshots? snapshots]} _ css]
+  [this {::keys [search history watcher current-index show-dom-preview? show-snapshots? snapshots]} _ css]
   {:initial-state (fn [content]
                     {::history-id        (random-uuid)
                      ::history           [(new-state content)]
+                     ::search            ""
                      ::current-index     0
                      ::show-dom-preview? true
                      ::show-snapshots?   true
                      ::watcher           (fp/get-initial-state watcher/DataWatcher (dissoc content :fulcro.inspect.client/state-hash))
                      ::snapshots         []})
    :ident         [::history-id ::history-id]
-   :query         [::history-id ::history ::current-index ::show-dom-preview? ::show-snapshots?
+   :query         [::search ::history-id ::history ::current-index ::show-dom-preview? ::show-snapshots?
                    {::watcher (fp/get-query watcher/DataWatcher)}
                    {::snapshots (fp/get-query Snapshot)}]
    :css           [[:.container {:width          "100%"
@@ -218,9 +220,15 @@
           (ui/icon {:title (if at-end? "Force app re-render" "Reset App To This State")} :settings_backup_restore))
 
         (ui/toolbar-action {:onClick #(let [content (-> this fp/get-reconciler fp/app-state deref
-                                                        (h/get-in-path [::watcher/id (::watcher/id watcher) ::watcher/root-data ::data-viewer/content]))]
+                                                      (h/get-in-path [::watcher/id (::watcher/id watcher) ::watcher/root-data ::data-viewer/content]))]
                                         (fp/transact! this [`(save-snapshot {::snapshot-db ~content})]))}
           (ui/icon {:title "Save snapshot of current state"} :add_a_photo))
+        (ui/toolbar-text-field {:placeholder "Search" :value (or search "")
+                                :style {:margin "0 6px"}
+                                :onChange    #(m/set-string! this ::search :event %)})
+        (dom/button {:onClick #(fp/transact! this `[(data-viewer/search-expand
+                                                      ~{:viewer (::watcher/root-data watcher)
+                                                        :search search})])} "Expand Search")
         (dom/div {:className (:flex ui/scss)})
         (ui/toolbar-action {:disabled (not (seq snapshots))}
           (ui/icon {:onClick #(fm/toggle! this ::show-snapshots?)
@@ -229,7 +237,7 @@
 
       (dom/div :.row-content
         (dom/div :.watcher
-          (watcher/data-watcher watcher))
+          (watcher/data-watcher (fp/computed watcher {:search search})))
 
         (if (and show-snapshots? (seq snapshots))
           (dom/div :.snapshots
@@ -241,9 +249,9 @@
                   (ui/icon {:title "Not implemented yet."} :file_download)))
             (for [s (sort-by ::snapshot-label #(compare %2 %) snapshots)]
               (snapshot s {::current?           (= (-> (get-in watcher [::watcher/root-data ::data-viewer/content])
-                                                       (dissoc :fulcro.inspect.core/app-uuid))
-                                                   (-> (get s ::snapshot-db)
-                                                       (dissoc :fulcro.inspect.core/app-uuid)))
+                                                     (dissoc :fulcro.inspect.core/app-uuid))
+                                                  (-> (get s ::snapshot-db)
+                                                    (dissoc :fulcro.inspect.core/app-uuid)))
                            ::on-delete-snapshot (fn [{::keys [snapshot-label] :as s}]
                                                   (if (js/confirm (str "Delete " snapshot-label " snapshot?"))
                                                     (fp/transact! this `[(delete-snapshot ~s)])))
