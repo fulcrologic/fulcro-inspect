@@ -14,8 +14,6 @@ resources/public/js/
 figwheel_server.log
 *.iml
 .idea
-package-lock.json
-.idea
 node_modules
 /shells/chrome/manifest.json
 /releases
