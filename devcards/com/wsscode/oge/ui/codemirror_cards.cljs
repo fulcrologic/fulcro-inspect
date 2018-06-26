@@ -69,9 +69,9 @@
   (testing "[{:foo [({|})]}] join with param expression query"
     (is (= (cm/token-context indexes (j " [{\"start\":9,\"end\":10,\"string\":\"1\",\"type\":\"2\",\"state\":\"3\"},\"{\",\"bracket\",{\"pathStack\":\"4\",\"indentation\":0,\"mode\":\"5\"},{\"mode\":\"5\",\"indent\":10,\"prev\":\"6\"},\"join\",{\"mode\":\"7\",\"indent\":9,\"prev\":\"8\"},\"param-exp\",{\"mode\":\"9\",\"indent\":8,\"prev\":\"10\"},\"attr-list\",{\"mode\":\"5\",\"indent\":2,\"prev\":\"11\",\"key\":\"12\"},{\"mode\":\"9\",\"indent\":1,\"prev\":\"13\"},\":foo\",{}]"))
            {:type :attribute :context [:foo]})))
-  (testing "[{:foo [{(|)}]}] join with param expression query"
-    (is (= (cm/token-context indexes (j " [{\"start\":9,\"end\":10,\"string\":\"1\",\"type\":\"2\",\"state\":\"3\"},\"(\",\"bracket\",{\"pathStack\":\"4\",\"indentation\":0,\"mode\":\"5\"},{\"mode\":\"5\",\"indent\":10,\"prev\":\"6\"},\"param-exp\",{\"mode\":\"7\",\"indent\":9,\"prev\":\"8\"},\"join\",{\"mode\":\"9\",\"indent\":8,\"prev\":\"10\"},\"attr-list\",{\"mode\":\"7\",\"indent\":2,\"prev\":\"11\",\"key\":\"12\"},{\"mode\":\"9\",\"indent\":1,\"prev\":\"13\"},\":foo\",{}]"))
-           {:type :attribute :context [:foo]})))
+  (testing "[{:foo [{(:bar {}) [|]}]}] join with param expression query"
+    (is (= (cm/token-context indexes (j " [{\"start\":19,\"end\":20,\"string\":\"1\",\"type\":\"2\",\"state\":\"3\"},\"[\",\"bracket\",{\"pathStack\":\"4\",\"indentation\":0,\"mode\":\"5\"},{\"mode\":\"5\",\"indent\":20,\"prev\":\"6\"},\"attr-list\",{\"mode\":\"7\",\"indent\":9,\"prev\":\"8\",\"key\":\"9\"},\"join\",{\"mode\":\"5\",\"indent\":8,\"prev\":\"10\"},\":bar\",{\"mode\":\"7\",\"indent\":2,\"prev\":\"11\",\"key\":\"12\"},{\"mode\":\"5\",\"indent\":1,\"prev\":\"13\"},\":foo\",{}]"))
+           {:type :attribute :context [:bar :foo]})))
   (testing "[{[:ident 42] [{(|)}]}] join with param expression query"
     (is (= (cm/token-context indexes (j " [{\"start\":16,\"end\":17,\"string\":\"1\",\"type\":\"2\",\"state\":\"3\"},\"(\",\"bracket\",{\"pathStack\":\"4\",\"indentation\":0,\"mode\":\"5\"},{\"mode\":\"5\",\"indent\":17,\"prev\":\"6\"},\"param-exp\",{\"mode\":\"7\",\"indent\":16,\"prev\":\"8\"},\"join\",{\"mode\":\"9\",\"indent\":15,\"prev\":\"10\"},\"attr-list\",{\"mode\":\"7\",\"indent\":2,\"prev\":\"11\",\"key\":\"12\"},{\"mode\":\"9\",\"indent\":1,\"prev\":\"13\"},{\"mode\":\"14\",\"indent\":3,\"prev\":\"10\",\"key\":\"15\"},{},\"ident\",\":ident\"]"))
            {:type :attribute :context [:ident]}))))
