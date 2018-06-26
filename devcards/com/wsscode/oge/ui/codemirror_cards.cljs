@@ -48,9 +48,6 @@
   (testing "[{[:thing/id 42] [|]}] ident join query"
     (is (= (cm/token-context indexes (j " [{\"start\":17,\"end\":18,\"string\":\"1\",\"type\":\"2\",\"state\":\"3\"},\"[\",\"bracket\",{\"pathStack\":\"4\",\"indentation\":0,\"mode\":\"5\"},{\"mode\":\"5\",\"indent\":18,\"prev\":\"6\"},\"attr-list\",{\"mode\":\"7\",\"indent\":2,\"prev\":\"8\",\"key\":\"9\"},\"join\",{\"mode\":\"5\",\"indent\":1,\"prev\":\"10\"},{\"mode\":\"11\",\"indent\":3,\"prev\":\"6\",\"key\":\"12\"},{},\"ident\",\":thing/id\"]"))
            {:type :attribute :context [:thing/id]})))
-  (testing "[(|)] param expression root"
-    (is (= (cm/token-context indexes (j " [{\"start\":1,\"end\":2,\"string\":\"1\",\"type\":\"2\",\"state\":\"3\"},\"(\",\"bracket\",{\"pathStack\":\"4\",\"indentation\":0,\"mode\":\"5\"},{\"mode\":\"5\",\"indent\":2,\"prev\":\"6\"},\"param-exp\",{\"mode\":\"7\",\"indent\":1,\"prev\":\"8\"},\"attr-list\",{}]"))
-           {:type :attribute :context []})))
   (testing "[(|)] param expression"
     (is (= (cm/token-context indexes (j " [{\"start\":1,\"end\":2,\"string\":\"1\",\"type\":\"2\",\"state\":\"3\"},\"(\",\"bracket\",{\"pathStack\":\"4\",\"indentation\":0,\"mode\":\"5\"},{\"mode\":\"5\",\"indent\":2,\"prev\":\"6\"},\"param-exp\",{\"mode\":\"7\",\"indent\":1,\"prev\":\"8\"},\"attr-list\",{}]"))
            {:type :attribute :context []})))

@@ -18,7 +18,7 @@
     (h/swap-entity! env update ::remotes conj remote)
     (h/swap-entity! env update ::requests #(->> (take-last 50 %) vec))))
 
-(defmutation request-finish [{::keys [response-edn error] :as request}]
+(defmutation request-finish [{::keys [response-edn error request-finished-at] :as request}]
   (action [env]
     (let [{:keys [state] :as env} env
           request-ref (fp/ident Request request)
@@ -30,7 +30,9 @@
           (if error
             (h/create-entity! env' data-viewer/DataViewer error :set :ui/error-view)))
 
-        (swap! state h/merge-entity Request (assoc request ::request-finished-at (js/Date.)))))))
+        (swap! state h/merge-entity Request (cond-> request
+                                              (not request-finished-at)
+                                              (assoc ::request-finished-at (js/Date.))))))))
 
 (defmutation select-request [{::keys [request-edn response-edn error] :as request}]
   (action [env]
@@ -80,11 +82,14 @@
 
 (fp/defui ^:once Request
   static fp/InitialAppState
-  (initial-state [_ {::keys [request-edn] :as props}]
+  (initial-state [_ {::keys [request-edn request-started-at] :as props}]
     (merge (cond-> {::request-id         (random-uuid)
                     ::request-started-at (js/Date.)}
              request-edn
-             (assoc ::request-edn-row-view (fp/get-initial-state data-viewer/DataViewer request-edn)))
+             (assoc ::request-edn-row-view (fp/get-initial-state data-viewer/DataViewer request-edn))
+
+             request-started-at
+             (assoc ::request-started-at request-started-at))
            props))
 
   static fp/Ident

@@ -186,27 +186,33 @@
   ([remote network]
    (let [ts {::transform-query
              (fn [{::keys [request-id app]} edn]
-               (let [app-uuid (app-uuid (:reconciler app))]
+               (let [start    (js/Date.)
+                     app-uuid (app-uuid (:reconciler app))]
                  (transact-inspector! [:fulcro.inspect.ui.network/history-id [app-uuid-key app-uuid]]
-                   [`(fulcro.inspect.ui.network/request-start ~{:fulcro.inspect.ui.network/remote      remote
-                                                                :fulcro.inspect.ui.network/request-id  request-id
-                                                                :fulcro.inspect.ui.network/request-edn edn})]))
+                   [`(fulcro.inspect.ui.network/request-start ~{:fulcro.inspect.ui.network/remote             remote
+                                                                :fulcro.inspect.ui.network/request-id         request-id
+                                                                :fulcro.inspect.ui.network/request-started-at start
+                                                                :fulcro.inspect.ui.network/request-edn        edn})]))
                edn)
 
              ::transform-response
              (fn [{::keys [request-id app]} response]
-               (let [app-uuid (app-uuid (:reconciler app))]
+               (let [finished (js/Date.)
+                     app-uuid (app-uuid (:reconciler app))]
                  (transact-inspector! [:fulcro.inspect.ui.network/history-id [app-uuid-key app-uuid]]
-                   [`(fulcro.inspect.ui.network/request-finish ~{:fulcro.inspect.ui.network/request-id   request-id
-                                                                 :fulcro.inspect.ui.network/response-edn response})]))
+                   [`(fulcro.inspect.ui.network/request-finish ~{:fulcro.inspect.ui.network/request-id          request-id
+                                                                 :fulcro.inspect.ui.network/request-finished-at finished
+                                                                 :fulcro.inspect.ui.network/response-edn        response})]))
                response)
 
              ::transform-error
              (fn [{::keys [request-id app]} error]
-               (let [app-uuid (app-uuid (:reconciler app))]
+               (let [finished (js/Date.)
+                     app-uuid (app-uuid (:reconciler app))]
                  (transact-inspector! [:fulcro.inspect.ui.network/history-id [app-uuid-key app-uuid]]
-                   [`(fulcro.inspect.ui.network/request-finish ~{:fulcro.inspect.ui.network/request-id request-id
-                                                                 :fulcro.inspect.ui.network/error      error})]))
+                   [`(fulcro.inspect.ui.network/request-finish ~{:fulcro.inspect.ui.network/request-id          request-id
+                                                                 :fulcro.inspect.ui.network/request-finished-at finished
+                                                                 :fulcro.inspect.ui.network/error               error})]))
                error)}]
      (cond
        (implements? f.network/FulcroNetwork network)
