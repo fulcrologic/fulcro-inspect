@@ -42,7 +42,7 @@
                                ::lineNumbers]))
 
 (s/def ::props (s/keys :req-un [::value]
-                       :opt [::options]))
+                 :opt [::options]))
 
 (s/def ::extraKeys
   (s/map-of string? (s/or :str string? :fn fn?)))
@@ -124,7 +124,7 @@
 
 (defn str->keyword [s] (keyword (subs s 1)))
 
-(defn token-context [{::pc/keys [index-io]} token]
+(defn token-context [{::pc/keys [index-io] :as indexes} token]
   (let [state      (gobj/get token "state")
         mode       (gobj/get state "mode")
         path-stack (gobj/get state "pathStack")
@@ -137,8 +137,8 @@
                         (cond
                           ; ident join: [{[:ident x] [|]}]
                           (and (= "join" mode)
-                               (= "ident" (gobj/getValueByKeys s #js ["key" "mode"])))
-                          (let [key (str->keyword (gobj/getValueByKeys s #js ["key" "key"]))]
+                               (= "ident" (gobj/getValueByKeys s "key" "mode")))
+                          (let [key (str->keyword (gobj/getValueByKeys s "key" "key"))]
                             {:type :attribute :context (conj ctx key)})
 
                           ; join: [{:child [|]}]
@@ -147,9 +147,9 @@
                           (let [key (str->keyword key)]
                             (if (contains? (get index-io #{}) key)
                               {:type :attribute :context (conj ctx key)}
-                              (recur (gobj/getValueByKeys s #js ["prev" "prev"]) (conj ctx key))))
+                              (recur (gobj/getValueByKeys s "prev" "prev") (conj ctx key))))
 
-                          (not (seq (js->clj s)))
+                          :else
                           {:type :attribute :context ctx}))))]
 
     (cond
@@ -161,23 +161,19 @@
       (and (= "join" mode)
            (or (= (gobj/get token "string") (gobj/get path-stack "key"))
                (nil? (gobj/get path-stack "key"))))
-      (find-ctx (if (= "param-exp" (gobj/getValueByKeys path-stack #js ["prev" "mode"]))
-                  (gobj/getValueByKeys path-stack #js ["prev" "prev" "prev"])
-                  (gobj/getValueByKeys path-stack #js ["prev" "prev"])))
+      (find-ctx (if (= "param-exp" (gobj/getValueByKeys path-stack "prev" "mode"))
+                  (gobj/getValueByKeys path-stack "prev" "prev" "prev")
+                  (gobj/getValueByKeys path-stack "prev" "prev")))
 
       (= "attr-list" mode)
-      (if (gobj/getValueByKeys path-stack #js ["prev" "mode"])
+      (if (gobj/getValueByKeys path-stack "prev" "mode")
         (find-ctx (gobj/get path-stack "prev"))
         ; no stack, empty context
         {:type :attribute :context []})
 
       (= "param-exp" mode)
-      (if (and (gobj/getValueByKeys path-stack #js ["prev" "prev" "mode"])
-               (or (= "attr-list" (gobj/getValueByKeys path-stack #js ["prev" "mode"]))
-                   (gobj/getValueByKeys path-stack #js ["prev" "prev" "prev" "mode"])))
-        (find-ctx (gobj/getValueByKeys path-stack #js ["prev" "prev"]))
-        ; no stack, empty context
-        {:type :attribute :context []}))))
+      (let [prev (gobj/getValueByKeys path-stack "prev")]
+        (recur indexes (js-obj "state" (js-obj "mode" (gobj/get prev "mode") "pathStack" prev)))))))
 
 (defn ^:export completions [index token reg]
   (let [ctx (token-context index token)]

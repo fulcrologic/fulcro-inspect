@@ -1,5 +1,6 @@
 (ns fulcro.inspect.devcards
   (:require [devcards.core]
+            [com.wsscode.oge.ui.codemirror-cards]
             [fulcro.client.logging :as log]
             [fulcro.inspect.core]
             [fulcro.inspect.ui.demos-cards]
