@@ -1,5 +1,8 @@
 # Change Log
 
+## [2.2.0-beta7]
+- Improved time tracking of network requests
+
 ## [2.2.0-beta6]
 - Fix event source check, prevent JS errors from externals messages
 - Support disposing apps
