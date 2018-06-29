@@ -40,11 +40,11 @@
     (fn [event]
       (cond
         (and (identical? (.-source event) js/window)
-          (gobj/getValueByKeys event "data" "fulcro-inspect-devtool-message"))
+             (gobj/getValueByKeys event "data" "fulcro-inspect-devtool-message"))
         (handle-devtool-message (event-data event))
 
         (and (identical? (.-source event) js/window)
-          (gobj/getValueByKeys event "data" "fulcro-inspect-start-consume"))
+             (gobj/getValueByKeys event "data" "fulcro-inspect-start-consume"))
         (start-send-message-loop)))
     false))
 
@@ -53,7 +53,7 @@
 
 (defn app-id [reconciler]
   (or (some-> reconciler fp/app-state deref :fulcro.inspect.core/app-id)
-    (some-> reconciler fp/app-root ui.h/react-display-name)))
+      (some-> reconciler fp/app-root ui.h/react-display-name)))
 
 (defn inspect-network-init [network app]
   (-> network :options ::app* (reset! app)))
@@ -114,12 +114,12 @@
                    :as                  info}]
   (if (fp/app-root reconciler)
     (let [tx       (-> (merge info (select-keys env [:ref :component]))
-                     (update :component #(gobj/get (fp/react-type %) "displayName"))
-                     (set/rename-keys {:ref :ident-ref})
-                     (dissoc :old-state :new-state :tx :ret
-                       :fulcro.history/db-before :fulcro.history/db-after)
-                     (assoc :fulcro.history/db-before-hash (hash db-before)
-                            :fulcro.history/db-after-hash (hash db-after)))
+                       (update :component #(gobj/get (fp/react-type %) "displayName"))
+                       (set/rename-keys {:ref :ident-ref})
+                       (dissoc :old-state :new-state :tx :ret
+                         :fulcro.history/db-before :fulcro.history/db-after)
+                       (assoc :fulcro.history/db-before-hash (hash db-before)
+                              :fulcro.history/db-after-hash (hash db-after)))
           app-uuid (app-uuid reconciler)]
       ; ensure app is initialized
       (when (-> reconciler fp/app-state deref :fulcro.inspect.core/app-uuid)
@@ -166,6 +166,7 @@
     (if (satisfies? f.network/NetworkBehavior network)
       (f.network/serialize-requests? network)
       true))
+
   f.network/FulcroRemoteI
   (transmit [_ {::f.network/keys [edn ok-handler error-handler progress-handler]}]
     (let [{::keys [transform-query transform-response transform-error app*]
