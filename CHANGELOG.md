@@ -1,5 +1,8 @@
 # Change Log
 
+## [2.2.0-beta8]
+- Fix bug that hold progress events on the network wrapper
+
 ## [2.2.0-beta7]
 - Improved time tracking of network requests
 

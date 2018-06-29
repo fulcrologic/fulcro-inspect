@@ -162,7 +162,7 @@
 
 (defrecord TransformNetworkI [network options]
   f.network/FulcroRemoteI
-  (transmit [_ {::f.network/keys [edn ok-handler error-handler]}]
+  (transmit [_ {::f.network/keys [edn ok-handler error-handler progress-handler]}]
     (let [{::keys [transform-query transform-response transform-error app*]
            :or    {transform-query    (fn [_ x] x)
                    transform-response (fn [_ x] x)
@@ -172,9 +172,10 @@
                   ::app        @app*}]
       (if-let [edn' (transform-query env edn)]
         (f.network/transmit network
-          {::f.network/edn           edn'
-           ::f.network/ok-handler    #(->> % (transform-response env) ok-handler)
-           ::f.network/error-handler #(->> % (transform-error env) error-handler)})
+          {::f.network/edn              edn'
+           ::f.network/ok-handler       #(->> % (transform-response env) ok-handler)
+           ::f.network/error-handler    #(->> % (transform-error env) error-handler)
+           ::f.network/progress-handler progress-handler})
         (ok-handler nil))))
 
   (abort [_ abort-id] (f.network/abort network abort-id)))
