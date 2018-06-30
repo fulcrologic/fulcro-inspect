@@ -3,6 +3,7 @@
             [com.wsscode.oge.ui.codemirror-cards]
             [fulcro.client.logging :as log]
             [fulcro.inspect.core]
+            [fulcro.inspect.lib.version-cards]
             [fulcro.inspect.ui.demos-cards]
             [fulcro.inspect.ui.data-history-cards]
             [fulcro.inspect.ui.data-viewer-cards]
