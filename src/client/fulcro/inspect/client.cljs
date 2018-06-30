@@ -12,7 +12,8 @@
             [goog.object :as gobj]
             [fulcro.client.localized-dom :as dom]
             [fulcro.inspect.lib.misc :as misc]
-            [clojure.core.async :as async]))
+            [clojure.core.async :as async]
+            [fulcro.inspect.lib.version :as version]))
 
 (defonce started?* (atom false))
 (defonce tools-app* (atom nil))
@@ -234,9 +235,11 @@
        :else
        (js/console.warn "Invalid network" {:network network})))))
 
+(def current-version "2.2.0-beta8")
+
 (defn handle-devtool-message [{:keys [type data]}]
   (case type
-    :fulcro.inspect.client/request-page-apps
+    ::request-page-apps
     (doseq [{:keys [reconciler networking]} (vals @apps*)]
       (post-message ::init-app {app-uuid-key                (app-uuid reconciler)
                                 :fulcro.inspect.core/app-id (app-id reconciler)
@@ -244,7 +247,7 @@
                                 ::initial-state             @(fp/app-state reconciler)
                                 ::state-hash                (hash @(fp/app-state reconciler))}))
 
-    :fulcro.inspect.client/reset-app-state
+    ::reset-app-state
     (let [{:keys                     [target-state]
            :fulcro.inspect.core/keys [app-uuid]} data]
       (if-let [{:keys [reconciler]} (get @apps* app-uuid)]
@@ -255,7 +258,7 @@
           (js/setTimeout #(fp/force-root-render! reconciler) 10))
         (js/console.log "Reset app on invalid uuid" app-uuid)))
 
-    :fulcro.inspect.client/transact
+    ::transact
     (let [{:keys                     [tx tx-ref]
            :fulcro.inspect.core/keys [app-uuid]} data]
       (if-let [{:keys [reconciler]} (get @apps* app-uuid)]
@@ -264,7 +267,7 @@
           (fp/transact! reconciler tx))
         (js/console.log "Transact on invalid uuid" app-uuid)))
 
-    :fulcro.inspect.client/pick-element
+    ::pick-element
     (let [{:fulcro.inspect.core/keys [app-uuid]} data]
       (picker/pick-element
         {:fulcro.inspect.core/app-uuid
@@ -278,7 +281,7 @@
              (transact-inspector! [:fulcro.inspect.ui.element/panel-id [:fulcro.inspect.core/app-uuid app-uuid]]
                [`(fm/set-props {:ui/picking? false})])))}))
 
-    :fulcro.inspect.client/show-dom-preview
+    ::show-dom-preview
     (let [{:fulcro.inspect.core/keys [app-uuid]} data
           app                    (some-> @apps* (get app-uuid))
           app-state              (db-from-history app (::state-hash data))
@@ -290,19 +293,19 @@
           data                   (assoc data :state (vary-meta view-tree assoc :render-fn app-root-class-factory))]
       (fp/transact! (:reconciler @tools-app*) [::dom-history/dom-viewer :singleton] [`(dom-history/show-dom-preview ~data)]))
 
-    :fulcro.inspect.client/hide-dom-preview
+    ::hide-dom-preview
     (fp/transact! (:reconciler @tools-app*) [::dom-history/dom-viewer :singleton] [`(dom-history/hide-dom-preview {})])
 
-    :fulcro.inspect.client/network-request
+    ::network-request
     (let [{:keys                          [query]
-           :fulcro.inspect.client/keys    [remote]
+           ::keys                         [remote]
            :fulcro.inspect.ui-parser/keys [msg-id]
            :fulcro.inspect.core/keys      [app-uuid]} data]
       (when-let [app (get @apps* app-uuid)]
         (let [remote           (-> app :networking remote)
               response-handler (fn [res]
-                                 (post-message :fulcro.inspect.client/message-response {:fulcro.inspect.ui-parser/msg-id       msg-id
-                                                                                        :fulcro.inspect.ui-parser/msg-response res}))]
+                                 (post-message ::message-response {:fulcro.inspect.ui-parser/msg-id       msg-id
+                                                                   :fulcro.inspect.ui-parser/msg-response res}))]
           (cond
             (implements? f.network/FulcroNetwork remote)
             (f.network/send remote query response-handler response-handler)
@@ -312,6 +315,9 @@
               {::f.network/edn           query
                ::f.network/ok-handler    response-handler
                ::f.network/error-handler response-handler})))))
+
+    ::check-client-version
+    (post-message ::client-version {:version current-version})
 
     (js/console.log "Unknown message" type)))
 

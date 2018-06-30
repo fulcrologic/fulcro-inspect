@@ -23,7 +23,7 @@
             [fulcro.inspect.ui.transactions :as transactions]
             [goog.object :as gobj]
             [com.wsscode.pathom.core :as p]
-            [fulcro.inspect.helpers :as db.h]))
+            [fulcro.inspect.lib.version :as version]))
 
 (fp/defsc GlobalRoot [this {:keys [ui/root]}]
   {:initial-state (fn [params] {:ui/root (fp/get-initial-state multi-inspector/MultiInspector params)})
@@ -170,6 +170,13 @@
     (fp/transact! (:reconciler inspector) [::multi-inspector/multi-inspector "main"]
       [`(multi-inspector/set-app {::inspector/id ~app-uuid})])))
 
+(defn notify-stale-app []
+  (let [inspector @global-inspector*]
+    (fp/transact! (:reconciler inspector) [::multi-inspector/multi-inspector "main"]
+      [`(fm/set-props {::multi-inspector/client-stale? true})])))
+
+(def stale-response-timer* (atom 0))
+
 (defn handle-remote-message [{:keys [port event responses*]}]
   (when-let [{:keys [type data]} (event-data event)]
     (let [data (assoc data ::port port)]
@@ -199,7 +206,13 @@
         (if-let [res-chan (get @responses* (::ui-parser/msg-id data))]
           (put! res-chan (::ui-parser/msg-response data)))
 
-        nil))))
+        :fulcro.inspect.client/client-version
+        (let [client-version (:version data)]
+          (js/clearTimeout @stale-response-timer*)
+          (if (= -1 (version/compare client-version version/last-inspect-version))
+            (notify-stale-app)))
+
+        (js/console.log "Unknown message" type)))))
 
 (defn event-loop [app responses*]
   (let [port (js/chrome.runtime.connect #js {:name "fulcro-inspect-devtool"})]
@@ -230,7 +243,9 @@
         app        (fulcro/new-fulcro-client
                      :started-callback
                      (fn [app]
-                       (reset! port* (event-loop app responses*)))
+                       (reset! port* (event-loop app responses*))
+                       (post-message @port* :fulcro.inspect.client/check-client-version {})
+                       (reset! stale-response-timer* (js/setTimeout notify-stale-app 1000)))
 
                      :shared
                      {::db-hash-index (atom {})}

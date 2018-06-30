@@ -7,10 +7,9 @@
     [fulcro.client.localized-dom :as dom]
     [fulcro.client.primitives :as fp]
     [fulcro.inspect.helpers :as h]
-    [fulcro.inspect.ui.events :as events]
     [fulcro.inspect.helpers :as db.h]
-    [garden.core :as g]
-    [fulcro-css.css :as css]))
+    [fulcro-css.css :as css]
+    [fulcro.inspect.lib.version :as version]))
 
 (mutations/defmutation add-inspector [inspector]
   (action [env]
@@ -29,7 +28,7 @@
         (fn [x] (filterv #(not= inspector-ref %) x)))
 
       (when (= (get-in @state (conj ref ::current-app))
-              inspector-ref)
+               inspector-ref)
         (db.h/swap-entity! env assoc ::current-app
           (first (get-in @state (conj ref ::inspectors))))))))
 
@@ -38,12 +37,14 @@
     (let [{:keys [ref state]} env]
       (swap! state update-in ref assoc ::current-app [::inspector/id id]))))
 
-(fp/defsc MultiInspector [this {::keys [inspectors current-app] :as props}]
-  {:initial-state (fn [_] {::inspectors  []
-                           ::current-app nil})
+(fp/defsc MultiInspector [this {::keys [inspectors current-app client-stale?]}]
+  {:initial-state (fn [_] {::inspectors    []
+                           ::current-app   nil
+                           ::client-stale? false})
 
    :ident         (fn [] [::multi-inspector "main"])
-   :query         [{::inspectors [::inspector/id ::inspector/name]}
+   :query         [::client-stale?
+                   {::inspectors [::inspector/id ::inspector/name]}
                    {::current-app (fp/get-query inspector/Inspector)}]
    :css           [[:.container {:display        "flex"
                                  :flex-direction "column"
@@ -67,6 +68,12 @@
                               :flex            1
                               :align-items     "center"
                               :justify-content "center"}]
+                   [:.flex {:flex "1"}]
+                   [:.stale-notice
+                    {:background  "#fff4c5"
+                     :display     "flex"
+                     :align-items "center"
+                     :padding     "7px 10px"}]
                    [:body {:margin 0 :padding 0}]]
    :css-include   [inspector/Inspector]}
 
@@ -84,6 +91,10 @@
           (for [{::inspector/keys [id name]} (sort-by (comp str ::inspector/name) inspectors)]
             (dom/option {:key   id
                          :value (pr-str id)}
-              (str name))))))))
+              (str name))))))
+    (if client-stale?
+      (dom/div :.stale-notice
+        (dom/div :.flex (str "Your client library is stale. Please upgrade to Fulcro Inspect " version/last-inspect-version))
+        (ui/icon :warning)))))
 
 (def multi-inspector (fp/factory MultiInspector {:keyfn ::multi-inspector}))

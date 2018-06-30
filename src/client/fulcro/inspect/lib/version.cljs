@@ -1,6 +1,8 @@
 (ns fulcro.inspect.lib.version
   (:refer-clojure :exclude [compare sort sort-by]))
 
+(def last-inspect-version "2.2.0-beta8")
+
 (defn parse-int [s]
   (js/parseInt s))
 
@@ -12,8 +14,8 @@
       :else (recur rest1 rest2))))
 
 (defn parse-version [s]
-  (if-let [[_ major minor patch suffix] (re-find #"(\d+)\.(\d+)\.(\d+)(?:-(.+))?" s)]
-    [(parse-int major) (parse-int minor) (parse-int patch) (if suffix 0 1) suffix]))
+  (if-let [[_ major minor patch suffix snapshot] (re-find #"(\d+)\.(\d+)\.(\d+)(?:-(\w+))?(-SNAPSHOT)?$" s)]
+    [(parse-int major) (parse-int minor) (parse-int patch) (if suffix 0 1) suffix (if snapshot 0 1)]))
 
 (defn compare [a b]
   (vector-compare
