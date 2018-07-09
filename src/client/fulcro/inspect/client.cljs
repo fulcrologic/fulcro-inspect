@@ -235,7 +235,7 @@
        :else
        (js/console.warn "Invalid network" {:network network})))))
 
-(def current-version "2.2.0-beta8")
+(def current-version "2.2.0")
 
 (defn handle-devtool-message [{:keys [type data]}]
   (case type
