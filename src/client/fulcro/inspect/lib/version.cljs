@@ -1,7 +1,7 @@
 (ns fulcro.inspect.lib.version
   (:refer-clojure :exclude [compare sort sort-by]))
 
-(def last-inspect-version "2.2.0-beta8")
+(def last-inspect-version "2.2.0")
 
 (defn parse-int [s]
   (js/parseInt s))

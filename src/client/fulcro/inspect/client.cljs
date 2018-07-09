@@ -235,8 +235,6 @@
        :else
        (js/console.warn "Invalid network" {:network network})))))
 
-(def current-version "2.2.0")
-
 (defn handle-devtool-message [{:keys [type data]}]
   (case type
     ::request-page-apps
@@ -317,7 +315,7 @@
                ::f.network/error-handler response-handler})))))
 
     ::check-client-version
-    (post-message ::client-version {:version current-version})
+    (post-message ::client-version {:version version/last-inspect-version})
 
     (js/console.log "Unknown message" type)))
 
