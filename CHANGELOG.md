@@ -1,5 +1,8 @@
 # Change Log
 
+## [2.2.1]
+- Fix network interfacing with FulcroRemoteI
+
 ## [2.2.0-beta8]
 - Fix bug that hold progress events on the network wrapper
 
