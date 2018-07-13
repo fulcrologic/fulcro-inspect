@@ -311,8 +311,8 @@
             (implements? f.network/FulcroRemoteI remote)
             (f.network/transmit remote
               {::f.network/edn           query
-               ::f.network/ok-handler    response-handler
-               ::f.network/error-handler response-handler})))))
+               ::f.network/ok-handler    (comp response-handler :body)
+               ::f.network/error-handler (comp response-handler :body)})))))
 
     ::check-client-version
     (post-message ::client-version {:version version/last-inspect-version})

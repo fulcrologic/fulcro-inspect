@@ -50,24 +50,13 @@
 
 (declare Oge)
 
-(defn trigger-index-load [reconciler ident remote]
-  (let [index-query (-> Oge fp/get-query (fp/focus-query [::pc/indexes])
-                        first ::pc/indexes)]
-    (fp/transact! reconciler ident
-      [(list 'fulcro/load {:target  (conj ident ::pc/indexes)
-                           :query   (with-meta
-                                      [{(list ::pc/indexes {:fulcro.inspect.core/app-uuid (db.h/ref-app-uuid ident)
-                                                            :fulcro.inspect.client/remote remote})
-                                        index-query}]
-                                      (meta (fp/get-query Oge)))
-                           :marker  (keyword "oge-index" (p/ident-value* ident))
-                           :refresh #{:ui/editor}})])))
-
 (defn update-index [this]
-  (let [{:oge/keys [remote]} (fp/props this)]
-    (trigger-index-load (fp/get-reconciler this)
-      (fp/get-ident this)
-      remote)))
+  (let [{:oge/keys [remote]} (fp/props this)
+        ident (fp/get-ident this)]
+    (fetch/load-field this ::pc/indexes {:marker  (keyword "oge-index" (p/ident-value* ident))
+                                         :refresh #{:ui/editor}
+                                         :params  {:fulcro.inspect.core/app-uuid (db.h/ref-app-uuid ident)
+                                                   :fulcro.inspect.client/remote remote}})))
 
 (fp/defsc Oge
   [this
@@ -84,7 +73,7 @@
                                 :oge/profile nil})
    :ident         [:oge/id :oge/id]
    :query         [:oge/id :oge/query :oge/result :oge/profile :oge/remote
-                   {::pc/indexes [::pc/idents ::pc/index-io ::pc/autocomplete-ignore :ui/fetch-state]}
+                   {::pc/indexes [::pc/idents ::pc/index-io ::pc/autocomplete-ignore]}
                    [fetch/marker-table '_]]
    :css           [[:.container {:display               "grid"
                                  :width                 "100%"
