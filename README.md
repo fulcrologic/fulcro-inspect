@@ -53,20 +53,24 @@ Use `cmd`/`meta` key + click to expand/collapse the whole sub-tree:
 
 ## Contributing
 
-Development is done against apps in dev cards, so run figwheel
-via:
+To run the development version of the extension, first install the npm packages:
 
 ```
-lein run -m clojure.main script/figwheel.clj
+npm install
 ```
 
-This will start a build for tests and devcards. Open
-[http://localhost:3389](http://localhost:3389) for the
-cards, and
-[http://localhost:3389/test.html](http://localhost:3389/test.html) for the
-tests.
+And then run the shadow compilation:
 
-You can run the tests (once) from the command line with `make tests`
+```
+npm run dev-chrome
+```
+
+The go in at Chrome extensions and add the unpackaged version from the path `shells/chrome`.
+
+Remember to disable the chrome store version to avoid having multiple instances running.
+
+To use the client versin on the app, install locally with `lein install` or use clojure
+deps.edn to point the `:local/root` at this repository.
 
 ## Authors
 
