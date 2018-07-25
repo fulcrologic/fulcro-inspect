@@ -14,26 +14,18 @@ Add the latest version of this library (see above) as a dependency:
 [fulcrologic/fulcro-inspect "x.x.x"]
 ```
 
-Note: for Fulcro 1.2.x use version `0.1.0-SNAPSHOT`, use newer numbers for Fulcro 2.x
-
 Add a preload to your compiler options:
 
 ```clojure
 :compiler {...
-           :preloads        [fulcro.inspect.preload]
-           ; ctrl-f is the default keystroke
-           :external-config {:fulcro.inspect/config {:launch-keystroke "ctrl-f"}}}
+           :preloads        [fulcro.inspect.preload]}
 ```
 
 The inspector will find the running Fulcro application, and be ready to inspect it!
 
-To launch the inspector, use the `ctrl-f` keystroke on your keyboard (unless you changed the
-configuration to something else).
+Next you have to install the Chrome Extension: https://chrome.google.com/webstore/detail/fulcro-inspect/meeijplnfjcihnhkpanepcaffklobaal
 
-## Chrome extension
-
-From version `2.2.0` and on, Fulcro inspect will run in some separated client.
-You can download the chrome devtool at: https://chrome.google.com/webstore/detail/fulcro-inspect/meeijplnfjcihnhkpanepcaffklobaal
+Be sure to reload your page after installing it. Now you can see the Fulcro logo get colors when it detects a Fulcro app, from then open Fulcro Inspect tab on the Chrome Devtools and happy inspecting!
 
 ### DB Tab
 
@@ -53,20 +45,24 @@ Use `cmd`/`meta` key + click to expand/collapse the whole sub-tree:
 
 ## Contributing
 
-Development is done against apps in dev cards, so run figwheel
-via:
+To run the development version of the extension, first install the npm packages:
 
 ```
-lein run -m clojure.main script/figwheel.clj
+npm install
 ```
 
-This will start a build for tests and devcards. Open
-[http://localhost:3389](http://localhost:3389) for the
-cards, and
-[http://localhost:3389/test.html](http://localhost:3389/test.html) for the
-tests.
+And then run the shadow compilation:
 
-You can run the tests (once) from the command line with `make tests`
+```
+npm run dev-chrome
+```
+
+The go in at Chrome extensions and add the unpackaged version from the path `shells/chrome`.
+
+Remember to disable the chrome store version to avoid having multiple instances running.
+
+To use the client versin on the app, install locally with `lein install` or use clojure
+deps.edn to point the `:local/root` at this repository.
 
 ## Authors
 

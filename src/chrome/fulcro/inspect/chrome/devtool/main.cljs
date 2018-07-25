@@ -124,7 +124,7 @@
         app-id        (get (get-in @state inspector-ref) :fulcro.inspect.core/app-id)]
 
     (if (= (get-in @state [::multi-inspector/multi-inspector "main" ::multi-inspector/current-app])
-          inspector-ref)
+           inspector-ref)
       (reset! last-disposed-app* app-id)
       (reset! last-disposed-app* nil))
 

@@ -47,10 +47,12 @@
   {::pc/output [::pc/indexes]}
   (fn [{:keys [query] :as env} _]
     (let [params (-> env :ast :params)]
-      (client-request env :fulcro.inspect.client/network-request
-        (-> (select-keys params [:fulcro.inspect.core/app-uuid
-                                 :fulcro.inspect.client/remote])
-            (assoc :query [{::pc/indexes query}]))))))
+      (async/go
+        (let [response (async/<! (client-request env :fulcro.inspect.client/network-request
+                                   (-> (select-keys params [:fulcro.inspect.core/app-uuid
+                                                            :fulcro.inspect.client/remote])
+                                       (assoc :query [{::pc/indexes query}]))))]
+          response)))))
 
 (defmutation 'reset-app
   {}
@@ -77,8 +79,13 @@
   (fn [{:keys [send-message]} input]
     (send-message :fulcro.inspect.client/hide-dom-preview input)))
 
+(defn ident-passthough [{:keys [ast] :as env}]
+  (if (p/ident? (:key ast))
+    (p/join (atom {}) (assoc env ::parent-params (:params ast)))
+    ::p/continue))
+
 (def parser
-  (p/async-parser {::p/env     {::p/reader             [p/map-reader pc/all-async-readers]
+  (p/async-parser {::p/env     {::p/reader             [p/map-reader pc/all-async-readers ident-passthough]
                                 ::pc/resolver-dispatch resolver-fn
                                 ::pc/mutate-dispatch   mutation-fn
                                 ::pc/indexes           @indexes}
