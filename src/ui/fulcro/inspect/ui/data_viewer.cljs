@@ -1,6 +1,6 @@
 (ns fulcro.inspect.ui.data-viewer
   (:require [fulcro.client.mutations :as mutations]
-            [fulcro.inspect.ui.core :as ui]
+            [fulcro.inspect.ui.core :as ui :refer [colors]]
             [fulcro.client.localized-dom :as dom]
             [fulcro.client.primitives :as fp]
             [clojure.string :as str]))
@@ -247,7 +247,7 @@
 (def css-triangle
   {:font-family    ui/label-font-family
    :font-size      ui/label-font-size
-   :color          "#8f8f8f"
+   :color          (:icon-triangle colors)
    :cursor         "pointer"
    :vertical-align "middle"
    :margin-right   "3px"})
@@ -255,7 +255,8 @@
 (def css-code-font
   {:font-family "'courier new', monospace"
    :font-size   "12px"
-   :white-space "nowrap"})
+   :white-space "nowrap"
+   :color (:text colors)})
 
 (fp/defsc DataViewer
   [this
@@ -268,12 +269,12 @@
    :ident         [::id ::id]
    :query         [::id ::content ::expanded]
    :css           [[:.container css-code-font]
-                   [:.nil {:color "#808080"}]
-                   [:.string {:color "#c41a16"}]
-                   [:.keyword {:color "#881391"}]
-                   [:.symbol {:color "#134f91"}]
-                   [:.number {:color "#1c00cf"}]
-                   [:.boolean {:color "#009999"}]
+                   [:.nil {:color (:nil colors)}]
+                   [:.string {:color (:string colors)}]
+                   [:.keyword {:color (:keyword colors)}]
+                   [:.symbol {:color (:symbol colors)}]
+                   [:.number {:color (:number colors)}]
+                   [:.boolean {:color (:boolean colors)}]
 
                    [:.data-row {:display     "flex"
                                 :margin-left "3px"}]
@@ -282,25 +283,25 @@
                    [:.list-inline-item {:margin "0 4px"}]
 
                    [:.list-container {:padding          "3px 12px"
-                                      :border-top       "2px solid rgba(60, 90, 60, 0.1)"
+                                      :border-top       (str "2px solid " (:bg-light-border colors))
                                       :margin           "0px 1px 1px"
-                                      :background-color "rgba(100, 255, 100, 0.08)"}]
+                                      :background-color (:bg colors)}]
 
                    [:.toggle-button css-triangle]
 
                    [:.list-item {:display     "flex"
                                  :align-items "flex-start"}]
-                   [:.list-item-index {:background    "#dddddd"
-                                       :border-right  "2px solid rgba(100, 100, 100, 0.2)"
+                   [:.list-item-index {:background    (:bg-medium colors)
+                                       :border-right  (str "2px solid " (:bg-medium-border colors))
                                        :min-width     "35px"
                                        :margin-bottom "1px"
                                        :margin-right  "5px"
                                        :padding       "0 3px"}]
 
                    [:.map-container {:padding               "3px 12px"
-                                     :border-top            "2px solid rgba(60, 90, 60, 0.1)"
+                                     :border-top            (str "2px solid " (:bg-light-border colors))
                                      :margin                "0px 1px 1px"
-                                     :background-color      "rgba(100, 255, 100, 0.08)"
+                                     :background-color      (:bg-container colors)
 
                                      :display               "grid"
                                      :grid-template-columns "max-content 1fr"}]

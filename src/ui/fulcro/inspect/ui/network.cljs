@@ -3,7 +3,7 @@
             [fulcro.client.mutations :as mutations :refer-macros [defmutation]]
             [fulcro-css.css :as css]
             [fulcro.inspect.helpers :as h]
-            [fulcro.inspect.ui.core :as ui]
+            [fulcro.inspect.ui.core :as ui :refer [colors]]
             [fulcro.inspect.ui.data-viewer :as data-viewer]
             [fulcro.client.localized-dom :as dom]
             [fulcro.client.primitives :as fp]
@@ -60,7 +60,7 @@
            {:ui/request-edn-view (fp/get-query data-viewer/DataViewer)}
            {:ui/response-edn-view (fp/get-query data-viewer/DataViewer)}
            {:ui/error-view (fp/get-query data-viewer/DataViewer)}]
-   :css   [[:.flame {:background "#f6f7f8"
+   :css   [[:.flame {:background (:chart-bg-flame colors)
                      :width      "400px"}]]}
   (dom/div
     (ui/info {::ui/title "Request"}
@@ -101,14 +101,15 @@
 
   static css/CSS
   (local-rules [_]
-    (let [border (str "1px solid " ui/color-bg-light-border)]
+    (let [border (str "1px solid " (:bg-light-border colors))]
       [[:.row {:cursor  "pointer"
-               :display "flex"}
-        [(gs/& (gs/nth-child :odd)) {:background ui/color-bg-light}]
-        [:&:hover {:background (str ui/color-row-hover "!important")}]
-        [:&.error {:color "#e80000"}]
-        [:&.selected {:background (str ui/color-row-selected "!important")}]]
-       [:.pending {:color ui/color-text-faded}]
+               :display "flex"
+               :color   (:text colors)}
+        [(gs/& (gs/nth-child :odd)) {:background (:bg-light colors)}]
+        [:&:hover {:background (str (:row-hover colors) "!important")}]
+        [:&.error {:color (:error colors)}]
+        [:&.selected {:background (str (:row-selected colors) "!important")}]]
+       [:.pending {:color (:text-faded colors)}]
 
        [:.table-cell {:border-right  border
                       :border-bottom border
@@ -177,7 +178,7 @@
 
   static css/CSS
   (local-rules [_]
-    (let [border (str "1px solid " ui/color-bg-medium-border)]
+    (let [border (str "1px solid " (:bg-medium-border colors))]
       [[:.container {:flex           1
                      :display        "flex"
                      :flex-direction "column"
@@ -187,14 +188,15 @@
                  :font-size       ui/label-font-size
                  :width           "100%"
                  :border-collapse "collapse"
-                 :color           "#313942"
+                 :color           (:text-table colors)
                  :flex            "1"
                  :display         "flex"
                  :flex-direction  "column"}]
 
        [:.table-header {:display       "flex"
                         :overflow-y    "scroll"
-                        :border-bottom border}]
+                        :border-bottom border
+                        :color         (:text-secondary colors)}]
 
        [(gs/> :.table-header "div") {:font-weight  "normal"
                                      :text-align   "left"
