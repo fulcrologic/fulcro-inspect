@@ -7,7 +7,7 @@
             [fulcro.inspect.lib.local-storage :as storage]
             [fulcro.inspect.ui.data-viewer :as data-viewer]
             [fulcro.inspect.ui.data-watcher :as watcher]
-            [fulcro.inspect.ui.core :as ui]
+            [fulcro.inspect.ui.core :as ui :refer [colors]]
             [fulcro.inspect.ui.dom-history-viewer :as domv]
             [fulcro.inspect.helpers :as h]
             [fulcro.inspect.ui.helpers :as ui.h]
@@ -94,7 +94,7 @@
                     [:.action {:fill "#fff"}]]
                    [:.action {:cursor     "pointer"
                               :visibility "hidden"
-                              :fill       ui/color-text-normal
+                              :fill       (:text-normal colors)
                               :transform  "scale(0.8)"}]
                    [:.label {:display     "flex"
                              :flex        "1"
@@ -189,7 +189,7 @@
                    [:.snapshots-toggler {:background "#a3a3a3"
                                          :cursor     "pointer"
                                          :width      "1px"}]
-                   [(gs/> :.snapshots (gs/div (gs/nth-child "odd"))) {:background "#f5f5f5"}]]
+                   [(gs/> :.snapshots (gs/div (gs/nth-child "odd"))) {:background (:row-selected colors)}]]
    :css-include   [ui/CSS watcher/DataWatcher Snapshot]}
   (let [at-end?   (= (dec (count history)) current-index)
         app-state (-> watcher ::watcher/root-data :fulcro.inspect.ui.data-viewer/content)]

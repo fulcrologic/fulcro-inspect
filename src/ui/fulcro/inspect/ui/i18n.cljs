@@ -3,7 +3,7 @@
             [cljs.reader :refer [read-string]]
             [fulcro-css.css :as css]
             [fulcro.i18n :as i18n]
-            [fulcro.inspect.ui.core :as ui]
+            [fulcro.inspect.ui.core :as ui :refer [colors]]
             [fulcro.inspect.helpers :as h]
             [fulcro.client.localized-dom :as dom]
             [fulcro.client.primitives :as fp]
@@ -29,7 +29,8 @@
                              :margin      "0 4px"}]
                    [:.container {:flex           1
                                  :display        "flex"
-                                 :flex-direction "column"}]
+                                 :flex-direction "column"
+                                 :color          (:text colors)}]
                    [:.locale-switcher {:margin "3px"}]]}
   (dom/div :.container
     (ui/toolbar {}

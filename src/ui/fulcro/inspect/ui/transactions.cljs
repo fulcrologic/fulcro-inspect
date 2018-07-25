@@ -5,7 +5,7 @@
     [fulcro-css.css :as css]
     [fulcro.client.mutations :as mutations :refer-macros [defmutation]]
     [fulcro.inspect.helpers :as h]
-    [fulcro.inspect.ui.core :as ui]
+    [fulcro.inspect.ui.core :as ui :refer [colors]]
     [fulcro.inspect.ui.data-viewer :as data-viewer]
     [fulcro.client.localized-dom :as dom]
     [fulcro.client.primitives :as fp]
@@ -33,19 +33,20 @@
    :css           [[:.container {:display       "flex"
                                  :cursor        "pointer"
                                  :flex          "1"
-                                 :border-bottom "1px solid #eee"
+                                 :border-bottom (str "1px solid " (:bg-light-border colors))
                                  :align-items   "center"
-                                 :padding       "5px 0"}
+                                 :padding       "5px 0"
+                                 :color         (:text colors)}
                     [:.icon {:display "none"}]
-                    [:&:hover {:background ui/color-row-hover}
+                    [:&:hover {:background (:row-hover colors)}
                      [:.icon {:display "block"}]]
-                    [:&.selected {:background ui/color-row-selected}]]
+                    [:&.selected {:background (:row-selected colors)}]]
 
                    [:.data-container {:flex 1}]
                    [:.icon {:margin "-5px 6px"}
-                    [:$c-icon {:fill      ui/color-icon-normal
+                    [:$c-icon {:fill      (:icon-normal colors)
                                :transform "scale(0.7)"}
-                     [:&:hover {:fill ui/color-icon-strong}]]]
+                     [:&:hover {:fill (:icon-strong colors)}]]]
                    [:.timestamp ui/css-timestamp]]
    :css-include   [data-viewer/DataViewer]}
 
@@ -179,7 +180,8 @@
    :css           [[:.container {:display        "flex"
                                  :width          "100%"
                                  :flex           "1"
-                                 :flex-direction "column"}]
+                                 :flex-direction "column"
+                                 :colors         (:text colors)}]
 
                    [:.transactions {:flex     "1"
                                     :overflow "auto"}]]

@@ -14,28 +14,79 @@
 (def label-font-family "sans-serif")
 (def label-font-size "12px")
 
-(def color-bg-light "#f5f5f5")
-(def color-bg-light-border "#e1e1e1")
-(def color-bg-medium-border "#cdcdcd")
+(def colors (if (= (.. js/chrome -devtools -panels -themeName) "dark")
+              {:bg               "#242424"
+               :bg-light         "#333"
+               :bg-medium        "#333"
+               :bg-container     "#333"
+               :bg-light-border  "#616161"
+               :bg-medium-border "#cdcdcd"
 
-(def color-text-normal "#5a5a5a")
-(def color-text-strong "#333")
-(def color-text-faded "#bbb")
+               :text             "#fafafa"
+               :text-secondary   "#ccc"
+               :text-normal      "#ccc"
+               :text-strong      "#fafafa"
+               :text-faded       "#bbb"
+               :text-table       "#313942"
 
-(def color-icon-normal "#6e6e6e")
-(def color-icon-strong "#333")
+               :icon-normal      "#aaa"
+               :icon-strong      "#ddd"
+               :icon-triangle    "#aaa"
 
-(def color-row-hover "#eef3fa")
-(def color-row-selected "#e6e6e6")
+               :row-hover        "#12243d"
+               :row-selected     "#2f84da"
+
+               :nil              "#5db0d7"
+               :string           "#ec8b4f"
+               :keyword          "#967fcf"
+               :symbol           "#d3d9d3"
+               :number           "#ec8b4f"
+               :boolean          "#5db0d7"
+
+               :error            "#e80000"
+
+               :chart-bg-flame   "#f6f7f8"}
+
+              {:bg               "#fff"
+               :bg-light         "#f5f5f5"
+               :bg-medium        "#ddd"
+               :bg-container     "rgba(100, 255, 100, 0.08)"
+               :bg-light-border  "#e1e1e1"
+               :bg-medium-border "#cdcdcd"
+
+               :text             "#000"
+               :text-secondary   "#808080"
+               :text-normal      "5a5a5a"
+               :text-strong      "#333"
+               :text-faded       "#bbb"
+               :text-table       "#313942"
+
+               :icon-normal      "#6e6e6e"
+               :icon-strong      "#333"
+               :icon-triangle    "#8f8f8f"
+
+               :row-hover        "#eef3fa"
+               :row-selected     "#e6e6e6"
+
+               :nil              "#808080"
+               :string           "#c41a16"
+               :keyword          "#881391"
+               :symbol           "#134f91"
+               :number           "#1c00cf"
+               :boolean          "#009999"
+
+               :error            "#e80000"
+
+               :chart-bg-flame   "#f6f7f8"}))
 
 (def box-shadow "0 6px 6px rgba(0, 0, 0, 0.26), 0 9px 20px rgba(0, 0, 0, 0.19)")
 
 (def css-info-group
-  {:border-top "1px solid #eee"
+  {:border-top (str "1px solid " (:bg-light-border colors))
    :padding    "7px 0"})
 
 (def css-info-label
-  {:color         color-text-normal
+  {:color         (:text-normal colors)
    :margin-bottom "6px"
    :font-weight   "bold"
    :font-family   label-font-family
@@ -44,7 +95,7 @@
 (def css-timestamp
   {:font-family "monospace"
    :font-size   "11px"
-   :color       "#808080"
+   :color       (:text-secondary colors)
    :margin      "0 4px 0 7px"})
 
 ;;; helpers
@@ -117,15 +168,16 @@
 (def row (fp/factory Row))
 
 (fp/defsc ToolBar [this _]
-  {:css [[:.container {:border-bottom "1px solid #dadada"
+  {:css [[:.container {:border-bottom (str "1px solid " (:bg-light-border colors))
                        :display       "flex"
-                       :align-items   "center"}
-          [:$c-icon {:fill      color-icon-normal
+                       :align-items   "center"
+                       :color         (:text colors)}
+          [:$c-icon {:fill      (:icon-normal colors)
                      :transform "scale(0.7)"}
-           [:&:hover {:fill color-icon-strong}]]
+           [:&:hover {:fill (:icon-strong colors)}]]
 
-          [:&.details {:background    "#f3f3f3"
-                       :border-bottom "1px solid #ccc"
+          [:&.details {:background    (:bg-light colors)
+                       :border-bottom (str "1px solid " (:bg-medium-border colors))
                        :display       "flex"
                        :align-items   "center"
                        :height        "28px"}]]
@@ -134,14 +186,14 @@
                     :display     "flex"
                     :align-items "center"}
           [(gs/& (gs/attr "disabled")) {:cursor "not-allowed"}
-           [:$c-icon {:fill color-icon-normal}]]]
+           [:$c-icon {:fill (:icon-normal colors)}]]]
 
-         [:.separator {:background "#ccc"
+         [:.separator {:background (:bg-medium-border colors)
                        :width      "1px"
                        :height     "16px"
                        :margin     "0 6px"}]
 
-         [:.input {:color       color-text-normal
+         [:.input {:color       (:text-normal colors)
                    :outline     "0"
                    :margin      "0 2px"
                    :font-family label-font-family
@@ -186,8 +238,8 @@
    :query         [::editor-id ::editing? ::editor-value]
    :css           [[:.container {:flex 1}]
                    [:.no-label {:font-style "italic"
-                                :color      color-text-faded}]
-                   [:.label {:color       color-text-strong
+                                :color      (:text-faded colors)}]
+                   [:.label {:color       (:text-strong colors)
                              :font-family label-font-family
                              :font-size   label-font-size}]
                    [:.input {:border     "1px solid #c7c7c7"

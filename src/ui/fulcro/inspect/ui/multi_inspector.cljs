@@ -2,7 +2,7 @@
   (:require
     [cljs.reader :refer [read-string]]
     [fulcro.client.mutations :as mutations]
-    [fulcro.inspect.ui.core :as ui]
+    [fulcro.inspect.ui.core :as ui :refer [colors]]
     [fulcro.inspect.ui.inspector :as inspector]
     [fulcro.client.localized-dom :as dom]
     [fulcro.client.primitives :as fp]
@@ -56,7 +56,7 @@
                                 :display     "flex"
                                 :align-items "center"
                                 :background  "#f3f3f3"
-                                :color       ui/color-text-normal
+                                :color       (:text-normal colors)
                                 :border-top  "1px solid #ccc"
                                 :padding     "12px"
                                 :user-select "none"}]

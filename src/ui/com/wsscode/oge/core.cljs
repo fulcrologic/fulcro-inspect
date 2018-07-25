@@ -120,7 +120,7 @@
                                        :align-items "center"
                                        :font-family cui/label-font-family
                                        :font-size   cui/label-font-size
-                                       :color       cui/color-text-normal}]
+                                       :color       "#5a5a5a"}]
                    [:.remote-selector-label {:margin-right "8px"
                                              :margin-left  "4px"}]
                    [:.index-state {:background    "#000"

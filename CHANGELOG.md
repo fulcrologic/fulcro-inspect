@@ -1,5 +1,8 @@
 # Change Log
 
+## [2.2.2]
+- Add devtools dark theme support
+
 ## [2.2.1]
 - Fix network interfacing with FulcroRemoteI
 
