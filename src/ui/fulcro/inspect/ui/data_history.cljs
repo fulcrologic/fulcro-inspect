@@ -94,7 +94,7 @@
                     [:.action {:fill "#fff"}]]
                    [:.action {:cursor     "pointer"
                               :visibility "hidden"
-                              :fill       ui/color-text-normal
+                              :fill       (:text-normal colors)
                               :transform  "scale(0.8)"}]
                    [:.label {:display     "flex"
                              :flex        "1"

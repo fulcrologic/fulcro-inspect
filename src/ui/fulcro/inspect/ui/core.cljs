@@ -14,20 +14,6 @@
 (def label-font-family "sans-serif")
 (def label-font-size "12px")
 
-(def color-bg-light "#f5f5f5")
-(def color-bg-light-border "#e1e1e1")
-(def color-bg-medium-border "#cdcdcd")
-
-(def color-text-normal "#5a5a5a")
-(def color-text-strong "#333")
-(def color-text-faded "#bbb")
-
-(def color-icon-normal "#6e6e6e")
-(def color-icon-strong "#333")
-
-(def color-row-hover "#eef3fa")
-(def color-row-selected "#e6e6e6")
-
 (def colors (if (= (.. js/chrome -devtools -panels -themeName) "dark")
               {:bg               "#242424"
                :bg-light         "#333"
@@ -252,7 +238,7 @@
    :query         [::editor-id ::editing? ::editor-value]
    :css           [[:.container {:flex 1}]
                    [:.no-label {:font-style "italic"
-                                :color      color-text-faded}]
+                                :color      (:text-faded colors)}]
                    [:.label {:color       (:text-strong colors)
                              :font-family label-font-family
                              :font-size   label-font-size}]

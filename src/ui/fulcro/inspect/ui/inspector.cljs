@@ -1,7 +1,7 @@
 (ns fulcro.inspect.ui.inspector
   (:require [fulcro-css.css :as css]
             [fulcro.client.mutations :as mutations]
-            [fulcro.inspect.ui.core :as ui]
+            [fulcro.inspect.ui.core :as ui :refer [colors]]
             [fulcro.inspect.ui.data-history :as data-history]
             [fulcro.inspect.ui.data-viewer :as data-viewer]
             [fulcro.inspect.ui.data-watcher :as data-watcher]
@@ -53,7 +53,7 @@
              :font-size     ui/label-font-size
              :display       "flex"
              :background    "#f3f3f3"
-             :color         ui/color-text-normal
+             :color         (:text-normal colors)
              :border-bottom "1px solid #ccc"
              :position      "relative"
              :user-select   "none"}]
@@ -62,11 +62,11 @@
             :padding "6px 10px 5px"}
 
      [:&:hover {:background "#e5e5e5"
-                :color      ui/color-text-strong}]
+                :color      (:text-strong colors)}]
      [:&.tab-selected {:border-bottom "2px solid #5c7ebb"
-                       :color         ui/color-text-strong
+                       :color         (:text-strong colors)
                        :margin-bottom "-1px"}]
-     [:&.tab-disabled {:color  ui/color-text-faded
+     [:&.tab-disabled {:color  (:text-faded colors)
                        :cursor "default"}
       [:&:hover {:background "transparent"}]]]
     [:.tab-content {:flex     "1"
