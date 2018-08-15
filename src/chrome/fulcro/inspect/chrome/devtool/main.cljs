@@ -145,7 +145,9 @@
                          :fulcro.inspect.client/keys [prev-state-hash state-delta state state-hash]}]
   (let [{::keys [db-hash-index]} (-> @global-inspector* :reconciler :config :shared)
         state (if state-delta
-                (differ/patch (get @db-hash-index prev-state-hash) state-delta)
+                (if-let [old-state (get @db-hash-index prev-state-hash)]
+                  (differ/patch old-state state-delta)
+                  (js/console.error "Error patching state, no previous state available." state-hash))
                 state)]
     (swap! db-hash-index db-index-add state state-hash)
 
