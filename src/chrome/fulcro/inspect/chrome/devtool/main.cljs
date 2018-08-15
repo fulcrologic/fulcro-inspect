@@ -1,15 +1,17 @@
 (ns fulcro.inspect.chrome.devtool.main
   (:require [cljs.core.async :refer [go <! put!]]
-            [com.wsscode.oge.core :as oge]
+            [com.wsscode.pathom.core :as p]
             [com.wsscode.pathom.fulcro.network :as pfn]
+            [differ.core :as differ]
             [fulcro-css.css :as css]
             [fulcro.client :as fulcro]
-            [fulcro.client.mutations :as fm]
             [fulcro.client.localized-dom :as dom]
+            [fulcro.client.mutations :as fm]
             [fulcro.client.primitives :as fp]
             [fulcro.i18n :as fulcro-i18n]
             [fulcro.inspect.lib.local-storage :as storage]
             [fulcro.inspect.lib.misc :as misc]
+            [fulcro.inspect.lib.version :as version]
             [fulcro.inspect.remote.transit :as encode]
             [fulcro.inspect.ui-parser :as ui-parser]
             [fulcro.inspect.ui.data-history :as data-history]
@@ -21,9 +23,7 @@
             [fulcro.inspect.ui.multi-oge :as multi-oge]
             [fulcro.inspect.ui.network :as network]
             [fulcro.inspect.ui.transactions :as transactions]
-            [goog.object :as gobj]
-            [com.wsscode.pathom.core :as p]
-            [fulcro.inspect.lib.version :as version]))
+            [goog.object :as gobj]))
 
 (fp/defsc GlobalRoot [this {:keys [ui/root]}]
   {:initial-state (fn [params] {:ui/root (fp/get-initial-state multi-inspector/MultiInspector params)})
@@ -141,19 +141,22 @@
   (-> @global-inspector* :reconciler fp/app-state (reset! (fp/tree->db GlobalRoot (fp/get-initial-state GlobalRoot {}) true))))
 
 (defn update-client-db [{:fulcro.inspect.core/keys   [app-uuid]
-                         :fulcro.inspect.client/keys [state state-hash]}]
-  (let [{::keys [db-hash-index]} (-> @global-inspector* :reconciler :config :shared)]
-    (swap! db-hash-index db-index-add state state-hash))
+                         :fulcro.inspect.client/keys [prev-state-hash state-delta state state-hash]}]
+  (let [{::keys [db-hash-index]} (-> @global-inspector* :reconciler :config :shared)
+        state (if state-delta
+                (differ/patch (get @db-hash-index prev-state-hash) state-delta)
+                state)]
+    (swap! db-hash-index db-index-add state state-hash)
 
-  (if-let [current-locale (-> state ::fulcro-i18n/current-locale p/ident-value*)]
-    (fp/transact! (:reconciler @global-inspector*)
-      [::i18n/id [app-uuid-key app-uuid]]
-      [`(fm/set-props ~{::i18n/current-locale current-locale})]))
+    (if-let [current-locale (-> state ::fulcro-i18n/current-locale p/ident-value*)]
+      (fp/transact! (:reconciler @global-inspector*)
+        [::i18n/id [app-uuid-key app-uuid]]
+        [`(fm/set-props ~{::i18n/current-locale current-locale})]))
 
-  (let [state (assoc state :fulcro.inspect.client/state-hash state-hash)]
-    (fp/transact! (:reconciler @global-inspector*)
-      [::data-history/history-id [app-uuid-key app-uuid]]
-      [`(data-history/set-content ~state) ::data-history/history])))
+    (let [state (assoc state :fulcro.inspect.client/state-hash state-hash)]
+      (fp/transact! (:reconciler @global-inspector*)
+        [::data-history/history-id [app-uuid-key app-uuid]]
+        [`(data-history/set-content ~state) ::data-history/history]))))
 
 (defn new-client-tx [{:fulcro.inspect.core/keys   [app-uuid]
                       :fulcro.inspect.client/keys [tx]}]
