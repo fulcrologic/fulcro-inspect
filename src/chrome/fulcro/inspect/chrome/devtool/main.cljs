@@ -1,5 +1,6 @@
 (ns fulcro.inspect.chrome.devtool.main
-  (:require [cljs.core.async :refer [go <! put!]]
+  (:require [cljs.core.async :as async :refer [go <! put!]]
+            [com.wsscode.common.async-cljs :refer [<?maybe]]
             [com.wsscode.pathom.core :as p]
             [com.wsscode.pathom.fulcro.network :as pfn]
             [differ.core :as differ]
@@ -214,11 +215,19 @@
 
         (js/console.log "Unknown message" type)))))
 
+(defonce message-handler-ch (async/chan (async/dropping-buffer 1024)))
+
 (defn event-loop [app responses*]
   (let [port (js/chrome.runtime.connect #js {:name "fulcro-inspect-devtool"})]
-    (.addListener (.-onMessage port) #(handle-remote-message {:port       port
-                                                              :event      %
-                                                              :responses* responses*}))
+    (.addListener (.-onMessage port) #(put! message-handler-ch {:port       port
+                                                                :event      %
+                                                                :responses* responses*}))
+
+    (go
+      (loop []
+        (when-let [msg (<! message-handler-ch)]
+          (<?maybe (handle-remote-message msg))
+          (recur))))
 
     (.postMessage port #js {:name "init" :tab-id current-tab-id})
     (post-message port :fulcro.inspect.client/request-page-apps {})
