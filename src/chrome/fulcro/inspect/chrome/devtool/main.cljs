@@ -175,8 +175,6 @@
     (fp/transact! (:reconciler inspector) [::multi-inspector/multi-inspector "main"]
       [`(fm/set-props {::multi-inspector/client-stale? true})])))
 
-(def stale-response-timer* (atom 0))
-
 (defn handle-remote-message [{:keys [port event responses*]}]
   (when-let [{:keys [type data]} (event-data event)]
     (let [data (assoc data ::port port)]
@@ -208,7 +206,6 @@
 
         :fulcro.inspect.client/client-version
         (let [client-version (:version data)]
-          (js/clearTimeout @stale-response-timer*)
           (if (= -1 (version/compare client-version version/last-inspect-version))
             (notify-stale-app)))
 
@@ -244,8 +241,7 @@
                      :started-callback
                      (fn [app]
                        (reset! port* (event-loop app responses*))
-                       (post-message @port* :fulcro.inspect.client/check-client-version {})
-                       (reset! stale-response-timer* (js/setTimeout notify-stale-app 1000)))
+                       (post-message @port* :fulcro.inspect.client/check-client-version {}))
 
                      :shared
                      {::db-hash-index (atom {})}
