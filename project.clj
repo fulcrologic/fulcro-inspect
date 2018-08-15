@@ -8,6 +8,7 @@
                  [org.clojure/clojurescript "1.10.238" :scope "provided"]
                  [fulcrologic/fulcro "2.5.7" :scope "provided"]
                  [com.wsscode/pathom "2.0.4"]
+                 [differ "0.3.2"]
 
                  [org.clojure/tools.namespace "0.3.0-alpha4" :scope "test"]
                  [lein-doo "0.1.7" :scope "test"]

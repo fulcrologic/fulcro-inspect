@@ -8,7 +8,8 @@
                 [com.taoensso/sente "1.12.0"]
                 [binaryage/devtools "0.9.9"]
                 [devcards "0.2.4" :exclusions [cljsjs/react cljsjs/react-dom]]
-                [fulcrologic/fulcro-spec "2.1.0-1" :scope "test" :exclusions [fulcrologic/fulcro]]]
+                [fulcrologic/fulcro-spec "2.1.0-1" :scope "test" :exclusions [fulcrologic/fulcro]]
+                [differ "0.3.2"]]
 
  :http         {:host "localhost"
                 :port 9632}

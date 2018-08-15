@@ -31,7 +31,7 @@
 
 (fp/defsc AddItemDemo
   [this {:keys [items] ::keys [title]}]
-  {:initial-state (fn [_] {::todo-app-id (random-uuid)
+  {:initial-state (fn [_] {::todo-app-id "singleton"
                            ::title ""
                            :items []})
    :query         [::todo-app-id ::title
