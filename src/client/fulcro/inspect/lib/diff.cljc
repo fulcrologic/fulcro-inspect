@@ -7,11 +7,11 @@
 (defn updates [a b]
   (reduce
     (fn [adds [k v]]
-      (let [vb (get a k ::unset)]
-        (if (= v vb)
+      (let [va (get a k ::unset)]
+        (if (= v va)
           adds
-          (if (and (map? v) (map? vb))
-            (assoc adds k (updates vb v))
+          (if (and (map? v) (map? va))
+            (assoc adds k (updates va v))
             (assoc adds k v)))))
     {}
     b))
@@ -20,7 +20,7 @@
   (reduce
     (fn [rems [k v]]
       (if-let [[_ vb] (find b k)]
-        (if (and (map? v) (map? vb))
+        (if (and (map? v) (map? vb) (not= v vb))
           (let [childs (removals v vb)]
             (if (seq childs)
               (conj rems {k childs})
