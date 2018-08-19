@@ -3,13 +3,13 @@
             [com.wsscode.common.async-cljs :refer [<?maybe]]
             [com.wsscode.pathom.core :as p]
             [com.wsscode.pathom.fulcro.network :as pfn]
-            [differ.core :as differ]
             [fulcro-css.css :as css]
             [fulcro.client :as fulcro]
             [fulcro.client.localized-dom :as dom]
             [fulcro.client.mutations :as fm]
             [fulcro.client.primitives :as fp]
             [fulcro.i18n :as fulcro-i18n]
+            [fulcro.inspect.lib.diff :as diff]
             [fulcro.inspect.lib.local-storage :as storage]
             [fulcro.inspect.lib.misc :as misc]
             [fulcro.inspect.lib.version :as version]
@@ -144,19 +144,20 @@
 (defn update-client-db [{:fulcro.inspect.core/keys   [app-uuid]
                          :fulcro.inspect.client/keys [prev-state-hash state-delta state state-hash]}]
   (let [{::keys [db-hash-index]} (-> @global-inspector* :reconciler :config :shared)
-        state (if state-delta
-                (if-let [old-state (get @db-hash-index prev-state-hash)]
-                  (differ/patch old-state state-delta)
-                  (js/console.error "Error patching state, no previous state available." state-hash))
-                state)]
-    (swap! db-hash-index db-index-add state state-hash)
+        new-state (if state-delta
+                    (if-let [old-state (get @db-hash-index prev-state-hash)]
+                      (diff/patch old-state state-delta)
+                      (js/console.error "Error patching state, no previous state available." state-hash))
+                    state)]
 
-    (if-let [current-locale (-> state ::fulcro-i18n/current-locale p/ident-value*)]
+    (swap! db-hash-index db-index-add new-state state-hash)
+
+    (if-let [current-locale (-> new-state ::fulcro-i18n/current-locale p/ident-value*)]
       (fp/transact! (:reconciler @global-inspector*)
         [::i18n/id [app-uuid-key app-uuid]]
         [`(fm/set-props ~{::i18n/current-locale current-locale})]))
 
-    (let [state (assoc state :fulcro.inspect.client/state-hash state-hash)]
+    (let [state (assoc new-state :fulcro.inspect.client/state-hash state-hash)]
       (fp/transact! (:reconciler @global-inspector*)
         [::data-history/history-id [app-uuid-key app-uuid]]
         [`(data-history/set-content ~state) ::data-history/history]))))

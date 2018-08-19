@@ -1,13 +1,13 @@
 (ns fulcro.inspect.client
   (:require [cljs.core.async :as async]
             [clojure.set :as set]
-            [differ.core :as differ]
             [fulcro-css.css :as css]
             [fulcro.client :as fulcro]
             [fulcro.client.localized-dom :as dom]
             [fulcro.client.mutations :as fm]
             [fulcro.client.network :as f.network]
             [fulcro.client.primitives :as fp]
+            [fulcro.inspect.lib.diff :as diff]
             [fulcro.inspect.lib.misc :as misc]
             [fulcro.inspect.lib.version :as version]
             [fulcro.inspect.remote.transit :as encode]
@@ -74,7 +74,7 @@
 
 (defn db-update [app app-uuid old-state new-state]
   (update-state-history app new-state)
-  (let [diff (differ/diff old-state new-state)]
+  (let [diff (diff/diff old-state new-state)]
     (post-message ::db-update {app-uuid-key      app-uuid
                                ::prev-state-hash (hash old-state)
                                ::state-hash      (hash new-state)
