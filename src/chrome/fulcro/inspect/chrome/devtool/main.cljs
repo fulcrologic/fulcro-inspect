@@ -73,9 +73,9 @@
 (def DB_HISTORY_BUFFER_SIZE 100)
 
 (defn db-index-add
-  ([db state] (db-index-add db state (hash state)))
-  ([db state state-hash]
-   (misc/fixed-size-assoc DB_HISTORY_BUFFER_SIZE db state-hash state)))
+  ([db app-uuid state] (db-index-add db app-uuid state (hash state)))
+  ([db app-uuid state state-hash]
+   (update db app-uuid #(misc/fixed-size-assoc DB_HISTORY_BUFFER_SIZE % state-hash state))))
 
 (defonce last-disposed-app* (atom nil))
 
@@ -106,7 +106,7 @@
                                                                                                :remotes  remotes})))]
 
     (let [{::keys [db-hash-index]} (-> inspector :reconciler :config :shared)]
-      (swap! db-hash-index db-index-add (dissoc initial-state :fulcro.inspect.client/state-hash) state-hash))
+      (swap! db-hash-index db-index-add app-uuid (dissoc initial-state :fulcro.inspect.client/state-hash) state-hash))
 
     (fp/transact! (:reconciler inspector) [::multi-inspector/multi-inspector "main"]
       [`(multi-inspector/add-inspector ~new-inspector)])
@@ -119,15 +119,18 @@
     new-inspector))
 
 (defn dispose-app [{:fulcro.inspect.core/keys [app-uuid]}]
-  (let [{:keys [reconciler]} @global-inspector*
+  (let [{:keys [reconciler] :as inspector} @global-inspector*
         state         (fp/app-state reconciler)
         inspector-ref [::inspector/id app-uuid]
-        app-id        (get (get-in @state inspector-ref) :fulcro.inspect.core/app-id)]
+        app-id        (get (get-in @state inspector-ref) :fulcro.inspect.core/app-id)
+        {::keys [db-hash-index]} (-> inspector :reconciler :config :shared)]
 
     (if (= (get-in @state [::multi-inspector/multi-inspector "main" ::multi-inspector/current-app])
            inspector-ref)
       (reset! last-disposed-app* app-id)
       (reset! last-disposed-app* nil))
+
+    (swap! db-hash-index dissoc app-uuid) ; clear state history
 
     (fp/transact! reconciler [::multi-inspector/multi-inspector "main"]
       [`(multi-inspector/remove-inspector {::inspector/id ~app-uuid})])))
@@ -145,12 +148,12 @@
                          :fulcro.inspect.client/keys [prev-state-hash state-delta state state-hash]}]
   (let [{::keys [db-hash-index]} (-> @global-inspector* :reconciler :config :shared)
         new-state (if state-delta
-                    (if-let [old-state (get @db-hash-index prev-state-hash)]
+                    (if-let [old-state (get-in @db-hash-index [app-uuid prev-state-hash])]
                       (diff/patch old-state state-delta)
                       (js/console.error "Error patching state, no previous state available." state-hash))
                     state)]
 
-    (swap! db-hash-index db-index-add new-state state-hash)
+    (swap! db-hash-index db-index-add app-uuid new-state state-hash)
 
     (if-let [current-locale (-> new-state ::fulcro-i18n/current-locale p/ident-value*)]
       (fp/transact! (:reconciler @global-inspector*)
@@ -166,8 +169,8 @@
                       :fulcro.inspect.client/keys [tx]}]
   (let [{::keys [db-hash-index]} (-> @global-inspector* :reconciler :config :shared)
         tx (assoc tx
-             :fulcro.history/db-before (get @db-hash-index (:fulcro.history/db-before-hash tx))
-             :fulcro.history/db-after (get @db-hash-index (:fulcro.history/db-after-hash tx)))]
+             :fulcro.history/db-before (get-in @db-hash-index [app-uuid (:fulcro.history/db-before-hash tx)])
+             :fulcro.history/db-after (get-in @db-hash-index [app-uuid (:fulcro.history/db-after-hash tx)]))]
     (fp/transact! (:reconciler @global-inspector*)
       [:fulcro.inspect.ui.transactions/tx-list-id [app-uuid-key app-uuid]]
       [`(fulcro.inspect.ui.transactions/add-tx ~tx) :fulcro.inspect.ui.transactions/tx-list])))
