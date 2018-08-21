@@ -1,5 +1,6 @@
 (ns fulcro.inspect.helpers
-  (:require [fulcro.client.primitives :as fp]
+  (:require [cljs.pprint]
+            [fulcro.client.primitives :as fp]
             [fulcro.client.mutations :as mutations]
             [fulcro.inspect.lib.local-storage :as storage]))
 
@@ -216,3 +217,6 @@
 (defn remote-mutation [{:keys [ast ref]} key]
   (-> (assoc ast :key key)
       (assoc-in [:params :fulcro.inspect.core/app-uuid] (ref-app-uuid ref))))
+
+(defn pprint [x]
+  (with-out-str (cljs.pprint/pprint x)))

@@ -1,6 +1,5 @@
 (ns com.wsscode.oge.core
-  (:require [cljs.pprint :refer [pprint]]
-            [cljs.reader :refer [read-string]]
+  (:require [cljs.reader :refer [read-string]]
             [com.wsscode.oge.ui.codemirror :as codemirror]
             [com.wsscode.oge.ui.common :as ui]
             [com.wsscode.oge.ui.flame-graph :as ui.flame]
@@ -26,7 +25,7 @@
                     (get @state ::p/errors) (assoc ::p/errors (->> (get @state ::p/errors)
                                                                    (into {} (map (fn [[k v]] [(vec (next k)) v]))))))
           profile (some-> result' ::pp/profile)
-          result  (with-out-str (cljs.pprint/pprint (dissoc result' ::pp/profile)))]
+          result  (db.h/pprint (dissoc result' ::pp/profile))]
       (swap! state update-in ref merge {:oge/result  result
                                         :oge/profile profile}))))
 

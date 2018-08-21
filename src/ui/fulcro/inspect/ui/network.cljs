@@ -1,14 +1,14 @@
 (ns fulcro.inspect.ui.network
-  (:require [garden.selectors :as gs]
-            [fulcro.client.mutations :as mutations :refer-macros [defmutation]]
+  (:require [com.wsscode.oge.ui.flame-graph :as ui.flame]
+            [com.wsscode.pathom.profile :as pp]
             [fulcro-css.css :as css]
+            [fulcro.client.localized-dom :as dom]
+            [fulcro.client.mutations :as fm :refer-macros [defmutation]]
+            [fulcro.client.primitives :as fp]
             [fulcro.inspect.helpers :as h]
             [fulcro.inspect.ui.core :as ui]
             [fulcro.inspect.ui.data-viewer :as data-viewer]
-            [fulcro.client.localized-dom :as dom]
-            [fulcro.client.primitives :as fp]
-            [com.wsscode.oge.ui.flame-graph :as ui.flame]
-            [com.wsscode.pathom.profile :as pp]))
+            [garden.selectors :as gs]))
 
 (declare Request)
 
@@ -22,7 +22,7 @@
   (action [env]
     (let [{:keys [state] :as env} env
           request-ref (fp/ident Request request)
-          env' (assoc env :ref request-ref)]
+          env'        (assoc env :ref request-ref)]
       (when (get-in @state request-ref) ; prevent adding back a cleared request
         (when (get-in @state (conj request-ref :ui/request-edn-view))
           (if response-edn
@@ -52,18 +52,32 @@
     (h/swap-entity! env assoc ::active-request nil ::remotes #{})
     (h/remove-edge! env ::requests)))
 
+(defn send-to-query [this app-uuid query]
+  (fp/transact! (fp/get-reconciler this)
+    [:fulcro.inspect.ui.multi-oge/id [:fulcro.inspect.core/app-uuid app-uuid]]
+    [`(fulcro.inspect.ui.multi-oge/set-active-query {:query ~(h/pprint query)})])
+
+  (fp/transact! (fp/get-reconciler this)
+    [:fulcro.inspect.ui.inspector/id app-uuid]
+    [`(fm/set-props {:fulcro.inspect.ui.inspector/tab :fulcro.inspect.ui.inspector/page-oge})]))
+
 (fp/defsc RequestDetails
   [this
-   {:ui/keys [request-edn-view response-edn-view error-view]}]
+   {:ui/keys [request-edn-view response-edn-view error-view]}
+   {:fulcro.inspect.core/keys [app-uuid]}]
   {:ident [::request-id ::request-id]
    :query [::request-id ::request-edn ::response-edn ::request-started-at ::request-finished-at ::error
            {:ui/request-edn-view (fp/get-query data-viewer/DataViewer)}
            {:ui/response-edn-view (fp/get-query data-viewer/DataViewer)}
            {:ui/error-view (fp/get-query data-viewer/DataViewer)}]
    :css   [[:.flame {:background "#f6f7f8"
-                     :width      "400px"}]]}
+                     :width      "400px"}]
+           [:.send-query {:margin-left "5px"}]]}
   (dom/div
-    (ui/info {::ui/title "Request"}
+    (ui/info {::ui/title (dom/div
+                           "Request"
+                           (dom/button :.send-query {:onClick #(send-to-query this app-uuid (::data-viewer/content request-edn-view))}
+                             "Send to query"))}
       (data-viewer/data-viewer request-edn-view))
 
     (if response-edn-view
@@ -254,9 +268,9 @@
             (ui/toolbar {::ui/classes [:details]}
               (ui/toolbar-spacer)
               (ui/toolbar-action {:title   "Close panel"
-                                  :onClick #(mutations/set-value! this ::active-request nil)}
+                                  :onClick #(fm/set-value! this ::active-request nil)}
                 (ui/icon :clear)))
             (ui/focus-panel-content {}
-              (request-details active-request))))))))
+              (request-details (fp/computed active-request {:fulcro.inspect.core/app-uuid (h/comp-app-uuid this)})))))))))
 
 (def network-history (fp/factory NetworkHistory))
