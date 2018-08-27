@@ -1,19 +1,20 @@
 (ns fulcro.inspect.client
-  (:require [clojure.set :as set]
+  (:require [cljs.core.async :as async]
+            [clojure.set :as set]
             [fulcro-css.css :as css]
             [fulcro.client :as fulcro]
-            [fulcro.client.primitives :as fp]
+            [fulcro.client.localized-dom :as dom]
             [fulcro.client.mutations :as fm]
             [fulcro.client.network :as f.network]
-            [fulcro.inspect.ui.element-picker :as picker]
-            [fulcro.inspect.remote.transit :as encode]
-            [fulcro.inspect.ui.helpers :as ui.h]
-            [fulcro.inspect.ui.dom-history-viewer :as dom-history]
-            [goog.object :as gobj]
-            [fulcro.client.localized-dom :as dom]
+            [fulcro.client.primitives :as fp]
+            [fulcro.inspect.lib.diff :as diff]
             [fulcro.inspect.lib.misc :as misc]
-            [clojure.core.async :as async]
-            [fulcro.inspect.lib.version :as version]))
+            [fulcro.inspect.lib.version :as version]
+            [fulcro.inspect.remote.transit :as encode]
+            [fulcro.inspect.ui.dom-history-viewer :as dom-history]
+            [fulcro.inspect.ui.element-picker :as picker]
+            [fulcro.inspect.ui.helpers :as ui.h]
+            [goog.object :as gobj]))
 
 (defonce started?* (atom false))
 (defonce tools-app* (atom nil))
@@ -71,11 +72,15 @@
   (swap! (-> app :reconciler :state) update ::state-history
     #(misc/fixed-size-assoc MAX_HISTORY_SIZE % (hash state) state)))
 
-(defn db-update [app app-uuid state]
-  (update-state-history app state)
-  (post-message ::db-update {app-uuid-key app-uuid
-                             ::state      state
-                             ::state-hash (hash state)}))
+(defn db-update [app app-uuid old-state new-state]
+  (update-state-history app new-state)
+  (let [diff (diff/diff old-state new-state)]
+    (post-message ::db-update {app-uuid-key      app-uuid
+                               ::prev-state-hash (hash old-state)
+                               ::state-hash      (hash new-state)
+                               ::state-delta     diff
+                               ;::state           new-state
+                               })))
 
 (defn db-from-history [app state-hash]
   (some-> app :reconciler :state deref ::state-history (get state-hash)))
@@ -104,7 +109,7 @@
                               ::state-hash                (hash @state*)})
 
     (add-watch state* app-uuid
-      #(db-update app app-uuid %4))
+      #(db-update app app-uuid %3 %4))
 
     (swap! state* assoc app-uuid-key app-uuid)
 

@@ -1,6 +1,5 @@
 (ns fulcro.inspect.ui.multi-oge
   (:require [fulcro.client.primitives :as fp]
-            [fulcro.client.localized-dom :as dom]
             [com.wsscode.oge.core :as oge]
             [fulcro.inspect.helpers :as db.h]
             [fulcro.client.mutations :as fm]))
@@ -8,6 +7,11 @@
 (defn select-remote [this remote]
   (fm/set-value! this ::active
     [:oge/id [:fulcro.inspect.core/app-uuid (db.h/comp-app-uuid this) remote]]))
+
+(fm/defmutation set-active-query [{:keys [query]}]
+  (action [{:keys [state ref]}]
+    (let [active-ref (get-in @state (conj ref ::active))]
+      (swap! state update-in active-ref assoc :oge/query query))))
 
 (fp/defsc OgeView
   [this {::keys [oges active]}]

@@ -3,11 +3,12 @@
             [fulcro.inspect.ui.data-history :as data-history]
             [fulcro.client.primitives :as fp]
             [fulcro.inspect.helpers :as h]
-            [fulcro.inspect.card-helpers :as ch]))
+            [fulcro.inspect.card-helpers :as ch]
+            [nubank.workspaces.core :refer [deftest]]))
 
 (def Root (ch/make-root data-history/DataHistory nil))
 
-(specification "set-content" :focused
+(deftest test-set-content
   (with-redefs [data-history/new-state identity]
     (behavior "history is not full"
       (behavior "Add item while is in the end of history"

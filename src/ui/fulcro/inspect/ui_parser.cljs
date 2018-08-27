@@ -21,7 +21,7 @@
     (swap! responses* assoc msg-id res-chan)
     (send-message name (assoc data ::msg-id msg-id))
     (async/go
-      (let [[x _] (async/alts! [res-chan (async/timeout 10000)] :priority true)]
+      (let [[x _] (async/alts! [res-chan (async/timeout 30000)] :priority true)]
         (if x
           x
 

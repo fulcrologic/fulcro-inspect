@@ -1,4 +1,4 @@
-(defproject fulcrologic/fulcro-inspect "2.2.1"
+(defproject fulcrologic/fulcro-inspect "2.2.2"
   :description "A debugging tool for Fulcro that allows you to inspect state and other aspects of the running application(s)."
   :url "https://github.com/fulcrologic/fulcro-inspect"
   :min-lein-version "2.7.0"
@@ -8,7 +8,6 @@
                  [org.clojure/clojurescript "1.10.238" :scope "provided"]
                  [fulcrologic/fulcro "2.5.7" :scope "provided"]
                  [com.wsscode/pathom "2.0.4"]
-
                  [org.clojure/tools.namespace "0.3.0-alpha4" :scope "test"]
                  [lein-doo "0.1.7" :scope "test"]
                  [fulcrologic/fulcro-spec "2.1.0-1" :scope "test" :exclusions [fulcrologic/fulcro]]]
@@ -28,8 +27,9 @@
 
   :profiles {:dev {:plugins [[lein-cljsbuild "1.1.7"]
                              [lein-doo "0.1.8"]]
-                   :source-paths ["src/client" "src/chrome" "src/electron" "src/ui" "devcards"]
+                   :source-paths ["src/client" "src/chrome" "src/electron" "src/ui" "devcards" "workspaces"]
                    :dependencies [[devcards "0.2.3" :exclusions [cljsjs/react cljsjs/react-dom]]
+                                  [nubank/workspaces "1.0.0-preview6"]
                                   [figwheel-sidecar "0.5.14" :exclusions [org.clojure/tools.nrepl]]
                                   [binaryage/devtools "0.9.9"]
                                   [com.cemerick/piggieback "0.2.2"]
