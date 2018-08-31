@@ -2,15 +2,13 @@
 
  :dependencies [[org.clojure/core.async "0.4.474"]
                 [com.cognitect/transit-cljs "0.8.256"]
-                [com.cognitect/transit-java "0.8.332"]
                 [spec-coerce "1.0.0-alpha5"]
-                [fulcrologic/fulcro "2.5.12"]
+                [fulcrologic/fulcro "2.6.0"]
                 [fulcrologic/fulcro-inspect "2.1.0"]
-                [com.wsscode/pathom "2.0.1"]
-                [com.taoensso/sente "1.12.0"]
+                [com.wsscode/pathom "2.2.0"]
                 [binaryage/devtools "0.9.10"]
                 [devcards "0.2.4" :exclusions [cljsjs/react cljsjs/react-dom]]
-                [nubank/workspaces "1.0.0-preview6"]
+                [nubank/workspaces "1.0.0-preview8"]
                 [fulcrologic/fulcro-spec "2.1.0-1" :scope "test" :exclusions [fulcrologic/fulcro]]]
 
  :http         {:host "localhost"
