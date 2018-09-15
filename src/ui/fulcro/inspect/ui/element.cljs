@@ -1,6 +1,7 @@
 (ns fulcro.inspect.ui.element
   (:require
     [fulcro-css.css :as css]
+    [fulcro-css.css-protocols :as cssp]
     [fulcro.client.localized-dom :as dom]
     [fulcro.client.mutations :as mutations]
     [fulcro.client.primitives :as fp :refer [get-query]]
@@ -25,7 +26,7 @@
               {::props-view (fp/get-query data-viewer/DataViewer)}
               {::query-view (fp/get-query data-viewer/DataViewer)}])
 
-  static css/CSS
+  static cssp/CSS
   (local-rules [_] [[:.container {:flex     "1"
                                   :overflow "auto"
                                   :padding  "0 10px"}]])
@@ -70,7 +71,7 @@
   (query [_] [::panel-id :ui/picking?
               {::details (fp/get-query Details)}])
 
-  static css/CSS
+  static cssp/CSS
   (local-rules [_] [[:.container {:flex           1
                                   :display        "flex"
                                   :flex-direction "column"}

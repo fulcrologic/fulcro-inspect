@@ -2,6 +2,7 @@
   (:require [clojure.string :as str]
             [fulcro.client.primitives :as fp]
             [fulcro-css.css :as css]
+            [fulcro-css.css-protocols :as cssp]
             [fulcro.ui.icons :as icons]
             [fulcro.inspect.ui.helpers :as h]
             [fulcro.client.mutations :as fm]
@@ -218,7 +219,7 @@
 (def inline-editor (h/computed-factory InlineEditor {:keyfn ::editor-id}))
 
 (fp/defui ^:once CSS
-  static css/CSS
+  static cssp/CSS
   (local-rules [_] [[:.focused-panel {:border-top     "1px solid #a3a3a3"
                                       :display        "flex"
                                       :flex-direction "column"

@@ -2,6 +2,7 @@
   (:require [fulcro.client.primitives :as fp]
             [com.wsscode.oge.ui.helpers :as helpers]
             [fulcro-css.css :as css]
+            [fulcro-css.css-protocols :as cssp]
             [fulcro.client.dom :as dom]))
 
 (def css-button
@@ -28,7 +29,7 @@
    :border-color     "#01549b"})
 
 (fp/defui ^:once Button
-  static css/CSS
+  static cssp/CSS
   (local-rules [_] [[:.button css-button
                      [:&:hover css-button-hover]]])
   (include-children [_] [])
@@ -63,7 +64,7 @@
    :outline          "0"})
 
 (fp/defui ^:once TextField
-  static css/CSS
+  static cssp/CSS
   (local-rules [_] [[:.input css-input
                      [:&:focus css-input-focus]
                      [:&.success {:border-color "#5cb85c"}]
@@ -82,6 +83,6 @@
 (def text-field (fp/factory TextField))
 
 (fp/defui ^:once CSS
-  static css/CSS
+  static cssp/CSS
   (local-rules [_] [])
   (include-children [_] [Button TextField]))

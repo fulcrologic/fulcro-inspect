@@ -1,7 +1,9 @@
 (ns fulcro.inspect.ui.network
   (:require [com.wsscode.oge.ui.flame-graph :as ui.flame]
             [com.wsscode.pathom.profile :as pp]
+            [com.wsscode.pathom.viz.trace :as trace]
             [fulcro-css.css :as css]
+            [fulcro-css.css-protocols :as cssp]
             [fulcro.client.localized-dom :as dom]
             [fulcro.client.mutations :as fm :refer-macros [defmutation]]
             [fulcro.client.primitives :as fp]
@@ -65,14 +67,17 @@
   [this
    {:ui/keys [request-edn-view response-edn-view error-view]}
    {:fulcro.inspect.core/keys [app-uuid]}]
-  {:ident [::request-id ::request-id]
-   :query [::request-id ::request-edn ::response-edn ::request-started-at ::request-finished-at ::error
-           {:ui/request-edn-view (fp/get-query data-viewer/DataViewer)}
-           {:ui/response-edn-view (fp/get-query data-viewer/DataViewer)}
-           {:ui/error-view (fp/get-query data-viewer/DataViewer)}]
-   :css   [[:.flame {:background "#f6f7f8"
-                     :width      "400px"}]
-           [:.send-query {:margin-left "5px"}]]}
+  {:ident       [::request-id ::request-id]
+   :query       [::request-id ::request-edn ::response-edn ::request-started-at ::request-finished-at ::error
+                 {:ui/request-edn-view (fp/get-query data-viewer/DataViewer)}
+                 {:ui/response-edn-view (fp/get-query data-viewer/DataViewer)}
+                 {:ui/error-view (fp/get-query data-viewer/DataViewer)}]
+   :css         [[:.flame {:background "#f6f7f8"
+                           :width      "400px"}]
+                 [:.trace {:display "flex"
+                           :height "500px"}]
+                 [:.send-query {:margin-left "5px"}]]
+   :css-include [trace/D3Trace]}
   (dom/div
     (ui/info {::ui/title (dom/div
                            "Request"
@@ -90,7 +95,11 @@
 
     (if-let [profile (-> response-edn-view ::data-viewer/content ::pp/profile)]
       (ui/info {::ui/title "Profile"}
-        (dom/div :.flame (ui.flame/flame-graph {:profile profile}))))))
+        (dom/div :.flame (ui.flame/flame-graph {:profile profile}))))
+
+    (if-let [trace (-> response-edn-view ::data-viewer/content :com.wsscode.pathom/trace)]
+      (ui/info {::ui/title "Trace"}
+        (dom/div :.trace (trace/d3-trace {::trace/trace-data trace}))))))
 
 (def request-details (fp/factory RequestDetails))
 
@@ -113,7 +122,7 @@
   (query [_] [::request-id ::request-edn ::request-edn-row-view ::response-edn ::remote
               ::request-started-at ::request-finished-at ::error])
 
-  static css/CSS
+  static cssp/CSS
   (local-rules [_]
     (let [border (str "1px solid " ui/color-bg-light-border)]
       [[:.row {:cursor  "pointer"
@@ -189,7 +198,7 @@
               {::requests (fp/get-query Request)}
               {::active-request (fp/get-query RequestDetails)}])
 
-  static css/CSS
+  static cssp/CSS
   (local-rules [_]
     (let [border (str "1px solid " ui/color-bg-medium-border)]
       [[:.container {:flex           1
