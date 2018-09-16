@@ -1,5 +1,6 @@
 (ns fulcro.inspect.ui.network
-  (:require [com.wsscode.oge.ui.flame-graph :as ui.flame]
+  (:require ["react-draggable" :refer [DraggableCore]]
+            [com.wsscode.oge.ui.flame-graph :as ui.flame]
             [com.wsscode.pathom.profile :as pp]
             [com.wsscode.pathom.viz.trace :as trace]
             [fulcro-css.css :as css]
@@ -10,7 +11,8 @@
             [fulcro.inspect.helpers :as h]
             [fulcro.inspect.ui.core :as ui]
             [fulcro.inspect.ui.data-viewer :as data-viewer]
-            [garden.selectors :as gs]))
+            [garden.selectors :as gs]
+            [goog.object :as gobj]))
 
 (declare Request)
 
@@ -75,7 +77,7 @@
    :css         [[:.flame {:background "#f6f7f8"
                            :width      "400px"}]
                  [:.trace {:display "flex"
-                           :height "500px"}]
+                           :height  "500px"}]
                  [:.send-query {:margin-left "5px"}]]
    :css-include [trace/D3Trace]}
   (dom/div
@@ -273,12 +275,25 @@
                                    (fn [r] (fp/transact! this `[(select-request ~r)]))})))))))
 
         (if active-request
-          (ui/focus-panel {}
-            (ui/toolbar {::ui/classes [:details]}
-              (ui/toolbar-spacer)
-              (ui/toolbar-action {:title   "Close panel"
-                                  :onClick #(fm/set-value! this ::active-request nil)}
-                (ui/icon :clear)))
+          (ui/focus-panel {:style {:height (str (or (fp/get-state this :detail-height) 400) "px")}}
+            (js/React.createElement DraggableCore
+              #js {:key     "dragHandler"
+                   :onStart (fn [e dd]
+                              (gobj/set this "startY" (gobj/get dd "y"))
+                              (gobj/set this "startHeight" (or (fp/get-state this :detail-height) 400)))
+                   :onDrag  (fn [e dd]
+                              (let [start-y    (gobj/get this "startY")
+                                    height     (gobj/get this "startHeight")
+                                    y          (gobj/get dd "y")
+                                    new-height (+ height (- start-y y))]
+                                (fp/set-state! this {:detail-height new-height})))}
+              (dom/div {:style {:pointerEvents "all"
+                                :cursor "ns-resize"}}
+                (ui/toolbar {::ui/classes [:details]}
+                  (ui/toolbar-spacer)
+                  (ui/toolbar-action {:title   "Close panel"
+                                      :onClick #(fm/set-value! this ::active-request nil)}
+                    (ui/icon :clear)))))
             (ui/focus-panel-content {}
               (request-details (fp/computed active-request {:fulcro.inspect.core/app-uuid (h/comp-app-uuid this)})))))))))
 
