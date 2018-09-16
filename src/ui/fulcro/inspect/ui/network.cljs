@@ -1,6 +1,5 @@
 (ns fulcro.inspect.ui.network
-  (:require ["react-draggable" :refer [DraggableCore]]
-            [com.wsscode.oge.ui.flame-graph :as ui.flame]
+  (:require [com.wsscode.oge.ui.flame-graph :as ui.flame]
             [com.wsscode.pathom.profile :as pp]
             [com.wsscode.pathom.viz.trace :as trace]
             [fulcro-css.css :as css]
@@ -74,13 +73,18 @@
                  {:ui/request-edn-view (fp/get-query data-viewer/DataViewer)}
                  {:ui/response-edn-view (fp/get-query data-viewer/DataViewer)}
                  {:ui/error-view (fp/get-query data-viewer/DataViewer)}]
-   :css         [[:.flame {:background "#f6f7f8"
+   :css         [[:.container ui/css-flex-column]
+                 [:.flame {:background "#f6f7f8"
                            :width      "400px"}]
-                 [:.trace {:display "flex"
-                           :height  "500px"}]
+                 [:.trace {:display     "flex"
+                           :min-height  "300px"
+                           :flex        "1"
+                           :margin-top  "4px"
+                           :padding-top "18px"
+                           :border-top  "1px solid #eee"}]
                  [:.send-query {:margin-left "5px"}]]
    :css-include [trace/D3Trace]}
-  (dom/div
+  (dom/div :.container
     (ui/info {::ui/title (dom/div
                            "Request"
                            (dom/button :.send-query {:onClick #(send-to-query this app-uuid (::data-viewer/content request-edn-view))}
@@ -100,8 +104,7 @@
         (dom/div :.flame (ui.flame/flame-graph {:profile profile}))))
 
     (if-let [trace (-> response-edn-view ::data-viewer/content :com.wsscode.pathom/trace)]
-      (ui/info {::ui/title "Trace"}
-        (dom/div :.trace (trace/d3-trace {::trace/trace-data trace}))))))
+      (dom/div :.trace (trace/d3-trace {::trace/trace-data trace})))))
 
 (def request-details (fp/factory RequestDetails))
 
@@ -276,24 +279,12 @@
 
         (if active-request
           (ui/focus-panel {:style {:height (str (or (fp/get-state this :detail-height) 400) "px")}}
-            (js/React.createElement DraggableCore
-              #js {:key     "dragHandler"
-                   :onStart (fn [e dd]
-                              (gobj/set this "startY" (gobj/get dd "y"))
-                              (gobj/set this "startHeight" (or (fp/get-state this :detail-height) 400)))
-                   :onDrag  (fn [e dd]
-                              (let [start-y    (gobj/get this "startY")
-                                    height     (gobj/get this "startHeight")
-                                    y          (gobj/get dd "y")
-                                    new-height (+ height (- start-y y))]
-                                (fp/set-state! this {:detail-height new-height})))}
-              (dom/div {:style {:pointerEvents "all"
-                                :cursor "ns-resize"}}
-                (ui/toolbar {::ui/classes [:details]}
-                  (ui/toolbar-spacer)
-                  (ui/toolbar-action {:title   "Close panel"
-                                      :onClick #(fm/set-value! this ::active-request nil)}
-                    (ui/icon :clear)))))
+            (ui/drag-resize this {:attribute :detail-height :default 400}
+              (ui/toolbar {::ui/classes [:details]}
+                (ui/toolbar-spacer)
+                (ui/toolbar-action {:title   "Close panel"
+                                    :onClick #(fm/set-value! this ::active-request nil)}
+                  (ui/icon :clear))))
             (ui/focus-panel-content {}
               (request-details (fp/computed active-request {:fulcro.inspect.core/app-uuid (h/comp-app-uuid this)})))))))))
 

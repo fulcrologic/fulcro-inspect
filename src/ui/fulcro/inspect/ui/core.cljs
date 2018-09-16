@@ -1,5 +1,6 @@
 (ns fulcro.inspect.ui.core
-  (:require [clojure.string :as str]
+  (:require ["react-draggable" :refer [DraggableCore]]
+            [clojure.string :as str]
             [fulcro.client.primitives :as fp]
             [fulcro-css.css :as css]
             [fulcro-css.css-protocols :as cssp]
@@ -8,7 +9,8 @@
             [fulcro.client.mutations :as fm]
             [fulcro.client.localized-dom :as dom]
             [fulcro.inspect.ui.events :as events]
-            [garden.selectors :as gs]))
+            [garden.selectors :as gs]
+            [goog.object :as gobj]))
 
 (def mono-font-family "monospace")
 
@@ -47,6 +49,11 @@
    :font-size   "11px"
    :color       "#808080"
    :margin      "0 4px 0 7px"})
+
+(def css-flex-column
+  {:flex           "1"
+   :display        "flex"
+   :flex-direction "column"})
 
 ;;; helpers
 
@@ -224,9 +231,8 @@
                                       :display        "flex"
                                       :flex-direction "column"
                                       :height         "50%"}]
-                    [:.focused-container {:flex     "1"
-                                          :overflow "auto"
-                                          :padding  "0 10px"}]
+                    [:.focused-container css-flex-column {:overflow "auto"
+                                                          :padding  "0 10px"}]
 
                     [:.info-group css-info-group
                      [(gs/& gs/first-child) {:border-top "0"}]]
@@ -271,3 +277,19 @@
 (defn comp-display-name [props display-name]
   (dom/div (h/props->html {:className (:display-name scss)} props)
     (str display-name)))
+
+(defn drag-resize [this {:keys [attribute default]} child]
+  (js/React.createElement DraggableCore
+    #js {:key     "dragHandler"
+         :onStart (fn [e dd]
+                    (gobj/set this "startY" (gobj/get dd "y"))
+                    (gobj/set this "startHeight" (or (fp/get-state this attribute) default)))
+         :onDrag  (fn [e dd]
+                    (let [start-y    (gobj/get this "startY")
+                          height     (gobj/get this "startHeight")
+                          y          (gobj/get dd "y")
+                          new-height (+ height (- start-y y))]
+                      (fp/set-state! this {attribute new-height})))}
+    (dom/div {:style {:pointerEvents "all"
+                      :cursor        "ns-resize"}}
+      child)))
