@@ -109,7 +109,7 @@
 
     (if-let [trace (-> response-edn-view ::data-viewer/content :com.wsscode.pathom/trace)]
       (dom/div :.trace (trace/d3-trace {::trace/trace-data      trace
-                                        ::trace/on-show-details #(fp/transact! parent [`(log-trace-details {:log ~%})])})))))
+                                        ::trace/on-show-details #(fp/transact! parent [`(log-trace-details {:log-js ~%})])})))))
 
 (def request-details (fp/factory RequestDetails))
 
