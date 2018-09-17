@@ -212,11 +212,12 @@
                          ::selected?
                          (= (::tx-id active-tx) (::tx-id %))})))))
       (if active-tx
-        (ui/focus-panel {}
-          (ui/toolbar {::ui/classes [:details]}
-            (ui/toolbar-spacer)
-            (ui/toolbar-action {:onClick #(mutations/set-value! this ::active-tx nil)}
-              (ui/icon {:title "Close panel"} :clear)))
+        (ui/focus-panel {:style {:height (str (or (fp/get-state this :detail-height) 400) "px")}}
+          (ui/drag-resize this {:attribute :detail-height :default 400}
+            (ui/toolbar {::ui/classes [:details]}
+              (ui/toolbar-spacer)
+              (ui/toolbar-action {:onClick #(mutations/set-value! this ::active-tx nil)}
+                (ui/icon {:title "Close panel"} :clear))))
           (ui/focus-panel-content {}
             (transaction active-tx)))))))
 
