@@ -10,8 +10,7 @@
             [fulcro.inspect.helpers :as h]
             [fulcro.inspect.ui.core :as ui]
             [fulcro.inspect.ui.data-viewer :as data-viewer]
-            [garden.selectors :as gs]
-            [goog.object :as gobj]))
+            [garden.selectors :as gs]))
 
 (declare Request)
 
@@ -64,10 +63,15 @@
     [:fulcro.inspect.ui.inspector/id app-uuid]
     [`(fm/set-props {:fulcro.inspect.ui.inspector/tab :fulcro.inspect.ui.inspector/page-oge})]))
 
+(fm/defmutation log-trace-details [_]
+  (remote [env]
+    (h/remote-mutation env 'console-log)))
+
 (fp/defsc RequestDetails
   [this
    {:ui/keys [request-edn-view response-edn-view error-view]}
-   {:fulcro.inspect.core/keys [app-uuid]}]
+   {:fulcro.inspect.core/keys [app-uuid]
+    :keys [parent]}]
   {:ident       [::request-id ::request-id]
    :query       [::request-id ::request-edn ::response-edn ::request-started-at ::request-finished-at ::error
                  {:ui/request-edn-view (fp/get-query data-viewer/DataViewer)}
@@ -104,7 +108,8 @@
         (dom/div :.flame (ui.flame/flame-graph {:profile profile}))))
 
     (if-let [trace (-> response-edn-view ::data-viewer/content :com.wsscode.pathom/trace)]
-      (dom/div :.trace (trace/d3-trace {::trace/trace-data trace})))))
+      (dom/div :.trace (trace/d3-trace {::trace/trace-data      trace
+                                        ::trace/on-show-details #(fp/transact! parent [`(log-trace-details {:log ~%})])})))))
 
 (def request-details (fp/factory RequestDetails))
 
@@ -286,6 +291,7 @@
                                     :onClick #(fm/set-value! this ::active-request nil)}
                   (ui/icon :clear))))
             (ui/focus-panel-content {}
-              (request-details (fp/computed active-request {:fulcro.inspect.core/app-uuid (h/comp-app-uuid this)})))))))))
+              (request-details (fp/computed active-request {:fulcro.inspect.core/app-uuid (h/comp-app-uuid this)
+                                                            :parent this})))))))))
 
 (def network-history (fp/factory NetworkHistory))

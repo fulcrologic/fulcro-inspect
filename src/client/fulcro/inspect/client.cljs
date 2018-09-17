@@ -319,6 +319,10 @@
                ::f.network/ok-handler    (comp response-handler :body)
                ::f.network/error-handler (comp response-handler :body)})))))
 
+    ::console-log
+    (let [{:keys [log]} data]
+      (js/console.log log))
+
     ::check-client-version
     (post-message ::client-version {:version version/last-inspect-version})
 
