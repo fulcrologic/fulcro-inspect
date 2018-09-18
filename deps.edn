@@ -7,10 +7,8 @@
   spec-coerce                {:mvn/version "1.0.0-alpha5"}
   fulcrologic/fulcro         {:mvn/version "2.6.2"}
   fulcrologic/fulcro-inspect {:mvn/version "2.1.0"}
-  com.wsscode/pathom         {:local/root "/Users/wilkerlucio/Development/pathom"
-                              ;:mvn/version "2.2.0"
-                              }
-  com.wsscode/pathom-viz     {:local/root "/Users/wilkerlucio/Development/pathom-viz"}
+  com.wsscode/pathom         {:mvn/version "2.2.0-beta6"}
+  com.wsscode/pathom-viz     {:mvn/version "1.0.0"}
   binaryage/devtools         {:mvn/version "0.9.10"}
   devcards                   {:mvn/version "0.2.4"}
   nubank/workspaces          {:mvn/version "1.0.0-preview8"}
