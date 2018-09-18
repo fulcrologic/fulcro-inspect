@@ -38,7 +38,7 @@
                           (list 'fulcro/load {:target        (conj ident :oge/result')
                                               :query         [{(list :>/oge {:fulcro.inspect.core/app-uuid app-uuid
                                                                              :fulcro.inspect.client/remote remote})
-                                                               (conj (read-string query) ::pp/profile)}]
+                                                               (read-string query)}]
                                               :refresh       [:oge/result]
                                               :marker        (keyword "oge-query" (p/ident-value* ident))
                                               :post-mutation `normalize-result})])
