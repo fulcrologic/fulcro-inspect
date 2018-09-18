@@ -271,7 +271,7 @@
                                    (.on cm "keyup" (fn [cm e] (when (and (not (gobj/getValueByKeys cm #js ["state" "completionActive"]))
                                                                          (= 1 (-> (gobj/get e "key") (count))))
                                                                 (js/CodeMirror.showHint cm))))
-                                   (parinfer-cm/init cm "smart" #js {:forceBalance true})))
+                                   #_ (parinfer-cm/init cm "smart" #js {:forceBalance true})))
                 (update ::options #(merge options %))))))
 
 (defn clojure [props]
