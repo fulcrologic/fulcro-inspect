@@ -319,6 +319,21 @@
                ::f.network/ok-handler    (comp response-handler :body)
                ::f.network/error-handler (comp response-handler :body)})))))
 
+    ::console-log
+    (let [{:keys [log log-js warn error]} data]
+      (cond
+        log
+        (js/console.log log)
+
+        log-js
+        (js/console.log (clj->js log-js))
+
+        warn
+        (js/console.warn warn)
+
+        error
+        (js/console.error error)))
+
     ::check-client-version
     (post-message ::client-version {:version version/last-inspect-version})
 

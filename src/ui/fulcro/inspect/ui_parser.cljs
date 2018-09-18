@@ -79,6 +79,11 @@
   (fn [{:keys [send-message]} input]
     (send-message :fulcro.inspect.client/hide-dom-preview input)))
 
+(defmutation 'console-log
+  {}
+  (fn [{:keys [send-message]} input]
+    (send-message :fulcro.inspect.client/console-log input)))
+
 (defn ident-passthough [{:keys [ast] :as env}]
   (if (p/ident? (:key ast))
     (p/join (atom {}) (assoc env ::parent-params (:params ast)))

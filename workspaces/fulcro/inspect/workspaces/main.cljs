@@ -1,5 +1,6 @@
 (ns fulcro.inspect.workspaces.main
-  (:require [fulcro.inspect.tests-to-run]
-            [nubank.workspaces.core :as ws]))
+  (:require [nubank.workspaces.core :as ws]
+            [fulcro.inspect.workspaces.ui.network-cards]
+            [fulcro.inspect.workspaces.ui.pathom-trace-cards]))
 
 (ws/mount)

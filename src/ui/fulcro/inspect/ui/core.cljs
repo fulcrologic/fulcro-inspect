@@ -1,13 +1,16 @@
 (ns fulcro.inspect.ui.core
-  (:require [clojure.string :as str]
+  (:require ["react-draggable" :refer [DraggableCore]]
+            [clojure.string :as str]
             [fulcro.client.primitives :as fp]
             [fulcro-css.css :as css]
+            [fulcro-css.css-protocols :as cssp]
             [fulcro.ui.icons :as icons]
             [fulcro.inspect.ui.helpers :as h]
             [fulcro.client.mutations :as fm]
             [fulcro.client.localized-dom :as dom]
             [fulcro.inspect.ui.events :as events]
-            [garden.selectors :as gs]))
+            [garden.selectors :as gs]
+            [goog.object :as gobj]))
 
 (def mono-font-family "monospace")
 
@@ -46,6 +49,11 @@
    :font-size   "11px"
    :color       "#808080"
    :margin      "0 4px 0 7px"})
+
+(def css-flex-column
+  {:flex           "1"
+   :display        "flex"
+   :flex-direction "column"})
 
 ;;; helpers
 
@@ -218,14 +226,13 @@
 (def inline-editor (h/computed-factory InlineEditor {:keyfn ::editor-id}))
 
 (fp/defui ^:once CSS
-  static css/CSS
+  static cssp/CSS
   (local-rules [_] [[:.focused-panel {:border-top     "1px solid #a3a3a3"
                                       :display        "flex"
                                       :flex-direction "column"
                                       :height         "50%"}]
-                    [:.focused-container {:flex     "1"
-                                          :overflow "auto"
-                                          :padding  "0 10px"}]
+                    [:.focused-container css-flex-column {:overflow "auto"
+                                                          :padding  "0 10px"}]
 
                     [:.info-group css-info-group
                      [(gs/& gs/first-child) {:border-top "0"}]]
@@ -270,3 +277,20 @@
 (defn comp-display-name [props display-name]
   (dom/div (h/props->html {:className (:display-name scss)} props)
     (str display-name)))
+
+(defn drag-resize [this {:keys [attribute default axis props] :or {axis "y"}} child]
+  (js/React.createElement DraggableCore
+    #js {:key     "dragHandler"
+         :onStart (fn [e dd]
+                    (gobj/set this "start" (gobj/get dd axis))
+                    (gobj/set this "startSize" (or (fp/get-state this attribute) default)))
+         :onDrag  (fn [e dd]
+                    (let [start    (gobj/get this "start")
+                          size     (gobj/get this "startSize")
+                          value    (gobj/get dd axis)
+                          new-size (+ size (if (= "x" axis) (- value start) (- start value)))]
+                      (fp/set-state! this {attribute new-size})))}
+    (dom/div (merge {:style {:pointerEvents "all"
+                             :cursor        (if (= "x" axis) "ew-resize" "ns-resize")}}
+                    props)
+      child)))

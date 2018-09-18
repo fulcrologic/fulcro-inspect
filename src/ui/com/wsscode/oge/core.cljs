@@ -38,7 +38,7 @@
                           (list 'fulcro/load {:target        (conj ident :oge/result')
                                               :query         [{(list :>/oge {:fulcro.inspect.core/app-uuid app-uuid
                                                                              :fulcro.inspect.client/remote remote})
-                                                               (conj (read-string query) ::pp/profile)}]
+                                                               (read-string query)}]
                                               :refresh       [:oge/result]
                                               :marker        (keyword "oge-query" (p/ident-value* ident))
                                               :post-mutation `normalize-result})])
@@ -140,7 +140,8 @@
         run-query    (fn [_]
                        (when-not (fetch/loading? query-marker)
                          (oge-query this (-> this fp/props :oge/query))))]
-    (dom/div :.container {:className (if-not profile (:simple css))}
+    (dom/div :.container {:className (if-not profile (:simple css))
+                          :style     {:gridTemplateColumns (str (or (fp/get-state this :query-width) 400) "px 12px 1fr")}}
       (dom/div :.title
         (if (> (count remotes) 1)
           (dom/div :.remote-selector
@@ -184,7 +185,11 @@
                                               "Cmd-J"       "ogeJoin"
                                               "Ctrl-Space"  "autocomplete"}}
                        :onChange            #(mutations/set-value! this :oge/query %)})
-      (dom/div :.divisor)
+      (cui/drag-resize this {:attribute :query-width
+                             :axis      "x"
+                             :default   400
+                             :props     {:className (:divisor css)}}
+        (dom/div))
       (codemirror/clojure {:className           (:result css)
                            :value               (or (str result) "")
                            ::codemirror/options {::codemirror/readOnly    true
