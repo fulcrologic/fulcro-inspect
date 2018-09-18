@@ -278,18 +278,19 @@
   (dom/div (h/props->html {:className (:display-name scss)} props)
     (str display-name)))
 
-(defn drag-resize [this {:keys [attribute default]} child]
+(defn drag-resize [this {:keys [attribute default axis props] :or {axis "y"}} child]
   (js/React.createElement DraggableCore
     #js {:key     "dragHandler"
          :onStart (fn [e dd]
-                    (gobj/set this "startY" (gobj/get dd "y"))
-                    (gobj/set this "startHeight" (or (fp/get-state this attribute) default)))
+                    (gobj/set this "start" (gobj/get dd axis))
+                    (gobj/set this "startSize" (or (fp/get-state this attribute) default)))
          :onDrag  (fn [e dd]
-                    (let [start-y    (gobj/get this "startY")
-                          height     (gobj/get this "startHeight")
-                          y          (gobj/get dd "y")
-                          new-height (+ height (- start-y y))]
-                      (fp/set-state! this {attribute new-height})))}
-    (dom/div {:style {:pointerEvents "all"
-                      :cursor        "ns-resize"}}
+                    (let [start    (gobj/get this "start")
+                          size     (gobj/get this "startSize")
+                          value    (gobj/get dd axis)
+                          new-size (+ size (if (= "x" axis) (- value start) (- start value)))]
+                      (fp/set-state! this {attribute new-size})))}
+    (dom/div (merge {:style {:pointerEvents "all"
+                             :cursor        (if (= "x" axis) "ew-resize" "ns-resize")}}
+                    props)
       child)))
