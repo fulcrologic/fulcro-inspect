@@ -26,7 +26,7 @@
               (conj rems {k childs})
               rems))
           rems)
-        (conj rems k)))
+        (conj rems (cond-> k (map? k) (assoc ::key? true)))))
     []
     a))
 
@@ -45,9 +45,15 @@
 (defn patch-removals [x {::keys [removals]}]
   (reduce
     (fn [final rem]
-      (if (map? rem)
+      (cond
+        (::key? rem)
+        (dissoc final (dissoc rem ::key?))
+
+        (map? rem)
         (let [[k v] (first rem)]
           (update final k #(patch-removals % {::removals v})))
+
+        :else
         (dissoc final rem)))
     x
     removals))
