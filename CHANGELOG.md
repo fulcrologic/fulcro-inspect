@@ -1,5 +1,8 @@
 # Change Log
 
+## [2.2.4]
+- Fix diffing issue on cases where maps have maps as keys
+
 ## [2.2.1]
 - Fix network interfacing with FulcroRemoteI
 
