@@ -167,6 +167,7 @@
       "{...}")))
 
 (defn matches? [s search]
+  (str s)
   (and (string? s) (seq s) (string? search) (seq search) (str/includes? (str/lower-case s) (str/lower-case search))))
 
 (defn highlight
@@ -201,6 +202,7 @@
                                        (map-indexed (fn [i d] [i d]) data))
     (set? data) (if (some #(matches? (str %) search) data) [path-to-here] [])
     (and (string? data) (matches? data search)) [path-to-here]
+    (and data (seq (str data)) (matches? (str data) search)) [path-to-here]
     :otherwise []))
 
 (defn render-data [{:keys [css search] :as input} content]
