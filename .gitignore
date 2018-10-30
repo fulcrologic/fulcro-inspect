@@ -20,3 +20,4 @@ node_modules
 .shadow-cljs
 .DS_Store
 shells/chrome/js
+.cpcache
