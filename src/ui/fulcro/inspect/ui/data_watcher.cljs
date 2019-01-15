@@ -20,6 +20,7 @@
     state
     watches))
 
+(declare update-state)
 (defmutation ^:intern update-state [new-state]
   (action [env]
     (let [{:keys [ref state]} env
