@@ -1,6 +1,6 @@
 {:manifest_version        2
  :name                    "Fulcro Inspect"
- :version                 "1.0.7"
+ :version                 "1.0.8"
  :description             "Developer tool to inspect Fulcro applications"
 
  :icons                   {"16"  "icon-16.png"
