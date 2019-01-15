@@ -1,5 +1,8 @@
 # Change Log
 
+## [2.2.5]
+- Query tab stability improvements
+
 ## [2.2.4]
 - Fix diffing issue on cases where maps have maps as keys
 
