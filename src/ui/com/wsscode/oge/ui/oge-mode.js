@@ -135,12 +135,16 @@
     function atomOrComp(stream, state) {
       if (!options.ogeIndex) return ATOM;
 
-      const token = makeToken(stream, state);
-      const words = ogeCm.completions(cljsDeref(options.ogeIndex), token, token.string);
+      try {
+        const token = makeToken(stream, state);
+        const words = ogeCm.completions(cljsDeref(options.ogeIndex), token, token.string);
 
-      if (ogeCm.key_has_children_QMARK_(words, token)) {
-        return ATOM_COMP;
-      } else {
+        if (ogeCm.key_has_children_QMARK_(words, token)) {
+          return ATOM_COMP;
+        } else {
+          return ATOM;
+        }
+      } catch(e) {
         return ATOM;
       }
     }

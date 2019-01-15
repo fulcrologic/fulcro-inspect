@@ -176,13 +176,17 @@
         (recur indexes (js-obj "state" (js-obj "mode" (gobj/get prev "mode") "pathStack" prev)))))))
 
 (defn ^:export completions [index token reg]
-  (let [ctx (token-context index token)]
-    (when reg
-      (case (:type ctx)
-        :attribute (->> (pc/discover-attrs (assoc index ::pc/cache oge-cache)
-                          (->> ctx :context (remove (comp #{">"} namespace)))))
-        :ident (into {} (map #(hash-map % {})) (-> index ::pc/idents))
-        {}))))
+  (try
+    (let [ctx (token-context index token)]
+     (when reg
+       (case (:type ctx)
+         :attribute (->> (pc/discover-attrs (assoc index ::pc/cache oge-cache)
+                           (->> ctx :context (remove (comp #{">"} namespace)))))
+         :ident (into {} (map #(hash-map % {})) (-> index ::pc/idents))
+         {})))
+    (catch :default e
+      (js/console.error "Unable to compute completions" e)
+      {})))
 
 (gobj/set js/window "cljsDeref" deref)
 
