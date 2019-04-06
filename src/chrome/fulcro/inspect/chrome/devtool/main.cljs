@@ -48,7 +48,7 @@
                           :tab-id                         current-tab-id}))
 
 (defn event-data [event]
-  (some-> event (gobj/getValueByKeys "fulcro-inspect-remote-message") encode/read))
+  (some-> event (gobj/get "fulcro-inspect-remote-message") encode/read))
 
 (defn inc-id [id]
   (let [new-id (if-let [[_ prefix d] (re-find #"(.+?)(\d+)$" (str id))]
@@ -265,7 +265,7 @@
                      {::db-hash-index (atom {})}
 
                      :networking
-                     (make-network port* ui-parser/parser responses*))
+                     (make-network port* (ui-parser/parser) responses*))
         node       (js/document.createElement "div")]
     (js/document.body.appendChild node)
     (fulcro/mount app GlobalRoot node)))
