@@ -30,7 +30,8 @@
   [this {::keys [id explorer explorers] :as props} {}]
   {:initial-state (fn [{:keys [app-uuid remotes]}]
                     (let [explorers (mapv
-                                      #(-> {::iex/id [:fulcro.inspect.core/app-uuid app-uuid %]})
+                                      #(-> {::iex/id    [:fulcro.inspect.core/app-uuid app-uuid %]
+                                            ::iex/index {::pristine? true}})
                                       remotes)]
                       {::id        [:fulcro.inspect.core/app-uuid app-uuid]
                        ::explorer  (first explorers)
@@ -83,12 +84,21 @@
         (dom/div :.flex)
         (dom/button {:onClick #(load-index this [:fulcro.inspect.core/app-uuid app-uuid remote])}
           "Load index"))
-      (if (df/loading? (get-in props [df/marker-table [::index-marker (::iex/id explorer)]]))
+      (cond
+        (df/loading? (get-in props [df/marker-table [::index-marker (::iex/id explorer)]]))
         (dom/div :.empty "Loading")
-        (if explorer
-          (if (::iex/index explorer)
-            (iex/index-explorer explorer)
-            (dom/div :.empty "Seems like the index is not available."))
-          (dom/div :.empty "No data"))))))
+
+        (-> explorer ::iex/index ::pristine?)
+        (dom/div :.empty "No data")
+
+        (-> explorer ::iex/index ::iex/no-index?)
+        (dom/div :.empty
+          "Seems like the index is not available. Find information on how to setup the
+          integration at "
+          (dom/a {:href "https://wilkerlucio.github.io/pathom/#_setting_up_the_index_explorer_resolver" :target "_blank"}
+            "pathom docs") ".")
+
+        :else
+        (iex/index-explorer explorer)))))
 
 (def index-explorer (fp/computed-factory IndexExplorer))
