@@ -63,9 +63,7 @@
     (go-catch
       (let [params  (-> env :ast :params)
             indexes (<? (client-request env :fulcro.inspect.client/network-request
-                          (-> (select-keys params [:fulcro.inspect.core/app-uuid
-                                                   :fulcro.inspect.client/remote])
-                              (assoc :query [{[::iex/id id] [::iex/id ::iex/index]}]))))]
+                          (assoc params :query [{[::iex/id id] [::iex/id ::iex/index]}])))]
         {::iex/index (get-in indexes [[::iex/id id] ::iex/index])}))))
 
 (defmutation 'reset-app

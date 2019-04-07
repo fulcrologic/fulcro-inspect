@@ -3,7 +3,7 @@
             [com.wsscode.common.async-cljs :refer [<?maybe]]
             [com.wsscode.pathom.core :as p]
             [com.wsscode.pathom.fulcro.network :as pfn]
-            [fulcro-css.css :as css]
+            [fulcro-css.css-injection :as cssi]
             [fulcro.client :as fulcro]
             [fulcro.client.localized-dom :as dom]
             [fulcro.client.mutations :as fm]
@@ -19,6 +19,7 @@
             [fulcro.inspect.ui.data-watcher :as data-watcher]
             [fulcro.inspect.ui.element :as element]
             [fulcro.inspect.ui.i18n :as i18n]
+            [fulcro.inspect.ui.index-explorer :as fiex]
             [fulcro.inspect.ui.inspector :as inspector]
             [fulcro.inspect.ui.multi-inspector :as multi-inspector]
             [fulcro.inspect.ui.multi-oge :as multi-oge]
@@ -34,7 +35,7 @@
    :css-include   [multi-inspector/MultiInspector]}
 
   (dom/div
-    (css/style-element this)
+    (cssi/style-element {:component this})
     (multi-inspector/multi-inspector root)))
 
 (def app-uuid-key :fulcro.inspect.core/app-uuid)
@@ -103,7 +104,10 @@
                                                                            (mapv #(vector (::fulcro-i18n/locale %) (:ui/locale-name %)))))
                           (assoc-in [::inspector/transactions ::transactions/tx-list-id] [app-uuid-key app-uuid])
                           (assoc-in [::inspector/oge] (fp/get-initial-state multi-oge/OgeView {:app-uuid app-uuid
-                                                                                               :remotes  remotes})))]
+                                                                                               :remotes  remotes}))
+                          (assoc-in [::inspector/index-explorer] (fp/get-initial-state fiex/IndexExplorer
+                                                                   {:app-uuid app-uuid
+                                                                    :remotes  remotes})))]
 
     (let [{::keys [db-hash-index]} (-> inspector :reconciler :config :shared)]
       (swap! db-hash-index db-index-add app-uuid (dissoc initial-state :fulcro.inspect.client/state-hash) state-hash))

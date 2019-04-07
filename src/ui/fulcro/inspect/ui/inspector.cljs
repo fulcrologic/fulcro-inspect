@@ -1,34 +1,37 @@
 (ns fulcro.inspect.ui.inspector
-  (:require [fulcro-css.css :as css]
+  (:require [fulcro.client.localized-dom :as dom]
             [fulcro.client.mutations :as mutations]
+            [fulcro.client.primitives :as fp]
             [fulcro.inspect.ui.core :as ui]
             [fulcro.inspect.ui.data-history :as data-history]
             [fulcro.inspect.ui.data-viewer :as data-viewer]
             [fulcro.inspect.ui.data-watcher :as data-watcher]
             [fulcro.inspect.ui.element :as element]
-            [fulcro.inspect.ui.network :as network]
-            [fulcro.inspect.ui.transactions :as transactions]
             [fulcro.inspect.ui.i18n :as i18n]
+            [fulcro.inspect.ui.index-explorer :as fiex]
             [fulcro.inspect.ui.multi-oge :as oge]
-            [fulcro.client.dom :as dom]
-            [fulcro.client.primitives :as fp]))
+            [fulcro.inspect.ui.network :as network]
+            [fulcro.inspect.ui.transactions :as transactions]))
 
-(fp/defsc Inspector [this {::keys   [app-state tab element network transactions i18n oge]
-                           :ui/keys [more-open?]} _ css]
+(fp/defsc Inspector
+  [this
+   {::keys   [app-state tab element network transactions i18n oge index-explorer]
+    :ui/keys [more-open?]} _ css]
   {:initial-state
    (fn [state]
-     {::id           (random-uuid)
-      ::name         ""
-      ::tab          ::page-db
-      ::app-state    (-> (fp/get-initial-state data-history/DataHistory state)
-                         (assoc-in [::data-history/watcher ::data-watcher/root-data ::data-viewer/expanded]
-                           {[] true}))
-      ::element      (fp/get-initial-state element/Panel nil)
-      ::network      (fp/get-initial-state network/NetworkHistory nil)
-      ::i18n         (fp/get-initial-state i18n/TranslationsViewer nil)
-      ::transactions (fp/get-initial-state transactions/TransactionList [])
-      ::oge          (fp/get-initial-state oge/OgeView {})
-      :ui/more-open? false})
+     {::id             (random-uuid)
+      ::name           ""
+      ::tab            ::page-db
+      ::app-state      (-> (fp/get-initial-state data-history/DataHistory state)
+                           (assoc-in [::data-history/watcher ::data-watcher/root-data ::data-viewer/expanded]
+                             {[] true}))
+      ::element        (fp/get-initial-state element/Panel nil)
+      ::i18n           (fp/get-initial-state i18n/TranslationsViewer nil)
+      ::index-explorer (fp/get-initial-state fiex/IndexExplorer {})
+      ::network        (fp/get-initial-state network/NetworkHistory nil)
+      ::oge            (fp/get-initial-state oge/OgeView {})
+      ::transactions   (fp/get-initial-state transactions/TransactionList [])
+      :ui/more-open?   false})
 
    :ident
    [::id ::id]
@@ -41,6 +44,7 @@
     {::network (fp/get-query network/NetworkHistory)}
     {::i18n (fp/get-query i18n/TranslationsViewer)}
     {::transactions (fp/get-query transactions/TransactionList)}
+    {::index-explorer (fp/get-query fiex/IndexExplorer)}
     {::oge (fp/get-query oge/OgeView)}]
 
    :css
@@ -98,7 +102,7 @@
 
    :css-include
    [data-history/DataHistory network/NetworkHistory transactions/TransactionList
-    element/Panel i18n/TranslationsViewer oge/OgeView]}
+    element/Panel i18n/TranslationsViewer oge/OgeView fiex/IndexExplorer]}
 
   (let [tab-item (fn [{:keys [title html-title disabled? page]}]
                    (dom/div #js {:className (cond-> (:tab css)
@@ -108,16 +112,16 @@
                                  :onClick   #(if-not disabled?
                                                (mutations/set-value! this ::tab page))}
                      title))]
-    (dom/div #js {:className (:container css)
-                  :onClick   #(if more-open? (mutations/set-value! this :ui/more-open? false))}
-      (dom/div #js {:className (:tabs css)}
+    (dom/div :.container {:onClick #(if more-open? (mutations/set-value! this :ui/more-open? false))}
+      (dom/div :.tabs
         (tab-item {:title "DB" :page ::page-db})
         (tab-item {:title "Element" :page ::page-element})
         (tab-item {:title "Transactions" :page ::page-transactions})
         (tab-item {:title "Network" :page ::page-network})
         (tab-item {:title "Query" :page ::page-oge})
+        (tab-item {:title "Index Explorer" :page ::page-index-explorer})
         (tab-item {:title "i18n" :page ::page-i18n})
-        (dom/div #js {:className (:flex css)})
+        (dom/div :.flex)
         #_(dom/div #js {:className (:more css)
                         :onClick   (fn [e]
                                      (.stopPropagation e)
@@ -125,35 +129,32 @@
             (ui/icon :more_vert)))
 
       (if more-open?
-        (dom/div #js {:className (:more-panel css)
-                      :onClick   #(.stopPropagation %)}))
+        (dom/div :.more-panel {:onClick #(.stopPropagation %)}))
 
-      (case tab
-        ::page-db
-        (dom/div #js {:className (:tab-content css)}
-          (data-history/data-history app-state))
+      (dom/div :.tab-content
+        (case tab
+          ::page-db
+          (data-history/data-history app-state)
 
-        ::page-element
-        (dom/div #js {:className (:tab-content css)}
-          (element/panel element))
+          ::page-element
+          (element/panel element)
 
-        ::page-transactions
-        (dom/div #js {:className (:tab-content css)}
-          (transactions/transaction-list transactions))
+          ::page-transactions
+          (transactions/transaction-list transactions)
 
-        ::page-network
-        (dom/div #js {:className (:tab-content css)}
-          (network/network-history network))
+          ::page-network
+          (network/network-history network)
 
-        ::page-oge
-        (dom/div #js {:className (:tab-content css)}
-          (oge/oge-view oge))
+          ::page-oge
+          (oge/oge-view oge)
 
-        ::page-i18n
-        (dom/div #js {:className (:tab-content css)}
-          (i18n/translations-viewer i18n))
+          ::page-index-explorer
+          (fiex/index-explorer index-explorer)
 
-        (dom/div #js {:className (:tab-content css)}
-          "Invalid page " (pr-str tab))))))
+          ::page-i18n
+          (i18n/translations-viewer i18n)
+
+          (dom/div
+            "Invalid page " (pr-str tab)))))))
 
 (def inspector (fp/factory Inspector))
