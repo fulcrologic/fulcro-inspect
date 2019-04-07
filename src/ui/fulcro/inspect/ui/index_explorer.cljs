@@ -21,7 +21,8 @@
                {::explorer (fp/get-query iex/IndexExplorer)}]
    :css       [[:.container {:display        "flex"
                              :flex           "1"
-                             :flex-direction "column"}]
+                             :flex-direction "column"
+                             :width          "100%"}]
                [:.header {:margin-bottom "5px"}]]}
   (dom/div :.container
     (dom/div :.header

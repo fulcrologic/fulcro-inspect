@@ -58,11 +58,15 @@
 
 (defresolver 'index-explorer
   {::pc/input  #{::iex/id}
-   ::pc/output [::iex/id ::iex/index]}
+   ::pc/output [::iex/index]}
   (fn [env {::iex/keys [id]}]
     (go-catch
-      {::iex/id    id
-       ::iex/index (get env ::pc/indexes)})))
+      (let [params  (-> env :ast :params)
+            indexes (<? (client-request env :fulcro.inspect.client/network-request
+                          (-> (select-keys params [:fulcro.inspect.core/app-uuid
+                                                   :fulcro.inspect.client/remote])
+                              (assoc :query [{[::iex/id id] [::iex/id ::iex/index]}]))))]
+        {::iex/index (get-in indexes [[::iex/id id] ::iex/index])}))))
 
 (defmutation 'reset-app
   {}
@@ -106,7 +110,10 @@
                                                         ident-passthough]
                                 ::pc/resolver-dispatch resolver-fn
                                 ::pc/mutate-dispatch   mutation-fn
-                                ::pc/indexes           @indexes}
+                                ::pc/indexes           @indexes
+                                :responses*            (atom {})
+                                :send-message          (fn [msg-name data]
+                                                         (js/console.warn "Send message missing implementation." msg-name data))}
                    ::p/mutate  pc/mutate-async
                    ::p/plugins [p/error-handler-plugin
                                 p/request-cache-plugin]}))
