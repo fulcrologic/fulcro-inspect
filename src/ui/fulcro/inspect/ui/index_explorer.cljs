@@ -15,7 +15,9 @@
   (let [app-id (try (db.h/comp-app-uuid this) (catch :default _))
         remote (explorer->remote {::iex/id id})]
     (df/load this [::iex/id id] iex/IndexExplorer
-      {:update-query (fn [query]
+      {:refresh      [::explorer]
+       :marker       [::index-marker id]
+       :update-query (fn [query]
                        (into (with-meta [] (meta query))
                              (map (fn [x]
                                     (if (= x ::iex/index)
@@ -34,7 +36,7 @@
                        ::explorer  (first explorers)
                        ::explorers explorers}))
    :ident         [::id ::id]
-   :query         [::id
+   :query         [::id [df/marker-table '_]
                    {::explorer (fp/get-query iex/IndexExplorer)}
                    {::explorers (fp/get-query iex/IndexExplorer)}]
    :css           [[:.container {:display        "flex"
@@ -81,10 +83,12 @@
         (dom/div :.flex)
         (dom/button {:onClick #(load-index this [:fulcro.inspect.core/app-uuid app-uuid remote])}
           "Load index"))
-      (if explorer
-        (if (::iex/index explorer)
-          (iex/index-explorer explorer)
-          (dom/div :.empty "Seems like the index is not available."))
-        (dom/div :.empty "No data")))))
+      (if (df/loading? (get-in props [df/marker-table [::index-marker (::iex/id explorer)]]))
+        (dom/div :.empty "Loading")
+        (if explorer
+          (if (::iex/index explorer)
+            (iex/index-explorer explorer)
+            (dom/div :.empty "Seems like the index is not available."))
+          (dom/div :.empty "No data"))))))
 
 (def index-explorer (fp/computed-factory IndexExplorer))

@@ -36,7 +36,9 @@
 (defn send-message [responses msg-name {:keys [query] :as msg}]
   (case msg-name
     :fulcro.inspect.client/network-request
-    (respond responses msg (parser {} query))
+    (async/go
+      (async/<! (async/timeout 500))
+      (respond responses msg (parser {} query)))
 
     (js/console.warn "No implementation for msg " msg-name msg)))
 
