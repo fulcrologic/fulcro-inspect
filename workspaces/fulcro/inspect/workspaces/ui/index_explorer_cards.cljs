@@ -45,9 +45,20 @@
   (let [parser     (ui-parser/parser)
         responses* (atom {})]
     (ct.fulcro/fulcro-card
-      {::f.portal/root fi.iex/IndexExplorer
-       ::f.portal/app  {:networking (f.network/pathom-remote
-                                      (fn [env tx]
-                                        (parser (assoc env
-                                                  :responses* responses*
-                                                  :send-message #(send-message responses* % %2)) tx)))}})))
+      {::f.portal/root          fi.iex/IndexExplorer
+       ::f.portal/initial-state {:app-uuid "app-id"
+                                 :remotes  [:remote :other]}
+       ::f.portal/app           {:networking
+                                 {:remote
+                                  (f.network/pathom-remote
+                                    (fn [env tx]
+                                      (parser (assoc env
+                                                :responses* responses*
+                                                :send-message #(send-message responses* % %2)) tx)))
+
+                                  :other
+                                  (f.network/pathom-remote
+                                    (fn [env tx]
+                                      (parser (assoc env
+                                                :responses* responses*
+                                                :send-message #(send-message responses* % %2)) tx)))}}})))
