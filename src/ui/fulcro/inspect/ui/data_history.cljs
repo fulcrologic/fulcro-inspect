@@ -32,7 +32,7 @@
         (do
           (if-not (= current-index (dec *max-history*))
             (h/swap-entity! env update ::current-index inc))
-          (watcher/update-state (assoc env :ref watcher) (dissoc content :fulcro.inspect.client/state-hash)))
+          (watcher/update-state* (assoc env :ref watcher) (dissoc content :fulcro.inspect.client/state-hash)))
 
         (if (= *max-history* (count history))
           (h/swap-entity! env update ::current-index dec)))
@@ -48,7 +48,7 @@
       (when (not= current-index (::current-index history))
         (let [content (get-in history [::history current-index ::state])]
           (h/swap-entity! env assoc ::current-index current-index)
-          (watcher/update-state (assoc env :ref (::watcher history)) content)))))
+          (watcher/update-state* (assoc env :ref (::watcher history)) content)))))
   (refresh [env] [:ui/historical-dom-view])
   (remote [{:keys [ref state] :as env}]
     (let [history (get-in @state ref)]
