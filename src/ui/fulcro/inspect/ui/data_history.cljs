@@ -22,8 +22,7 @@
      ::timestamp                       (js/Date.)
      :fulcro.inspect.client/state-hash hash}))
 
-(declare set-content)
-(fm/defmutation ^:intern set-content [content]
+(fm/defmutation set-content [content]
   (action [env]
     (let [{:keys [state ref]} env
           {::keys [watcher current-index history]} (get-in @state ref)]
@@ -41,8 +40,7 @@
                                                  (take-last *max-history*)
                                                  (vec))))))
 
-(declare navigate-history)
-(fm/defmutation ^:intern navigate-history [{::keys [current-index]}]
+(fm/defmutation navigate-history [{::keys [current-index]}]
   (action [{:keys [state ref] :as env}]
     (let [history (get-in @state ref)]
       (when (not= current-index (::current-index history))
