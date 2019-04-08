@@ -61,7 +61,7 @@
    ::pc/output [::iex/index]}
   (fn [env {::iex/keys [id]}]
     (go-catch
-      (let [params  (-> env :ast :params)
+      (let [params  (-> env ::p/parent-query meta :remote-data)
             indexes (<? (client-request env :fulcro.inspect.client/network-request
                           (assoc params :query [{[::iex/id id] [::iex/id ::iex/index]}])))]
         {::iex/index (get-in indexes [[::iex/id id] ::iex/index])}))))

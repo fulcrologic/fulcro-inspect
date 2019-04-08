@@ -15,23 +15,18 @@
   (let [app-id (try (db.h/comp-app-uuid this) (catch :default _))
         remote (explorer->remote {::iex/id id})]
     (df/load this [::iex/id id] iex/IndexExplorer
-      {:refresh      [::explorer]
-       :marker       [::index-marker id]
-       :update-query (fn [query]
-                       (into (with-meta [] (meta query))
-                             (map (fn [x]
-                                    (if (= x ::iex/index)
-                                      (list ::iex/index {:fulcro.inspect.core/app-uuid app-id
-                                                         :fulcro.inspect.client/remote remote})
-                                      x)))
-                             query))})))
+      {:refresh       [::explorer]
+       :marker        [::index-marker id]
+       :update-query  (fn [query]
+                        (vary-meta query assoc :remote-data {:fulcro.inspect.core/app-uuid app-id
+                                                             :fulcro.inspect.client/remote remote}))})))
 
 (fp/defsc IndexExplorer
   [this {::keys [id explorer explorers] :as props} {}]
   {:initial-state (fn [{:keys [app-uuid remotes]}]
                     (let [explorers (mapv
                                       #(-> {::iex/id    [:fulcro.inspect.core/app-uuid app-uuid %]
-                                            ::iex/index {::pristine? true}})
+                                            ::iex/index {}})
                                       remotes)]
                       {::id        [:fulcro.inspect.core/app-uuid app-uuid]
                        ::explorer  (first explorers)
@@ -43,7 +38,11 @@
    :css           [[:.container {:display        "flex"
                                  :flex           "1"
                                  :flex-direction "column"
-                                 :width          "100%"}]
+                                 :width          "100%"}
+                    [:a {:color           "#6ea6e4"
+                         :padding-left    "4px"
+                         :font-weight     "bold"
+                         :text-decoration "none"}]]
                    [:.title {:grid-area     "title"
                              :display       "flex"
                              :align-items   "center"
@@ -55,10 +54,12 @@
                              :background      "#777"
                              :margin-top      "-5px"
                              :display         "flex"
+                             :padding         "30px"
                              :align-items     "center"
                              :justify-content "center"
                              :color           "#fff"
-                             :font-size       "21px"}]
+                             :font-size       "21px"}
+                    [:&.help {:font-size "14px"}]]
                    [:.remote-selector {:display     "flex"
                                        :align-items "center"
                                        :font-family cui/label-font-family
@@ -88,17 +89,17 @@
         (df/loading? (get-in props [df/marker-table [::index-marker (::iex/id explorer)]]))
         (dom/div :.empty "Loading")
 
-        (-> explorer ::iex/index ::pristine?)
-        (dom/div :.empty "No data")
-
-        (-> explorer ::iex/index ::iex/no-index?)
-        (dom/div :.empty
+        (-> explorer ::iex/idx ::iex/no-index?)
+        (dom/div :.empty.help
           "Seems like the index is not available. Find information on how to setup the
           integration at "
           (dom/a {:href "https://wilkerlucio.github.io/pathom/#_setting_up_the_index_explorer_resolver" :target "_blank"}
-            "pathom docs") ".")
+            " pathom docs") ".")
+
+        (-> explorer ::iex/idx seq)
+        (iex/index-explorer explorer)
 
         :else
-        (iex/index-explorer explorer)))))
+        (dom/div :.empty "")))))
 
 (def index-explorer (fp/computed-factory IndexExplorer))
