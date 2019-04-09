@@ -40,7 +40,6 @@
                                  :flex-direction "column"
                                  :width          "100%"}
                     [:a {:color           "#6ea6e4"
-                         :padding-left    "4px"
                          :font-weight     "bold"
                          :text-decoration "none"}]]
                    [:.title {:grid-area     "title"
@@ -60,6 +59,12 @@
                              :color           "#fff"
                              :font-size       "21px"}
                     [:&.help {:font-size "14px"}]]
+                   [:.help {:flex       "1"
+                            :background "#777"
+                            :margin-top "-5px"
+                            :padding    "30px"
+                            :color      "#fff"
+                            :font-size  "14px"}]
                    [:.remote-selector {:display     "flex"
                                        :align-items "center"
                                        :font-family cui/label-font-family
@@ -90,16 +95,17 @@
         (dom/div :.empty "Loading...")
 
         (-> explorer ::iex/idx ::iex/no-index?)
-        (dom/div :.empty.help
-          "Seems like the index is not available. Find information on how to setup the
-          integration at "
-          (dom/a {:href "https://wilkerlucio.github.io/pathom/#_setting_up_the_index_explorer_resolver" :target "_blank"}
-            " pathom docs") ".")
+        (dom/div :.help
+          (dom/div
+            "Seems like the index is not available. Find information on how to setup the
+            integration at "
+            (dom/a {:href "https://wilkerlucio.github.io/pathom/#_setting_up_the_index_explorer_resolver" :target "_blank"}
+              " pathom docs") "."))
 
         (-> explorer ::iex/idx seq)
         (iex/index-explorer explorer)
 
         :else
-        (dom/div :.empty "")))))
+        (dom/div :.empty "Use the \"Load index\" button to start.")))))
 
 (def index-explorer (fp/computed-factory IndexExplorer))
