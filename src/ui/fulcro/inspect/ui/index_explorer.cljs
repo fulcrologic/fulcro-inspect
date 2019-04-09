@@ -87,7 +87,7 @@
           "Load index"))
       (cond
         (df/loading? (get-in props [df/marker-table [::index-marker (::iex/id explorer)]]))
-        (dom/div :.empty "Loading")
+        (dom/div :.empty "Loading...")
 
         (-> explorer ::iex/idx ::iex/no-index?)
         (dom/div :.empty.help
