@@ -5,7 +5,7 @@
  {binaryage/devtools         {:mvn/version "0.9.10"}
   com.cognitect/transit-cljs {:mvn/version "0.8.256"}
   com.wsscode/pathom         {:mvn/version "2.2.13"}
-  com.wsscode/pathom-viz     {:mvn/version "1.0.5"}
+  com.wsscode/pathom-viz     {:mvn/version "1.0.6"}
   devcards                   {:mvn/version "0.2.4"}
   fulcrologic/fulcro         {:mvn/version "2.8.8"}
   fulcrologic/fulcro-spec    {:mvn/version "2.1.3"}
