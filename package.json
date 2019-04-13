@@ -7,7 +7,7 @@
   "dependencies": {
     "codemirror": "^5.42.2",
     "codemirror-graphql": "^0.8.3",
-    "d3": "^5.7.0",
+    "d3": "^5.8.0",
     "d3-flame-graph": "^2.0.0-alpha4",
     "d3-tip": "^0.7.1-0",
     "flatted": "^0.2.2",

@@ -5,22 +5,14 @@
 
  :nrepl  {:port 63104}
 
- :builds {:devcards          {:target           :browser
-                              :output-dir       "resources/public/js/devcards"
-                              :asset-path       "/js/devcards"
-                              :compiler-options {:devcards true}
-                              :devtools         {:preloads           [devtools.preload fulcro.inspect.preload]
-                                                 :http-root          "resources/public"
-                                                 :http-port          8084
-                                                 :http-resource-root "."
-                                                 :devtools-url       "http://localhost:9632"}
-                              :modules          {:main {:entries [fulcro.inspect.devcards]}}}
-
-          :workspaces        {:target     :browser
+ :builds {:workspaces        {:target     :browser
                               :output-dir "resources/public/js/workspaces"
                               :asset-path "/js/workspaces"
-                              :devtools   {:preloads [devtools.preload fulcro.inspect.preload]
-                                           :ignore-warnings true}
+                              :devtools   {:preloads           [devtools.preload fulcro.inspect.preload]
+                                           :http-root          "resources/public"
+                                           :http-port          8084
+                                           :http-resource-root "."
+                                           :devtools-url       "http://localhost:9632"}
                               :modules    {:main {:entries [fulcro.inspect.workspaces.main]}}}
 
           :chrome            {:target        :chrome-extension

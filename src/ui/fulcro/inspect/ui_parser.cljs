@@ -1,9 +1,11 @@
 (ns fulcro.inspect.ui-parser
-  (:require [com.wsscode.pathom.core :as p]
+  (:require [cljs.core.async :as async]
+            [cljs.spec.alpha :as s]
+            [com.wsscode.common.async-cljs :refer [go-catch <?]]
             [com.wsscode.pathom.connect :as pc]
+            [com.wsscode.pathom.core :as p]
             [com.wsscode.pathom.profile :as pp]
-            [cljs.core.async :as async]
-            [cljs.spec.alpha :as s]))
+            [com.wsscode.pathom.viz.index-explorer :as iex]))
 
 (s/def ::msg-id uuid?)
 
@@ -54,6 +56,16 @@
                                        (assoc :query [{::pc/indexes query}]))))]
           response)))))
 
+(defresolver 'index-explorer
+  {::pc/input  #{::iex/id}
+   ::pc/output [::iex/index]}
+  (fn [env {::iex/keys [id]}]
+    (go-catch
+      (let [params  (-> env ::p/parent-query meta :remote-data)
+            indexes (<? (client-request env :fulcro.inspect.client/network-request
+                          (assoc params :query [{[::iex/id id] [::iex/id ::iex/index]}])))]
+        {::iex/index (get-in indexes [[::iex/id id] ::iex/index])}))))
+
 (defmutation 'reset-app
   {}
   (fn [{:keys [send-message]} input]
@@ -80,7 +92,7 @@
     (send-message :fulcro.inspect.client/hide-dom-preview input)))
 
 (defmutation 'console-log
-  {}
+  {::pc/params [:log :log-js :warn :error]}
   (fn [{:keys [send-message]} input]
     (send-message :fulcro.inspect.client/console-log input)))
 
@@ -89,11 +101,17 @@
     (p/join (atom {}) (assoc env ::parent-params (:params ast)))
     ::p/continue))
 
-(def parser
-  (p/async-parser {::p/env     {::p/reader             [p/map-reader pc/all-async-readers ident-passthough]
+(defn parser []
+  (p/async-parser {::p/env     {::p/reader             [p/map-reader
+                                                        pc/async-reader2
+                                                        pc/ident-reader
+                                                        ident-passthough]
                                 ::pc/resolver-dispatch resolver-fn
                                 ::pc/mutate-dispatch   mutation-fn
-                                ::pc/indexes           @indexes}
+                                ::pc/indexes           @indexes
+                                :responses*            (atom {})
+                                :send-message          (fn [msg-name data]
+                                                         (js/console.warn "Send message missing implementation." msg-name data))}
                    ::p/mutate  pc/mutate-async
                    ::p/plugins [p/error-handler-plugin
                                 p/request-cache-plugin]}))

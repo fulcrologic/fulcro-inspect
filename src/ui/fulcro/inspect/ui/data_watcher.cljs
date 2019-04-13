@@ -21,14 +21,18 @@
     watches))
 
 (declare update-state)
-(defmutation ^:intern update-state [new-state]
+
+(defn update-state* [env new-state]
+  (let [{:keys [ref state]} env
+        watches     (get-in @state (conj ref ::watches))
+        content-ref (-> (get-in @state (conj ref ::root-data))
+                        (conj ::f.data-viewer/content))]
+    (swap! state (comp #(assoc-in % content-ref new-state)
+                       #(update-watchers % new-state watches)))))
+
+(defmutation update-state [new-state]
   (action [env]
-    (let [{:keys [ref state]} env
-          watches     (get-in @state (conj ref ::watches))
-          content-ref (-> (get-in @state (conj ref ::root-data))
-                          (conj ::f.data-viewer/content))]
-      (swap! state (comp #(assoc-in % content-ref new-state)
-                         #(update-watchers % new-state watches))))))
+    (update-state* env new-state)))
 
 (defmutation add-data-watch [{:keys [path]}]
   (action [{:keys [ref state] :as env}]
