@@ -25,7 +25,8 @@
             [fulcro.inspect.ui.multi-oge :as multi-oge]
             [fulcro.inspect.ui.network :as network]
             [fulcro.inspect.ui.transactions :as transactions]
-            [goog.object :as gobj]))
+            [goog.object :as gobj]
+            [taoensso.timbre :as log]))
 
 (fp/defsc GlobalRoot [this {:keys [ui/root]}]
   {:initial-state (fn [params] {:ui/root (fp/get-initial-state multi-inspector/MultiInspector params)})
@@ -85,29 +86,29 @@
   (let [inspector     @global-inspector*
         initial-state (assoc initial-state :fulcro.inspect.client/state-hash state-hash)
         new-inspector (-> (fp/get-initial-state inspector/Inspector initial-state)
-                          (assoc ::inspector/id app-uuid)
-                          (assoc :fulcro.inspect.core/app-id app-id)
-                          (assoc ::inspector/name (dedupe-name app-id))
-                          (assoc-in [::inspector/app-state ::data-history/history-id] [app-uuid-key app-uuid])
-                          (assoc-in [::inspector/app-state ::data-history/watcher ::data-watcher/id] [app-uuid-key app-uuid])
-                          (assoc-in [::inspector/app-state ::data-history/watcher ::data-watcher/watches]
-                            (->> (storage/get [::data-watcher/watches app-id] [])
-                                 (mapv #(fp/get-initial-state data-watcher/WatchPin {:path    %
-                                                                                     :content (get-in initial-state %)}))))
-                          (assoc-in [::inspector/app-state ::data-history/snapshots] (storage/tget [::data-history/snapshots app-id] []))
-                          (assoc-in [::inspector/network ::network/history-id] [app-uuid-key app-uuid])
-                          (assoc-in [::inspector/element ::element/panel-id] [app-uuid-key app-uuid])
-                          (assoc-in [::inspector/i18n ::i18n/id] [app-uuid-key app-uuid])
-                          (assoc-in [::inspector/i18n ::i18n/current-locale] (-> (get-in initial-state (-> initial-state ::fulcro-i18n/current-locale))
-                                                                                 ::fulcro-i18n/locale))
-                          (assoc-in [::inspector/i18n ::i18n/locales] (->> initial-state ::fulcro-i18n/locale-by-id vals vec
-                                                                           (mapv #(vector (::fulcro-i18n/locale %) (:ui/locale-name %)))))
-                          (assoc-in [::inspector/transactions ::transactions/tx-list-id] [app-uuid-key app-uuid])
-                          (assoc-in [::inspector/oge] (fp/get-initial-state multi-oge/OgeView {:app-uuid app-uuid
-                                                                                               :remotes  remotes}))
-                          (assoc-in [::inspector/index-explorer] (fp/get-initial-state fiex/IndexExplorer
-                                                                   {:app-uuid app-uuid
-                                                                    :remotes  remotes})))]
+                        (assoc ::inspector/id app-uuid)
+                        (assoc :fulcro.inspect.core/app-id app-id)
+                        (assoc ::inspector/name (dedupe-name app-id))
+                        (assoc-in [::inspector/app-state ::data-history/history-id] [app-uuid-key app-uuid])
+                        (assoc-in [::inspector/app-state ::data-history/watcher ::data-watcher/id] [app-uuid-key app-uuid])
+                        (assoc-in [::inspector/app-state ::data-history/watcher ::data-watcher/watches]
+                          (->> (storage/get [::data-watcher/watches app-id] [])
+                            (mapv #(fp/get-initial-state data-watcher/WatchPin {:path    %
+                                                                                :content (get-in initial-state %)}))))
+                        (assoc-in [::inspector/app-state ::data-history/snapshots] (storage/tget [::data-history/snapshots app-id] []))
+                        (assoc-in [::inspector/network ::network/history-id] [app-uuid-key app-uuid])
+                        (assoc-in [::inspector/element ::element/panel-id] [app-uuid-key app-uuid])
+                        (assoc-in [::inspector/i18n ::i18n/id] [app-uuid-key app-uuid])
+                        (assoc-in [::inspector/i18n ::i18n/current-locale] (-> (get-in initial-state (-> initial-state ::fulcro-i18n/current-locale))
+                                                                             ::fulcro-i18n/locale))
+                        (assoc-in [::inspector/i18n ::i18n/locales] (->> initial-state ::fulcro-i18n/locale-by-id vals vec
+                                                                      (mapv #(vector (::fulcro-i18n/locale %) (:ui/locale-name %)))))
+                        (assoc-in [::inspector/transactions ::transactions/tx-list-id] [app-uuid-key app-uuid])
+                        (assoc-in [::inspector/oge] (fp/get-initial-state multi-oge/OgeView {:app-uuid app-uuid
+                                                                                             :remotes  remotes}))
+                        (assoc-in [::inspector/index-explorer] (fp/get-initial-state fiex/IndexExplorer
+                                                                 {:app-uuid app-uuid
+                                                                  :remotes  remotes})))]
 
     (let [{::keys [db-hash-index]} (-> inspector :reconciler :config :shared)]
       (swap! db-hash-index db-index-add app-uuid (dissoc initial-state :fulcro.inspect.client/state-hash) state-hash))
@@ -130,11 +131,11 @@
         {::keys [db-hash-index]} (-> inspector :reconciler :config :shared)]
 
     (if (= (get-in @state [::multi-inspector/multi-inspector "main" ::multi-inspector/current-app])
-           inspector-ref)
+          inspector-ref)
       (reset! last-disposed-app* app-id)
       (reset! last-disposed-app* nil))
 
-    (swap! db-hash-index dissoc app-uuid) ; clear state history
+    (swap! db-hash-index dissoc app-uuid)                   ; clear state history
 
     (fp/transact! reconciler [::multi-inspector/multi-inspector "main"]
       [`(multi-inspector/remove-inspector {::inspector/id ~app-uuid})])))
@@ -170,7 +171,8 @@
         [`(data-history/set-content ~state) ::data-history/history]))))
 
 (defn new-client-tx [{:fulcro.inspect.core/keys   [app-uuid]
-                      :fulcro.inspect.client/keys [tx]}]
+                      :fulcro.inspect.client/keys [tx] :as data}]
+  (js/console.log "DATA" data)
   (let [{::keys [db-hash-index]} (-> @global-inspector* :reconciler :config :shared)
         tx (assoc tx
              :fulcro.history/db-before (get-in @db-hash-index [app-uuid (:fulcro.history/db-before-hash tx)])
@@ -278,6 +280,6 @@
   ([] @global-inspector*)
   ([options]
    (or @global-inspector*
-       (reset! global-inspector* (start-global-inspector options)))))
+     (reset! global-inspector* (start-global-inspector options)))))
 
 (global-inspector {})

@@ -22,13 +22,17 @@
                     (merge {::tx-id                     (random-uuid)
                             :fulcro.history/client-time (js/Date.)
                             :ui/tx-row-view             (fp/get-initial-state data-viewer/DataViewer tx)}
-                           transaction))
+                      transaction))
 
    :ident         [::tx-id ::tx-id]
    :query         [::tx-id
-                   :fulcro.history/client-time :fulcro.history/tx
-                   :fulcro.history/db-before :fulcro.history/db-after
-                   :fulcro.history/network-sends :ident-ref :component
+                   :fulcro.history/client-time
+                   :fulcro.history/tx
+                   :fulcro.history/db-before
+                   :fulcro.history/db-after
+                   :fulcro.history/network-sends
+                   :ident-ref
+                   :component
                    {:ui/tx-row-view (fp/get-query data-viewer/DataViewer)}]
    :css           [[:.container {:display       "flex"
                                  :cursor        "pointer"
@@ -75,15 +79,15 @@
          :as                  transaction}]
      (let [[add rem] (data/diff db-after db-before)]
        (merge {::tx-id (random-uuid)}
-              transaction
-              {:ui/tx-view        (-> (fp/get-initial-state data-viewer/DataViewer tx)
-                                      (assoc ::data-viewer/expanded {[] true}))
-               :ui/sends-view     (fp/get-initial-state data-viewer/DataViewer network-sends)
-               :ui/old-state-view (fp/get-initial-state data-viewer/DataViewer db-before)
-               :ui/new-state-view (fp/get-initial-state data-viewer/DataViewer db-after)
-               :ui/diff-add-view  (fp/get-initial-state data-viewer/DataViewer add)
-               :ui/diff-rem-view  (fp/get-initial-state data-viewer/DataViewer rem)
-               :ui/full-computed? true})))
+         transaction
+         {:ui/tx-view        (-> (fp/get-initial-state data-viewer/DataViewer tx)
+                               (assoc ::data-viewer/expanded {[] true}))
+          :ui/sends-view     (fp/get-initial-state data-viewer/DataViewer network-sends)
+          :ui/old-state-view (fp/get-initial-state data-viewer/DataViewer db-before)
+          :ui/new-state-view (fp/get-initial-state data-viewer/DataViewer db-after)
+          :ui/diff-add-view  (fp/get-initial-state data-viewer/DataViewer add)
+          :ui/diff-rem-view  (fp/get-initial-state data-viewer/DataViewer rem)
+          :ui/full-computed? true})))
 
    :ident
    [::tx-id ::tx-id]
@@ -199,18 +203,18 @@
       (dom/div :.transactions
         (if (seq tx-list)
           (->> tx-list
-               rseq
-               (mapv #(transaction-row %
-                        {::on-select
-                         (fn [tx]
-                           (fp/transact! this [`(select-tx ~tx)]))
+            rseq
+            (mapv #(transaction-row %
+                     {::on-select
+                      (fn [tx]
+                        (fp/transact! this [`(select-tx ~tx)]))
 
-                         ::on-replay
-                         (fn [{:keys [tx ident-ref]}]
-                           (fp/transact! this [`(replay-tx ~{:tx tx :tx-ref ident-ref})]))
+                      ::on-replay
+                      (fn [{:keys [tx ident-ref]}]
+                        (fp/transact! this [`(replay-tx ~{:tx tx :tx-ref ident-ref})]))
 
-                         ::selected?
-                         (= (::tx-id active-tx) (::tx-id %))})))))
+                      ::selected?
+                      (= (::tx-id active-tx) (::tx-id %))})))))
       (if active-tx
         (ui/focus-panel {:style {:height (str (or (fp/get-state this :detail-height) 400) "px")}}
           (ui/drag-resize this {:attribute :detail-height :default 400}
