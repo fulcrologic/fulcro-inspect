@@ -10,7 +10,8 @@
             [fulcro.inspect.helpers :as h]
             [fulcro.inspect.ui.core :as ui]
             [fulcro.inspect.ui.data-viewer :as data-viewer]
-            [garden.selectors :as gs]))
+            [garden.selectors :as gs]
+            [fulcro.inspect.ui.transactions :as transactions]))
 
 (declare Request)
 
@@ -25,7 +26,7 @@
     (let [{:keys [state] :as env} env
           request-ref (fp/ident Request request)
           env'        (assoc env :ref request-ref)]
-      (when (get-in @state request-ref) ; prevent adding back a cleared request
+      (when (get-in @state request-ref)                     ; prevent adding back a cleared request
         (when (get-in @state (conj request-ref :ui/request-edn-view))
           (if response-edn
             (h/create-entity! env' data-viewer/DataViewer response-edn :set :ui/response-edn-view))
@@ -71,7 +72,7 @@
   [this
    {:ui/keys [request-edn-view response-edn-view error-view]}
    {:fulcro.inspect.core/keys [app-uuid]
-    :keys [parent]}]
+    :keys                     [parent]}]
   {:ident       [::request-id ::request-id]
    :query       [::request-id ::request-edn ::response-edn ::request-started-at ::request-finished-at ::error
                  {:ui/request-edn-view (fp/get-query data-viewer/DataViewer)}
@@ -123,7 +124,7 @@
 
              request-started-at
              (assoc ::request-started-at request-started-at))
-           props))
+      props))
 
   static fp/Ident
   (ident [_ props] [::request-id (::request-id props)])
@@ -142,10 +143,9 @@
         [:&.error {:color "#e80000"}]
         [:&.selected {:background (str ui/color-row-selected "!important")}]]
        [:.pending {:color ui/color-text-faded}]
-
        [:.table-cell {:border-right  border
                       :border-bottom border
-                      :padding       "2px 4px"
+                      :padding       "2px 2px"
                       :overflow      "hidden"}
         [:$fulcro_inspect_ui_data-viewer_DataViewer__container {:max-width "100"}]
         [:&.flex {:flex 1}]
@@ -165,17 +165,23 @@
                                      selected? (str " " (:selected css)))}
                  on-select (assoc :onClick #(on-select (h/query-component this)))
                  true clj->js)
-        (dom/div #js {:className (:table-cell css)
-                      :style     #js {:width (:started columns)}}
-          (dom/span #js {:className (:timestamp css)} (ui/print-timestamp request-started-at)))
-        (dom/div #js {:className (str (:table-cell css) " " (:flex css))}
-          (data-viewer/data-viewer (assoc request-edn-row-view ::data-viewer/static? true)))
+        (dom/div {:className (:table-cell css)
+                  :style     {:width    (:started columns)
+                              :position "relative"}}
+          (dom/span {:style     {:position  "absolute"
+                                 :transform "translate(-50%, -50%)"
+                                 :left      "50%"
+                                 :top       "50%"}
+                     :className (:timestamp css)} (ui/print-timestamp request-started-at)))
+        (dom/div :.table-cell.flex {}
+          (let [{::data-viewer/keys [content]} request-edn-row-view]
+            (transactions/format-tx content)))
         (if show-remote?
-          (dom/div #js {:className (:table-cell css)
-                        :style     #js {:width (:remote columns)}}
+          (dom/div {:className (:table-cell css)
+                    :style     {:width (:remote columns)}}
             (str remote)))
-        (dom/div #js {:className (:table-cell css)
-                      :style     #js {:width (:status columns)}}
+        (dom/div {:className (:table-cell css)
+                  :style     {:width (:status columns)}}
           (cond
             response-edn
             "Success"
@@ -184,12 +190,12 @@
             "Error"
 
             :else
-            (dom/span #js {:className (:pending css)} "(pending...)")))
-        (dom/div #js {:className (:table-cell css)
-                      :style     #js {:width (:time columns)}}
+            (dom/span {:className (:pending css)} "(pending...)")))
+        (dom/div {:className (:table-cell css)
+                  :style     {:width (:time columns)}}
           (if (and request-started-at request-finished-at)
             (str (- (.getTime request-finished-at) (.getTime request-started-at)) " ms")
-            (dom/span #js {:className (:pending css)} "(pending...)")))))))
+            (dom/span {:className (:pending css)} "(pending...)")))))))
 
 (def request (fp/factory Request {:keyfn ::request-id}))
 
@@ -267,20 +273,20 @@
           (dom/div {:className (:table-body css)}
             (if (seq requests)
               (->> requests
-                   rseq
-                   (mapv (comp request
-                               #(fp/computed %
-                                  {::show-remote?
-                                   show-remote?
+                rseq
+                (mapv (comp request
+                        #(fp/computed %
+                           {::show-remote?
+                            show-remote?
 
-                                   ::columns
-                                   columns
+                            ::columns
+                            columns
 
-                                   ::selected?
-                                   (= (::request-id active-request) (::request-id %))
+                            ::selected?
+                            (= (::request-id active-request) (::request-id %))
 
-                                   ::on-select
-                                   (fn [r] (fp/transact! this `[(select-request ~r)]))})))))))
+                            ::on-select
+                            (fn [r] (fp/transact! this `[(select-request ~r)]))})))))))
 
         (if active-request
           (ui/focus-panel {:style {:height (str (or (fp/get-state this :detail-height) 400) "px")}}
@@ -292,6 +298,6 @@
                   (ui/icon :clear))))
             (ui/focus-panel-content {}
               (request-details (fp/computed active-request {:fulcro.inspect.core/app-uuid (h/comp-app-uuid this)
-                                                            :parent this})))))))))
+                                                            :parent                       this})))))))))
 
 (def network-history (fp/factory NetworkHistory))

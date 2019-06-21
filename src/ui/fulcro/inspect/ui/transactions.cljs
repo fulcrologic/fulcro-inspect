@@ -14,17 +14,20 @@
     [fulcro.ui.icons :as icons]
     [fulcro.ui.html-entities :as ent]))
 
-(defn format-params [event-data]
-  (let [event-data     (or event-data {})
-        formatted-data (pr-str event-data)
-        result         (if (> (count formatted-data) 80)
-                         (dom/pre {} (with-out-str (pprint event-data)))
-                         (dom/span {} formatted-data))]
+(declare TransactionRow)
+
+(defn format-data [event-data]
+  (let [data           (or event-data {})
+        {:keys [tx-data]} (css/get-classnames TransactionRow)
+        formatted-data (pr-str data)
+        result         (if (> (count formatted-data) 120)
+                         (dom/pre {:className tx-data} (with-out-str (pprint data)))
+                         (dom/pre {:className tx-data} formatted-data))]
     result))
 
 (defmulti format-tx (fn [tx] (first tx)))
 
-(defmethod format-tx :default [tx] (pr-str tx))
+(defmethod format-tx :default [tx] (format-data tx))
 (defmethod format-tx 'com.fulcrologic.fulcro.ui-state-machines/begin [tx]
   (let [args       (second tx)
         {:com.fulcrologic.fulcro.ui-state-machines/keys [asm-id event-data]} args
@@ -33,7 +36,7 @@
       (dom/u {} "State Machine (BEGIN)")
       (dom/b {} (str asm-id))
       ent/nbsp
-      (format-params event-data))))
+      (format-data event-data))))
 
 (defmethod format-tx 'com.fulcrologic.fulcro.ui-state-machines/trigger-state-machine-event [tx]
   (let [args       (second tx)
@@ -45,7 +48,7 @@
       ent/nbsp
       (dom/b (str event-id))
       ent/nbsp
-      (format-params event-data))))
+      (format-data event-data))))
 
 (defmethod format-tx 'com.fulcrologic.fulcro.data-fetch/internal-load! [tx]
   (let [args (second tx)
@@ -54,7 +57,7 @@
       (dom/u "LOAD")
       ent/nbsp
       ent/nbsp
-      (format-params query))))
+      (format-data query))))
 
 (fp/defsc TransactionRow
   [this
@@ -75,7 +78,10 @@
                    :fulcro.history/db-before :fulcro.history/db-after
                    :fulcro.history/network-sends :ident-ref :component
                    {:ui/tx-row-view (fp/get-query data-viewer/DataViewer)}]
-   :css           [[:.container {:display       "flex"
+   :css           [[:.tx-data {:font-size "9pt"
+                               :font      "monospace"
+                               :margin    0}]
+                   [:.container {:display       "flex"
                                  :cursor        "pointer"
                                  :flex          "1"
                                  :border-bottom "1px solid #eee"
