@@ -21,3 +21,4 @@ node_modules
 .DS_Store
 shells/chrome/js
 .cpcache
+shells/electron/js
