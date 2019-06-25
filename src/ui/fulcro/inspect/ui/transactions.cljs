@@ -32,9 +32,9 @@
   (let [args       (second tx)
         {:com.fulcrologic.fulcro.ui-state-machines/keys [asm-id event-data]} args
         event-data (dissoc event-data :error-timeout :deferred-timeout)]
-    (dom/div {}
-      (dom/u {} "State Machine (BEGIN)")
-      (dom/b {} (str asm-id))
+    (dom/div
+      (dom/u "State Machine (BEGIN)")
+      (dom/b (str asm-id))
       ent/nbsp
       (format-data event-data))))
 
@@ -58,6 +58,13 @@
       ent/nbsp
       ent/nbsp
       (format-data query))))
+
+(fp/defsc TxPrinter
+  [this {::keys [content]}]
+  {}
+  (format-tx content))
+
+(def tx-printer (fp/factory TxPrinter))
 
 (fp/defsc TransactionRow
   [this
@@ -91,8 +98,9 @@
                     [:&:hover {:background ui/color-row-hover}
                      [:.icon {:display "block"}]]
                     [:&.selected {:background ui/color-row-selected}]]
-
-                   [:.data-container {:flex 1}]
+                   [:.data-container {:flex       1
+                                      :max-height "100px"
+                                      :overflow   "auto"}]
                    [:.icon {:margin "-5px 6px"}
                     [:$c-icon {:fill      ui/color-icon-normal
                                :transform "scale(0.7)"}
@@ -104,7 +112,7 @@
     (dom/div :.timestamp (ui/print-timestamp client-time))
     (dom/div :.data-container
       (let [{::data-viewer/keys [content]} tx-row-view]
-        (format-tx content)))
+        (tx-printer {::content content})))
     (if on-replay
       (dom/div :.icon {:onClick #(do
                                    (.stopPropagation %)
