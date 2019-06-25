@@ -55,6 +55,19 @@
    :display        "flex"
    :flex-direction "column"})
 
+(def css-triangle
+  {:font-family    label-font-family
+   :font-size      label-font-size
+   :color          "#8f8f8f"
+   :cursor         "pointer"
+   :vertical-align "middle"
+   :margin-right   "3px"})
+
+(def css-code-font
+  {:font-family "'courier new', monospace"
+   :font-size   "12px"
+   :white-space "nowrap"})
+
 ;;; helpers
 
 (defn add-zeros [n x]

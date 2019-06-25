@@ -246,22 +246,9 @@
       :else
       (dom/div #js {:className (:unknown css)} (highlight (str content) search)))))
 
-(def css-triangle
-  {:font-family    ui/label-font-family
-   :font-size      ui/label-font-size
-   :color          "#8f8f8f"
-   :cursor         "pointer"
-   :vertical-align "middle"
-   :margin-right   "3px"})
-
-(def css-code-font
-  {:font-family "'courier new', monospace"
-   :font-size   "12px"
-   :white-space "nowrap"})
-
 (fp/defsc DataViewer
   [this
-   {::keys [content expanded elide-one? static?] :as props}
+   {::keys [content expanded elide-one? static?]}
    {::keys [path-action search]}
    css]
   {:initial-state (fn [content] {::id       (random-uuid)
@@ -269,7 +256,7 @@
                                  ::expanded {}})
    :ident         [::id ::id]
    :query         [::id ::content ::expanded]
-   :css           [[:.container css-code-font]
+   :css           [[:.container ui/css-code-font]
                    [:.nil {:color "#808080"}]
                    [:.string {:color "#c41a16"}]
                    [:.keyword {:color "#881391"}]
@@ -288,7 +275,7 @@
                                       :margin           "0px 1px 1px"
                                       :background-color "rgba(100, 255, 100, 0.08)"}]
 
-                   [:.toggle-button css-triangle]
+                   [:.toggle-button ui/css-triangle]
 
                    [:.list-item {:display     "flex"
                                  :align-items "flex-start"}]

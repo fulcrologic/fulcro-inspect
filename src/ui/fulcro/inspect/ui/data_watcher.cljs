@@ -77,8 +77,8 @@
                    [:.toggle-row {:display       "flex"
                                   :align-items   "center"
                                   :margin-bottom "10px"}]
-                   [:.toggle-button f.data-viewer/css-triangle]
-                   [:.path (merge f.data-viewer/css-code-font
+                   [:.toggle-button ui/css-triangle]
+                   [:.path (merge ui/css-code-font
                                   {:background "#fafafa"
                                    :border     "1px solid #efeef1"
                                    :margin     "0 5px"
