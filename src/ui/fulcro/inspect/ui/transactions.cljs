@@ -2,6 +2,7 @@
   (:require
     [clojure.data :as data]
     [clojure.string :as str]
+    [clojure.pprint :refer [pprint]]
     [fulcro-css.css :as css]
     [fulcro.client.mutations :as mutations :refer-macros [defmutation]]
     [fulcro.inspect.helpers :as h]
@@ -9,7 +10,54 @@
     [fulcro.inspect.ui.data-viewer :as data-viewer]
     [fulcro.client.localized-dom :as dom]
     [fulcro.client.primitives :as fp]
-    [fulcro.inspect.helpers :as db.h]))
+    [fulcro.inspect.helpers :as db.h]
+    [fulcro.ui.icons :as icons]
+    [fulcro.ui.html-entities :as ent]))
+
+(declare TransactionRow)
+
+(defn format-data [event-data]
+  (let [data           (or event-data {})
+        {:keys [tx-data]} (css/get-classnames TransactionRow)
+        formatted-data (pr-str data)
+        result         (if (> (count formatted-data) 120)
+                         (dom/pre {:className tx-data} (with-out-str (pprint data)))
+                         (dom/pre {:className tx-data} formatted-data))]
+    result))
+
+(defmulti format-tx (fn [tx] (first tx)))
+
+(defmethod format-tx :default [tx] (format-data tx))
+(defmethod format-tx 'com.fulcrologic.fulcro.ui-state-machines/begin [tx]
+  (let [args       (second tx)
+        {:com.fulcrologic.fulcro.ui-state-machines/keys [asm-id event-data]} args
+        event-data (dissoc event-data :error-timeout :deferred-timeout)]
+    (dom/div {}
+      (dom/u {} "State Machine (BEGIN)")
+      (dom/b {} (str asm-id))
+      ent/nbsp
+      (format-data event-data))))
+
+(defmethod format-tx 'com.fulcrologic.fulcro.ui-state-machines/trigger-state-machine-event [tx]
+  (let [args       (second tx)
+        {:com.fulcrologic.fulcro.ui-state-machines/keys [asm-id event-id event-data]} args
+        event-data (or (dissoc event-data :error-timeout :deferred-timeout) {})]
+    (dom/div
+      (dom/u "State Machine")
+      (dom/b "(" (str asm-id) ")")
+      ent/nbsp
+      (dom/b (str event-id))
+      ent/nbsp
+      (format-data event-data))))
+
+(defmethod format-tx 'com.fulcrologic.fulcro.data-fetch/internal-load! [tx]
+  (let [args (second tx)
+        {:keys [query]} args]
+    (dom/div
+      (dom/u "LOAD")
+      ent/nbsp
+      ent/nbsp
+      (format-data query))))
 
 (fp/defsc TransactionRow
   [this
@@ -22,7 +70,7 @@
                     (merge {::tx-id                     (random-uuid)
                             :fulcro.history/client-time (js/Date.)
                             :ui/tx-row-view             (fp/get-initial-state data-viewer/DataViewer tx)}
-                           transaction))
+                      transaction))
 
    :ident         [::tx-id ::tx-id]
    :query         [::tx-id
@@ -30,7 +78,10 @@
                    :fulcro.history/db-before :fulcro.history/db-after
                    :fulcro.history/network-sends :ident-ref :component
                    {:ui/tx-row-view (fp/get-query data-viewer/DataViewer)}]
-   :css           [[:.container {:display       "flex"
+   :css           [[:.tx-data {:font-size "9pt"
+                               :font      "monospace"
+                               :margin    0}]
+                   [:.container {:display       "flex"
                                  :cursor        "pointer"
                                  :flex          "1"
                                  :border-bottom "1px solid #eee"
@@ -48,12 +99,12 @@
                      [:&:hover {:fill ui/color-icon-strong}]]]
                    [:.timestamp ui/css-timestamp]]
    :css-include   [data-viewer/DataViewer]}
-
   (dom/div :.container {:classes [(if selected? :.selected)]
                         :onClick #(if on-select (on-select props))}
     (dom/div :.timestamp (ui/print-timestamp client-time))
     (dom/div :.data-container
-      (data-viewer/data-viewer (assoc tx-row-view ::data-viewer/static? true)))
+      (let [{::data-viewer/keys [content]} tx-row-view]
+        (format-tx content)))
     (if on-replay
       (dom/div :.icon {:onClick #(do
                                    (.stopPropagation %)
@@ -75,15 +126,15 @@
          :as                  transaction}]
      (let [[add rem] (data/diff db-after db-before)]
        (merge {::tx-id (random-uuid)}
-              transaction
-              {:ui/tx-view        (-> (fp/get-initial-state data-viewer/DataViewer tx)
-                                      (assoc ::data-viewer/expanded {[] true}))
-               :ui/sends-view     (fp/get-initial-state data-viewer/DataViewer network-sends)
-               :ui/old-state-view (fp/get-initial-state data-viewer/DataViewer db-before)
-               :ui/new-state-view (fp/get-initial-state data-viewer/DataViewer db-after)
-               :ui/diff-add-view  (fp/get-initial-state data-viewer/DataViewer add)
-               :ui/diff-rem-view  (fp/get-initial-state data-viewer/DataViewer rem)
-               :ui/full-computed? true})))
+         transaction
+         {:ui/tx-view        (-> (fp/get-initial-state data-viewer/DataViewer tx)
+                               (assoc ::data-viewer/expanded {[] true}))
+          :ui/sends-view     (fp/get-initial-state data-viewer/DataViewer network-sends)
+          :ui/old-state-view (fp/get-initial-state data-viewer/DataViewer db-before)
+          :ui/new-state-view (fp/get-initial-state data-viewer/DataViewer db-after)
+          :ui/diff-add-view  (fp/get-initial-state data-viewer/DataViewer add)
+          :ui/diff-rem-view  (fp/get-initial-state data-viewer/DataViewer rem)
+          :ui/full-computed? true})))
 
    :ident
    [::tx-id ::tx-id]
@@ -199,18 +250,18 @@
       (dom/div :.transactions
         (if (seq tx-list)
           (->> tx-list
-               rseq
-               (mapv #(transaction-row %
-                        {::on-select
-                         (fn [tx]
-                           (fp/transact! this [`(select-tx ~tx)]))
+            rseq
+            (mapv #(transaction-row %
+                     {::on-select
+                      (fn [tx]
+                        (fp/transact! this [`(select-tx ~tx)]))
 
-                         ::on-replay
-                         (fn [{:keys [tx ident-ref]}]
-                           (fp/transact! this [`(replay-tx ~{:tx tx :tx-ref ident-ref})]))
+                      ::on-replay
+                      (fn [{:keys [tx ident-ref]}]
+                        (fp/transact! this [`(replay-tx ~{:tx tx :tx-ref ident-ref})]))
 
-                         ::selected?
-                         (= (::tx-id active-tx) (::tx-id %))})))))
+                      ::selected?
+                      (= (::tx-id active-tx) (::tx-id %))})))))
       (if active-tx
         (ui/focus-panel {:style {:height (str (or (fp/get-state this :detail-height) 400) "px")}}
           (ui/drag-resize this {:attribute :detail-height :default 400}
