@@ -193,105 +193,94 @@
 
 (def request (fp/computed-factory Request {:keyfn ::request-id}))
 
-(fp/defui ^:once NetworkHistory
-  static fp/InitialAppState
-  (initial-state [_ _]
-    {::history-id (random-uuid)
-     ::remotes    #{}
-     ::requests   []})
+(fp/defsc NetworkHistory
+  [this {::keys [requests active-request remotes]} _ css]
+  {:initial-state (fn [_]
+                    {::history-id (random-uuid)
+                     ::remotes    #{}
+                     ::requests   []})
+   :ident         [::history-id ::history-id]
+   :query         [::history-id ::remotes
+                   {::requests (fp/get-query Request)}
+                   {::active-request (fp/get-query RequestDetails)}]
+   :css           (fn []
+                    (let [border (str "1px solid " ui/color-bg-medium-border)]
+                      [[:.container {:flex           1
+                                     :display        "flex"
+                                     :flex-direction "column"
+                                     :width          "100%"}
+                        [:* {:box-sizing "border-box"}]]
+                       [:.table {:font-family     ui/label-font-family
+                                 :font-size       ui/label-font-size
+                                 :width           "100%"
+                                 :border-collapse "collapse"
+                                 :color           "#313942"
+                                 :flex            "1"
+                                 :display         "flex"
+                                 :flex-direction  "column"}]
 
-  static fp/Ident
-  (ident [_ props] [::history-id (::history-id props)])
+                       [:.table-header {:display       "flex"
+                                        :overflow-y    "scroll"
+                                        :border-bottom border}]
 
-  static fp/IQuery
-  (query [_] [::history-id ::remotes
-              {::requests (fp/get-query Request)}
-              {::active-request (fp/get-query RequestDetails)}])
+                       [(gs/> :.table-header "div") {:font-weight  "normal"
+                                                     :text-align   "left"
+                                                     :padding      "5px 4px"
+                                                     :border-right border}
+                        [:&.flex {:flex 1}]
+                        [(gs/& gs/last-child) {:border-right "0"}]]
 
-  static cssp/CSS
-  (local-rules [_]
-    (let [border (str "1px solid " ui/color-bg-medium-border)]
-      [[:.container {:flex           1
-                     :display        "flex"
-                     :flex-direction "column"
-                     :width          "100%"}
-        [:* {:box-sizing "border-box"}]]
-       [:.table {:font-family     ui/label-font-family
-                 :font-size       ui/label-font-size
-                 :width           "100%"
-                 :border-collapse "collapse"
-                 :color           "#313942"
-                 :flex            "1"
-                 :display         "flex"
-                 :flex-direction  "column"}]
+                       [:.table-body {:flex       1
+                                      :overflow-y "scroll"}]]))
+   :css-include   [Request RequestDetails ui/CSS]}
+  (let [show-remote? (> (count remotes) 1)
+        columns      {:started 100
+                      :remote  80
+                      :status  90
+                      :time    70}]
+    (dom/div {:className (:container css)}
+      (ui/toolbar {}
+        (ui/toolbar-action {:title   "Clear requests"
+                            :onClick #(fp/transact! this [`(clear-requests {})])}
+          (ui/icon :do_not_disturb)))
 
-       [:.table-header {:display       "flex"
-                        :overflow-y    "scroll"
-                        :border-bottom border}]
+      (dom/div {:className (:table css)}
+        (dom/div {:className (:table-header css)}
+          (dom/div {:style {:width (:started columns)}} "Started")
+          (dom/div {:className (:flex css)} "Request")
+          (if show-remote?
+            (dom/div {:style {:width (:remote columns)}} "Remote"))
+          (dom/div {:style {:width (:status columns)}} "Status")
+          (dom/div {:style {:width (:time columns)}} "Time"))
 
-       [(gs/> :.table-header "div") {:font-weight  "normal"
-                                     :text-align   "left"
-                                     :padding      "5px 4px"
-                                     :border-right border}
-        [:&.flex {:flex 1}]
-        [(gs/& gs/last-child) {:border-right "0"}]]
+        (dom/div {:className (:table-body css)}
+          (if (seq requests)
+            (->> requests
+                 rseq
+                 (mapv (comp request
+                             #(fp/computed %
+                                {::show-remote?
+                                 show-remote?
 
-       [:.table-body {:flex       1
-                      :overflow-y "scroll"}]]))
-  (include-children [_] [Request RequestDetails ui/CSS])
+                                 ::columns
+                                 columns
 
-  Object
-  (render [this]
-    (let [{::keys [requests active-request remotes]} (fp/props this)
-          css          (css/get-classnames NetworkHistory)
-          show-remote? (> (count remotes) 1)
-          columns      {:started 100
-                        :remote  80
-                        :status  90
-                        :time    70}]
-      (dom/div {:className (:container css)}
-        (ui/toolbar {}
-          (ui/toolbar-action {:title   "Clear requests"
-                              :onClick #(fp/transact! this [`(clear-requests {})])}
-            (ui/icon :do_not_disturb)))
+                                 ::selected?
+                                 (= (::request-id active-request) (::request-id %))
 
-        (dom/div {:className (:table css)}
-          (dom/div {:className (:table-header css)}
-            (dom/div {:style {:width (:started columns)}} "Started")
-            (dom/div {:className (:flex css)} "Request")
-            (if show-remote?
-              (dom/div {:style {:width (:remote columns)}} "Remote"))
-            (dom/div {:style {:width (:status columns)}} "Status")
-            (dom/div {:style {:width (:time columns)}} "Time"))
+                                 ::on-select
+                                 (fn [r] (fp/transact! this `[(select-request ~r)]))})))))))
 
-          (dom/div {:className (:table-body css)}
-            (if (seq requests)
-              (->> requests
-                rseq
-                (mapv (comp request
-                        #(fp/computed %
-                           {::show-remote?
-                            show-remote?
-
-                            ::columns
-                            columns
-
-                            ::selected?
-                            (= (::request-id active-request) (::request-id %))
-
-                            ::on-select
-                            (fn [r] (fp/transact! this `[(select-request ~r)]))})))))))
-
-        (if active-request
-          (ui/focus-panel {:style {:height (str (or (fp/get-state this :detail-height) 400) "px")}}
-            (ui/drag-resize this {:attribute :detail-height :default 400}
-              (ui/toolbar {::ui/classes [:details]}
-                (ui/toolbar-spacer)
-                (ui/toolbar-action {:title   "Close panel"
-                                    :onClick #(fm/set-value! this ::active-request nil)}
-                  (ui/icon :clear))))
-            (ui/focus-panel-content {}
-              (request-details (fp/computed active-request {:fulcro.inspect.core/app-uuid (h/comp-app-uuid this)
-                                                            :parent                       this})))))))))
+      (if active-request
+        (ui/focus-panel {:style {:height (str (or (fp/get-state this :detail-height) 400) "px")}}
+          (ui/drag-resize this {:attribute :detail-height :default 400}
+            (ui/toolbar {::ui/classes [:details]}
+              (ui/toolbar-spacer)
+              (ui/toolbar-action {:title   "Close panel"
+                                  :onClick #(fm/set-value! this ::active-request nil)}
+                (ui/icon :clear))))
+          (ui/focus-panel-content {}
+            (request-details (fp/computed active-request {:fulcro.inspect.core/app-uuid (h/comp-app-uuid this)
+                                                          :parent                       this}))))))))
 
 (def network-history (fp/factory NetworkHistory))
