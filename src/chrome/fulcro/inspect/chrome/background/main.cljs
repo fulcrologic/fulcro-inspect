@@ -47,7 +47,7 @@
   (fn [port]
     (case (gobj/get port "name")
       "fulcro-inspect-remote"
-      (let [background->devtool-chan (chan (async/sliding-buffer 1024))
+      (let [background->devtool-chan (chan (async/sliding-buffer 50000))
             listener                 (partial handle-remote-message background->devtool-chan)
             tab-id                   (gobj/getValueByKeys port "sender" "tab" "id")]
 
