@@ -7,9 +7,9 @@
   com.wsscode/pathom         {:mvn/version "2.2.13"}
   com.wsscode/pathom-viz     {:mvn/version "1.0.6"}
   devcards                   {:mvn/version "0.2.4"}
-  fulcrologic/fulcro         {:mvn/version "2.8.8"}
+  fulcrologic/fulcro         {:mvn/version "2.8.11"}
   fulcrologic/fulcro-spec    {:mvn/version "2.1.3"}
   gnl/ghostwheel             {:mvn/version "0.3.8"}
-  nubank/workspaces          {:mvn/version "1.0.7"}
+  nubank/workspaces          {:mvn/version "1.0.8"}
   org.clojure/core.async     {:mvn/version "0.4.490"}
   spec-coerce                {:mvn/version "1.0.0-alpha5"}}}
