@@ -231,18 +231,20 @@
 (defn compressible? [tx]
   (some-> tx (get tx-options) :compressible?))
 
-(defn same-tx-name? [tx1 tx2]
-  (= (some-> tx1 :fulcro.history/tx first)
-     (some-> tx2 :fulcro.history/tx first)))
+(defn compress-transactions? [tx1 tx2]
+  (and (compressible? tx1)
+       (compressible? tx2)
+       (= (some-> tx1 :fulcro.history/tx first)
+          (some-> tx2 :fulcro.history/tx first))
+       (= (some-> tx1 :ident-ref)
+          (some-> tx2 :ident-ref))))
 
 (defmutation add-tx [tx]
   (action [{:keys [state ref] :as env}]
     (let [last-tx-ref (-> @state (get-in ref) ::tx-list last)
           last-tx     (get-in @state last-tx-ref)
           tx          (merge tx {::tx-id (random-uuid)})]
-      (if (and (compressible? tx)
-               (compressible? last-tx)
-               (same-tx-name? tx last-tx))
+      (if (compress-transactions? tx last-tx)
         (let [compress-count (get last-tx :ui/compress-count 0)
               tx             (assoc tx :ui/compress-count (inc compress-count))]
           (h/swap-entity! env update ::tx-list #(subvec % 0 (dec (count %))))
