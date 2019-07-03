@@ -106,6 +106,11 @@
       (apply integrate-ident state root-ident named-parameters)
       state)))
 
+(defn named-params-with-ref [ref named-parameters]
+  (->> (partition 2 named-parameters)
+       (map (fn [[op path]] [op (conj ref path)]))
+       (apply concat)))
+
 (defn create-entity! [{:keys [state ref]} x data & named-parameters]
   (let [named-parameters (->> (partition 2 named-parameters)
                               (map (fn [[op path]] [op (conj ref path)]))
@@ -115,6 +120,10 @@
                            (fp/get-initial-state x data))]
     (apply swap! state merge-entity x data' named-parameters)
     data'))
+
+(defn create-entity-pm! [{:keys [state ref]} x data & named-parameters]
+  (apply swap! state fp/merge-component x data
+    (named-params-with-ref ref named-parameters)))
 
 (defn- dissoc-in [m path]
   (cond-> m

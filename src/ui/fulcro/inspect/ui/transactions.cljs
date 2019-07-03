@@ -1,18 +1,19 @@
 (ns fulcro.inspect.ui.transactions
   (:require
     [clojure.data :as data]
-    [clojure.string :as str]
     [clojure.pprint :refer [pprint]]
+    [clojure.string :as str]
     [fulcro-css.css :as css]
+    [fulcro.client.localized-dom :as dom]
     [fulcro.client.mutations :as mutations :refer-macros [defmutation]]
+    [fulcro.client.primitives :as fp]
+    [fulcro.inspect.helpers :as db.h]
     [fulcro.inspect.helpers :as h]
     [fulcro.inspect.ui.core :as ui]
     [fulcro.inspect.ui.data-viewer :as data-viewer]
-    [fulcro.client.localized-dom :as dom]
-    [fulcro.client.primitives :as fp]
-    [fulcro.inspect.helpers :as db.h]
-    [fulcro.ui.icons :as icons]
     [fulcro.ui.html-entities :as ent]))
+
+(def tx-options :com.fulcrologic.fulcro.algorithms.tx-processing/options)
 
 (declare TransactionRow)
 
@@ -68,23 +69,27 @@
 
 (fp/defsc TransactionRow
   [this
-   {:ui/keys             [tx-row-view]
-    :fulcro.history/keys [client-time]
+   {:ui/keys             [compress-count]
+    :fulcro.history/keys [client-time tx]
     :as                  props}
    {::keys [on-select selected? on-replay]}]
 
-  {:initial-state (fn [{:fulcro.history/keys [tx] :as transaction}]
+  {:initial-state (fn [transaction]
                     (merge {::tx-id                     (random-uuid)
                             :fulcro.history/client-time (js/Date.)
-                            :ui/tx-row-view             (fp/get-initial-state data-viewer/DataViewer tx)}
+                            :ui/compress-count          0}
                       transaction))
-
+   :pre-merge     (fn [{:keys [current-normalized data-tree]}]
+                    (merge {::tx-id                     (random-uuid)
+                            :fulcro.history/client-time (js/Date.)
+                            :ui/compress-count          0}
+                      current-normalized data-tree))
    :ident         [::tx-id ::tx-id]
    :query         [::tx-id
                    :fulcro.history/client-time :fulcro.history/tx
                    :fulcro.history/db-before :fulcro.history/db-after
                    :fulcro.history/network-sends :ident-ref :component
-                   {:ui/tx-row-view (fp/get-query data-viewer/DataViewer)}]
+                   :ui/compress-count]
    :css           [[:.tx-data {:font-size "9pt"
                                :font      "monospace"
                                :margin    0}]
@@ -98,6 +103,14 @@
                     [:&:hover {:background ui/color-row-hover}
                      [:.icon {:display "block"}]]
                     [:&.selected {:background ui/color-row-selected}]]
+                   [:.compress-count {:color         "#fff"
+                                      :font-family   ui/mono-font-family
+                                      :font-size     "13px"
+                                      :background    "#6D84AF"
+                                      :padding       "0px 3px"
+                                      :margin        "0 3px 0 2px"
+                                      :border-radius "5px"
+                                      :font-weight   "bold"}]
                    [:.data-container {:flex       1
                                       :max-height "100px"
                                       :overflow   "auto"}]
@@ -110,18 +123,19 @@
   (dom/div :.container {:classes [(if selected? :.selected)]
                         :onClick #(if on-select (on-select props))}
     (dom/div :.timestamp (ui/print-timestamp client-time))
-    (dom/div :.data-container
-      (let [{::data-viewer/keys [content]} tx-row-view]
-        (tx-printer {::content content})))
+    (if (pos? compress-count)
+      (dom/div :.compress-count (str compress-count)))
+    (dom/div :.data-container (tx-printer {::content tx}))
     (if on-replay
       (dom/div :.icon {:onClick #(do
                                    (.stopPropagation %)
                                    (on-replay props))}
         (ui/icon {:title "Replay mutation"} :refresh)))))
 
-(let [factory (fp/factory TransactionRow {:keyfn ::tx-id})]
-  (defn transaction-row [props computed]
-    (factory (fp/computed props computed))))
+(def transaction-row (fp/computed-factory TransactionRow {:keyfn ::tx-id}))
+
+(defn merge-current [{:keys [current-normalized data-tree]} k]
+  (or (get data-tree k) (get current-normalized k)))
 
 (fp/defsc Transaction
   [this {:keys                [ident-ref component]
@@ -136,13 +150,31 @@
        (merge {::tx-id (random-uuid)}
          transaction
          {:ui/tx-view        (-> (fp/get-initial-state data-viewer/DataViewer tx)
-                               (assoc ::data-viewer/expanded {[] true}))
+                                 (assoc ::data-viewer/expanded {[] true}))
           :ui/sends-view     (fp/get-initial-state data-viewer/DataViewer network-sends)
           :ui/old-state-view (fp/get-initial-state data-viewer/DataViewer db-before)
           :ui/new-state-view (fp/get-initial-state data-viewer/DataViewer db-after)
           :ui/diff-add-view  (fp/get-initial-state data-viewer/DataViewer add)
           :ui/diff-rem-view  (fp/get-initial-state data-viewer/DataViewer rem)
           :ui/full-computed? true})))
+
+   :pre-merge
+   (fn [{:keys [current-normalized data-tree] :as m}]
+     (let [tx            (merge-current m :fulcro.history/tx)
+           network-sends (merge-current m :fulcro.history/network-sends)
+           db-before     (merge-current m :fulcro.history/db-before)
+           db-after      (merge-current m :fulcro.history/db-after)
+           [add rem] (data/diff db-after db-before)]
+       (merge {::tx-id (random-uuid)}
+         {:ui/tx-view        {::data-viewer/content  tx
+                              ::data-viewer/expanded {[] true}}
+          :ui/sends-view     {::data-viewer/content network-sends}
+          :ui/old-state-view {::data-viewer/content db-before}
+          :ui/new-state-view {::data-viewer/content db-after}
+          :ui/diff-add-view  {::data-viewer/content add}
+          :ui/diff-rem-view  {::data-viewer/content rem}
+          :ui/full-computed? true}
+         current-normalized data-tree)))
 
    :ident
    [::tx-id ::tx-id]
@@ -154,7 +186,6 @@
     :fulcro.history/network-sends :ident-ref :component
     :ui/full-computed?
     {:ui/tx-view (fp/get-query data-viewer/DataViewer)}
-    {:ui/tx-row-view (fp/get-query data-viewer/DataViewer)}
     {:ui/sends-view (fp/get-query data-viewer/DataViewer)}
     {:ui/old-state-view (fp/get-query data-viewer/DataViewer)}
     {:ui/new-state-view (fp/get-query data-viewer/DataViewer)}
@@ -197,10 +228,34 @@
 
 (def transaction (fp/factory Transaction {:keyfn ::tx-id}))
 
+(defn compressible? [tx]
+  (some-> tx (get tx-options) :compressible?))
+
+(defn same-tx-name? [tx1 tx2]
+  (= (some-> tx1 :fulcro.history/tx first)
+     (some-> tx2 :fulcro.history/tx first)))
+
 (defmutation add-tx [tx]
-  (action [env]
-    (h/create-entity! env TransactionRow tx :append ::tx-list)
-    (h/swap-entity! env update ::tx-list #(->> (take-last 100 %) vec))))
+  (action [{:keys [state ref] :as env}]
+    (let [last-tx-ref (-> @state (get-in ref) ::tx-list last)
+          last-tx     (get-in @state last-tx-ref)
+          tx          (merge tx {::tx-id (random-uuid)})]
+      (if (and (compressible? tx)
+               (compressible? last-tx)
+               (same-tx-name? tx last-tx))
+        (let [compress-count (get last-tx :ui/compress-count 0)
+              tx             (assoc tx :ui/compress-count (inc compress-count))]
+          (h/swap-entity! env update ::tx-list #(subvec % 0 (dec (count %))))
+          (swap! state h/deep-remove-ref last-tx-ref)
+          (if (= last-tx-ref (-> @state (get-in ref) ::active-tx))
+            (do
+              (h/create-entity! env TransactionRow tx :append ::tx-list :replace ::active-tx)
+              (swap! state h/merge-entity Transaction
+                (fp/get-initial-state Transaction tx)))
+            (h/create-entity! env TransactionRow tx :append ::tx-list)))
+        (do
+          (h/create-entity! env TransactionRow tx :append ::tx-list)
+          (h/swap-entity! env update ::tx-list #(->> (take-last 100 %) vec)))))))
 
 (defmutation select-tx [tx]
   (action [env]
@@ -228,21 +283,31 @@
 (fp/defsc TransactionList
   [this
    {::keys [tx-list active-tx tx-filter]}]
-  {:initial-state (fn [_] {::tx-list-id (random-uuid)
-                           ::tx-list    []
-                           ::tx-filter  ""})
-   :ident         [::tx-list-id ::tx-list-id]
-   :query         [::tx-list-id ::tx-filter
+  {:initial-state  (fn [_] {::tx-list-id (random-uuid)
+                            ::tx-list    []
+                            ::tx-filter  ""})
+   :pre-merge      (fn [{:keys [current-normalized data-tree]}]
+                     (merge {::tx-list-id (random-uuid)
+                             ::tx-list    []
+                             ::tx-filter  ""}
+                       current-normalized data-tree))
+   :ident          [::tx-list-id ::tx-list-id]
+   :query          [::tx-list-id ::tx-filter
                    {::active-tx (fp/get-query Transaction)}
                    {::tx-list (fp/get-query TransactionRow)}]
-   :css           [[:.container {:display        "flex"
+   :css            [[:.container {:display       "flex"
                                  :width          "100%"
                                  :flex           "1"
                                  :flex-direction "column"}]
 
                    [:.transactions {:flex     "1"
                                     :overflow "auto"}]]
-   :css-include   [Transaction TransactionRow ui/CSS]}
+   :css-include    [Transaction TransactionRow ui/CSS]
+   :initLocalState (fn []
+                     {:select-tx (fn [tx]
+                                   (fp/transact! this [`(select-tx ~tx)]))
+                      :replay-tx (fn [{:keys [tx ident-ref]}]
+                                   (fp/transact! this [`(replay-tx ~{:tx tx :tx-ref ident-ref})]))})}
 
   (let [tx-list (if (seq tx-filter)
                   (filterv #(str/includes? (-> % :tx pr-str) tx-filter) tx-list)
@@ -260,16 +325,9 @@
           (->> tx-list
             rseq
             (mapv #(transaction-row %
-                     {::on-select
-                      (fn [tx]
-                        (fp/transact! this [`(select-tx ~tx)]))
-
-                      ::on-replay
-                      (fn [{:keys [tx ident-ref]}]
-                        (fp/transact! this [`(replay-tx ~{:tx tx :tx-ref ident-ref})]))
-
-                      ::selected?
-                      (= (::tx-id active-tx) (::tx-id %))})))))
+                     {::on-select (fp/get-state this :select-tx)
+                      ::on-replay (fp/get-state this :replay-tx)
+                      ::selected? (= (::tx-id active-tx) (::tx-id %))})))))
       (if active-tx
         (ui/focus-panel {:style {:height (str (or (fp/get-state this :detail-height) 400) "px")}}
           (ui/drag-resize this {:attribute :detail-height :default 400}
