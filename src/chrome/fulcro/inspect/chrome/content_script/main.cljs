@@ -36,7 +36,7 @@
 
 (defn event-loop []
   (when (js/document.documentElement.getAttribute "__fulcro-inspect-remote-installed__")
-    (let [content-script->background-chan (chan (async/sliding-buffer 1024))
+    (let [content-script->background-chan (chan (async/sliding-buffer 50000))
           port*                           (atom (setup-new-port))]
 
       ; set browser icon

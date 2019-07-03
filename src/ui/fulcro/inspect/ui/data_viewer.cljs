@@ -254,6 +254,10 @@
   {:initial-state (fn [content] {::id       (random-uuid)
                                  ::content  content
                                  ::expanded {}})
+   :pre-merge     (fn [{:keys [current-normalized data-tree]}]
+                    (merge {::id       (random-uuid)
+                            ::expanded {}}
+                      current-normalized data-tree))
    :ident         [::id ::id]
    :query         [::id ::content ::expanded]
    :css           [[:.container ui/css-code-font]
