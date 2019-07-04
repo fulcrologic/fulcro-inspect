@@ -312,7 +312,7 @@
                                    (fp/transact! this [`(replay-tx ~{:tx tx :tx-ref ident-ref})]))})}
 
   (let [tx-list (if (seq tx-filter)
-                  (filterv #(str/includes? (-> % :tx pr-str) tx-filter) tx-list)
+                  (filterv #(str/includes? (-> % :fulcro.history/tx pr-str) tx-filter) tx-list)
                   tx-list)]
     (dom/div :.container
       (ui/toolbar {}
