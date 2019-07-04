@@ -177,9 +177,10 @@
                                  :display        "flex"
                                  :flex-direction "column"}]
                    [:.slider {:display "flex"}]
-                   [:.watcher {:flex     "1"
-                               :overflow "auto"
-                               :padding  "10px"}]
+                   [:.watcher {:flex       "1"
+                               :overflow   "auto"
+                               :max-height "100%"
+                               :padding    "10px"}]
                    [:.toolbar {:padding-left "4px"}]
                    [:.row-content {:display "flex"
                                    :flex    "1"}]
