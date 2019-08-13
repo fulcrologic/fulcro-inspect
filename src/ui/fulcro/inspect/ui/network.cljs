@@ -217,7 +217,8 @@
                                  :color           "#313942"
                                  :flex            "1"
                                  :display         "flex"
-                                 :flex-direction  "column"}]
+                                 :flex-direction  "column"
+                                 :min-height      "80px"}]
 
                        [:.table-header {:display       "flex"
                                         :overflow-y    "scroll"
