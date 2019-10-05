@@ -28,14 +28,15 @@
 
           :electron-main     {:target    :node-script
                               :main      fulcro.inspect.electron.background.main/init
-                              :devtools  {:devtools-url      "http://localhost:9632"
-                                          :after-load        fulcro.inspect.electron.background.main/done}
+                              :devtools  {:devtools-url "http://localhost:9632"
+                                          :after-load   fulcro.inspect.electron.background.main/done}
                               :output-to "shells/electron/js/background/main.js"}
 
           :electron-renderer {:target     :browser
                               :modules    {:main {:entries [fulcro.inspect.electron.renderer.main]}}
                               :devtools   {:devtools-url "http://localhost:9632"
-                                           :after-load fulcro.inspect.electron.renderer.main/start}
+                                           :loader-mode  :eval
+                                           :after-load   fulcro.inspect.electron.renderer.main/start}
                               :output-dir "shells/electron/js/renderer"
                               :asset-path "js/renderer"}
 

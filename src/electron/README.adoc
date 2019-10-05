@@ -1,0 +1,29 @@
+= Electron Inspect
+
+This directory contains the glue to make inspect work over a websocket connection.
+The resulting infrastructure looks like this:
+
+[ditaa]
+------
+
++------------------+                +------------------+
+| Fulcro App       |                | Electron Node    |
+|   ws-insp-client +<-------------->+ Server           |
++------------------+    websocket   +------------------+
+                                        ^
+                                        |
+                                        |
+                            Electron IPC|
+                                        |
+                                        v
+                           +------------------+
+                           | Electron Chrome  |
+                           |  Inspect UI      |
+                           +------------------+
+------
+
+The inspect client is configured to use the websocket by
+including the websocket preload instead of the local
+chrome tools preload.  The Inspect UI will accept messages
+from any source, so the IPC messages from the node server
+just place them on the inspect message queue.
