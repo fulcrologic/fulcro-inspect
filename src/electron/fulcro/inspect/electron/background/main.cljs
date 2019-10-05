@@ -1,7 +1,7 @@
 (ns fulcro.inspect.electron.background.main
   (:require
     [fulcro.inspect.electron.background.server :as server]
-    ["electron" :as electron :refer [ipcMain]]
+    ["electron" :as electron]
     ["path" :as path]
     ["url" :as url]))
 

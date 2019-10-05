@@ -32,7 +32,7 @@
     "karma-firefox-launcher": "^0.1.7",
     "react": "^16.2.0",
     "react-dom": "^16.2.0",
-    "shadow-cljs": "^2.7.6"
+    "shadow-cljs": "^2.8.59"
   },
   "repository": {
     "type": "git",

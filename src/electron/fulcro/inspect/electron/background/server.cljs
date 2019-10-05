@@ -2,10 +2,10 @@
   (:require
     [cljs.nodejs :as nodejs]
     ["electron" :refer [ipcMain]]
+    ["socket.io" :as Server]
     [goog.object :as gobj]
     [fulcro.inspect.remote.transit :as encode]))
 
-(defonce Server (nodejs/require "socket.io"))
 (goog-define SERVER_PORT 8237)
 (defonce the-client (atom nil))
 
