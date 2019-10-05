@@ -53,6 +53,8 @@
 (def current-tab-id 42 #_js/chrome.devtools.inspectedWindow.tabId)
 
 (defn post-message [port type data]
+  (.send ipcRenderer "event" #js {:fulcro-inspect-devtool-message (encode/write {:type type :data data :timestamp (js/Date.)})
+                                  :tab-id                         current-tab-id})
   #_(.postMessage port #js {:fulcro-inspect-devtool-message (encode/write {:type type :data data :timestamp (js/Date.)})
                             :tab-id                         current-tab-id}))
 

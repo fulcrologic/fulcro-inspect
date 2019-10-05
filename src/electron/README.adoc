@@ -27,3 +27,23 @@ including the websocket preload instead of the local
 chrome tools preload.  The Inspect UI will accept messages
 from any source, so the IPC messages from the node server
 just place them on the inspect message queue.
+
+== General Usage (React Native)
+
+Requires Fulcro 3.0.2 or above.
+
+Your client will need to have `socket.io-client` in `package.json` (only tested
+with shadow-cljs).
+
+Then just add a preload for the websocket version of the inspect tool:
+
+```
+{...
+ :builds {:app {:target           :react-native
+                :init-fn          ...
+                :devtools         {:autoload true
+                                   :preloads [com.fulcrologic.fulcro.inspect.websocket-preload]}}}}
+```
+
+Then start the electron app, build your native app, and run it. It should connect.
+
