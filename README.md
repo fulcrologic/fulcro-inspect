@@ -30,7 +30,7 @@ Be sure to reload your page after installing it. Now you can see the Fulcro logo
 ## Usage for Fulcro 3.x with Chrome
 
 Do *not* include this library as a dependency. Inspect is written in Fulcro 2.x, and adding it
-to your dependencies will confuse you by having two difference version of Fulcro (which can co-exist, but it is still confusing).
+to your dependencies will confuse you by having two different version of Fulcro (which can co-exist, but will cause confusion).
 Instead just install the Chrome 
 extension https://chrome.google.com/webstore/detail/fulcro-inspect/meeijplnfjcihnhkpanepcaffklobaal
 and add the following preload to your shadow-cljs config:
@@ -47,6 +47,11 @@ That preload is actually part of Fulcro 3.x itself.
 Fulcro Inspect now has a standalone electron app. This only works with 
 Fulcro 3, and there are no plans to back-port to 2.x. You can download
 a release for your platform in the Releases section of this repository.
+
+https://github.com/fulcrologic/fulcro-inspect/releases
+
+NOTE: Fulcrologic does not currently have signing keys, so these binaries 
+will complain that they are unsigned. 
 
 The Electron app creates a well-known websocket server port that Fulcro 
 applications can connect to for exchanging inspect messages. This means
