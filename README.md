@@ -6,7 +6,7 @@ Latest Release: [![CircleCI](https://circleci.com/gh/fulcrologic/fulcro-inspect/
 
 Inspect Fulcro applications
 
-## Usage
+## Usage for Fulcro 2.x with Chrome
 
 Add the latest version of this library (see above) as a dependency:
 
@@ -26,6 +26,60 @@ The inspector will find the running Fulcro application, and be ready to inspect 
 Next you have to install the Chrome Extension: https://chrome.google.com/webstore/detail/fulcro-inspect/meeijplnfjcihnhkpanepcaffklobaal
 
 Be sure to reload your page after installing it. Now you can see the Fulcro logo get colors when it detects a Fulcro app, from then open Fulcro Inspect tab on the Chrome Devtools and happy inspecting!
+
+## Usage for Fulcro 3.x with Chrome
+
+Do *not* include this library as a dependency. Inspect is written in Fulcro 2.x, and adding it
+to your dependencies will confuse you by having two difference version of Fulcro (which can co-exist, but it is still confusing).
+Instead just install the Chrome 
+extension https://chrome.google.com/webstore/detail/fulcro-inspect/meeijplnfjcihnhkpanepcaffklobaal
+and add the following preload to your shadow-cljs config:
+
+```clojure
+:compiler {...
+           :preloads        [com.fulcrologic.fulcro.inspect.preload]}
+```
+
+That preload is actually part of Fulcro 3.x itself.
+
+## Using the Fulcro 3.x Electron App (ALPHA)
+
+Fulcro Inspect now has a standalone electron app. This only works with 
+Fulcro 3, and there are no plans to back-port to 2.x. You can download
+a release for your platform in the Releases section of this repository.
+
+The Electron app creates a well-known websocket server port that Fulcro 
+applications can connect to for exchanging inspect messages. This means
+you need to have your application configured with a different preload
+that knows how to connect.
+
+You will need to add `socket.io-client` to your `package.json` when
+building with shadow-cljs. If you're not
+using shadow-cljs you'll need to require the cljsjs version of that library.
+
+Then make sure you add this preload to your preloads:
+
+```clojure
+:compiler {...
+           :preloads        [com.fulcrologic.fulcro.inspect.websocket-preload]}
+```
+
+or call the function `com.fulcrologic.fulcro.inspect.inspect-client/install-ws` somewhere in your 
+development startup.
+
+At the moment the Electron App has some limitations:
+
+* There is no way to set the websocket port. So, conflicts on that port will
+just make it not work. There is a simple fix, we just haven't created the UI for it.
+* Only one app can connect to Inspect at a time. The most recent-connecting 
+  application will take precedence.
+  If you're running something like workspaces then please use the Chrome extension.
+* Start Inspect before running your app.
+
+You should be able to reload your app at any time and have it reconnect.
+
+The electron app is very new and lightly tested, but should mature 
+rapidly.
 
 ### DB Tab
 
