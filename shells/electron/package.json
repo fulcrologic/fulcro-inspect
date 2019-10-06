@@ -46,6 +46,9 @@
         "AppImage",
         "deb"
       ]
+    },
+    "win": {
+      "target": "NSIS"
     }
   }
 }
