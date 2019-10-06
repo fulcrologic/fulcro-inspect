@@ -1,10 +1,13 @@
 {
   "name": "fulcro-inspect-electron",
   "version": "2.2.0",
-  "description": "",
+  "description": "Electron Version of Fulcro Inspect",
+  "homepage": "https://github.com/fulcrologic/fulcro-inspect",
   "main": "js/background/main.js",
-  "author": "",
-  "license": "ISC",
+  "author": {"name": "Tony Kay",
+    "email": "tony@fulcrologic.com" },
+  "license": "MIT",
+  "repository": "https://github.com:/fulcrologic/fulcro-inspect.git",
   "dependencies": {
     "express": "^4.16.3",
     "socket.io": "^2.1.1"
@@ -21,6 +24,9 @@
   },
   "build": {
     "appId": "com.fulcrologic.fulcro.inspect",
+    "mac": {
+      "category": "public.app-category.developer-tools"
+    },
     "dmg": {
       "contents": [
         {
