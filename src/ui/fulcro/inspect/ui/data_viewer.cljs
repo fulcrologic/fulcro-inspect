@@ -1,15 +1,23 @@
 (ns fulcro.inspect.ui.data-viewer
-  (:require [fulcro.client.mutations :as mutations]
-            [fulcro.inspect.ui.core :as ui]
+  (:require [clojure.string :as str]
+            [goog.object :as gobj]
             [fulcro.client.localized-dom :as dom]
+            [fulcro.client.mutations :as mutations]
             [fulcro.client.primitives :as fp]
-            [clojure.string :as str]))
+            [fulcro.inspect.helpers.clipboard :as clip]
+            [fulcro.inspect.ui.core :as ui]
+            [fulcro.inspect.ui.effects :as effects]
+            [fulcro.inspect.ui.events :as events]))
 
 (declare DataViewer)
 
 (def vec-max-inline 2)
 (def sequential-max-inline 5)
 (def map-max-inline 10)
+
+(defn pprint-str [x]
+  (with-out-str
+    (cljs.pprint/pprint x)))
 
 (defn children-expandable-paths [x]
   (loop [lookup [{:e x :p []}]
@@ -70,8 +78,14 @@
 (defn render-sequential [{:keys [css search expanded path toggle open-close static?] :as input} content]
   (dom/div #js {:className (:data-row css)}
     (if (and (not static?) (> (count content) vec-max-inline))
-      (dom/div #js {:onClick   #(toggle % path)
-                    :className (:toggle-button css)}
+      (dom/div #js {:className   (:toggle-button css)
+                    :onMouseDown events/stop-event
+                    :onClick     #(if (events/shift-key? %)
+                                    (do
+                                      (events/stop-event %)
+                                      (clip/copy-to-clipboard (pprint-str content))
+                                      (effects/animate-text-out (gobj/get % "target") "Copied"))
+                                    (toggle % path))}
         (if (expanded path)
           ui/arrow-down
           ui/arrow-right)))
@@ -103,9 +117,15 @@
 (defn render-map [{:keys [css search expanded path toggle path-action elide-one? static?] :as input} content]
   (dom/div #js {:className (:data-row css)}
     (if (and (not static?)
-          (or (not elide-one?)
-            (> 1 (count content))))
-      (dom/div #js {:onClick   #(toggle % path)
+             (or (not elide-one?)
+                 (> 1 (count content))))
+      (dom/div #js {:onMouseDown events/stop-event
+                    :onClick     #(if (events/shift-key? %)
+                                    (do
+                                      (events/stop-event %)
+                                      (clip/copy-to-clipboard (pprint-str content))
+                                      (effects/animate-text-out (gobj/get % "target") "Copied"))
+                                    (toggle % path))
                     :className (:toggle-button css)}
         (if (expanded path)
           ui/arrow-down
@@ -119,44 +139,44 @@
       (if (every? keyable? (keys content))
         (dom/div #js {:className (:map-container css)}
           (->> content
-            (sort-by (comp str first))
-            (mapv (fn [[k v]]
-                    (if (expanded (conj path k))
-                      [(dom/div #js {:key (str k "-key")}
-                         (dom/div #js {:className (:list-item-index css)}
-                           (if path-action
-                             (dom/div #js {:className (:path-action css)
-                                           :onClick   #(path-action (conj path k))}
-                               (render-data input k))
-                             (render-data input k))))
-                       (dom/div #js {:key (str k "-key-space")})
-                       (dom/div #js {:className (:map-expanded-item css)
-                                     :key       (str k "-value")} (render-data (update input :path conj k) v))]
-                      [(dom/div #js {:key (str k "-key")}
-                         (dom/div #js {:className (:list-item-index css)}
-                           (if path-action
-                             (dom/div #js {:className (:path-action css)
-                                           :onClick   #(path-action (conj path k))}
-                               (render-data input k))
-                             (render-data input k))))
-                       (dom/div #js {:key (str k "-value")} (render-data (update input :path conj k) v))])))
-            (apply concat)))
+               (sort-by (comp str first))
+               (mapv (fn [[k v]]
+                       (if (expanded (conj path k))
+                         [(dom/div #js {:key (str k "-key")}
+                            (dom/div #js {:className (:list-item-index css)}
+                              (if path-action
+                                (dom/div #js {:className (:path-action css)
+                                              :onClick   #(path-action (conj path k))}
+                                  (render-data input k))
+                                (render-data input k))))
+                          (dom/div #js {:key (str k "-key-space")})
+                          (dom/div #js {:className (:map-expanded-item css)
+                                        :key       (str k "-value")} (render-data (update input :path conj k) v))]
+                         [(dom/div #js {:key (str k "-key")}
+                            (dom/div #js {:className (:list-item-index css)}
+                              (if path-action
+                                (dom/div #js {:className (:path-action css)
+                                              :onClick   #(path-action (conj path k))}
+                                  (render-data input k))
+                                (render-data input k))))
+                          (dom/div #js {:key (str k "-value")} (render-data (update input :path conj k) v))])))
+               (apply concat)))
 
         (dom/div #js {:className (:list-container css)}
           (render-ordered-list input content)))
 
       (or (expanded (vec (butlast path)))
-        (empty? path))
+          (empty? path))
       (dom/div #js {:className (:list-inline css)}
         "{"
         (->> content
-          (sort-by (comp str first))
-          (take map-max-inline)
-          (mapv (fn [[k v]]
-                  [(dom/div #js {:className (:map-inline-key-item css) :key (str k "-key")} (render-data input k))
-                   (dom/div #js {:className (:map-inline-value-item css) :key (str k "-value")} (render-data (update input :path conj k) v))]))
-          (interpose ", ")
-          (apply concat))
+             (sort-by (comp str first))
+             (take map-max-inline)
+             (mapv (fn [[k v]]
+                     [(dom/div #js {:className (:map-inline-key-item css) :key (str k "-key")} (render-data input k))
+                      (dom/div #js {:className (:map-inline-value-item css) :key (str k "-value")} (render-data (update input :path conj k) v))]))
+             (interpose ", ")
+             (apply concat))
         (if (> (count content) map-max-inline)
           ", ")
         (if (> (count content) map-max-inline)

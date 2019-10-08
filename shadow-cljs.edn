@@ -15,9 +15,10 @@
                                            :devtools-url       "http://localhost:9632"}
                               :modules    {:main {:entries [fulcro.inspect.workspaces.main]}}}
 
-          :chrome            {:target        :chrome-extension
-                              :extension-dir "shells/chrome"
-                              :devtools      {:devtools-url "http://localhost:9632"}}
+          :chrome            {:target           :chrome-extension
+                              :compiler-options {:closure-output-charset "US-ASCII"}
+                              :extension-dir    "shells/chrome"
+                              :devtools         {:devtools-url "http://localhost:9632"}}
 
           :chrome-devtool    {:target           :browser
                               :output-dir       "shells/chrome/js/devtool"
@@ -26,21 +27,21 @@
                               :devtools         {:devtools-url "http://localhost:9632"}
                               :modules          {:main {:entries [fulcro.inspect.chrome.devtool.main]}}}
 
-          :electron-main     {:target    :node-script
-                              :main      fulcro.inspect.electron.background.main/init
-                              :devtools  {:devtools-url "http://localhost:9632"
-                                          :after-load   fulcro.inspect.electron.background.main/done}
+          :electron-main     {:target           :node-script
+                              :main             fulcro.inspect.electron.background.main/init
+                              :devtools         {:devtools-url "http://localhost:9632"
+                                                 :after-load   fulcro.inspect.electron.background.main/done}
                               :compiler-options {:optimizations :simple}
-                              :output-to "shells/electron/js/background/main.js"}
+                              :output-to        "shells/electron/js/background/main.js"}
 
-          :electron-renderer {:target     :browser
-                              :modules    {:main {:entries [fulcro.inspect.electron.renderer.main]}}
-                              :devtools   {:devtools-url "http://localhost:9632"
-                                           :loader-mode  :eval
-                                           :after-load   fulcro.inspect.electron.renderer.main/start}
+          :electron-renderer {:target           :browser
+                              :modules          {:main {:entries [fulcro.inspect.electron.renderer.main]}}
+                              :devtools         {:devtools-url "http://localhost:9632"
+                                                 :loader-mode  :eval
+                                                 :after-load   fulcro.inspect.electron.renderer.main/start}
                               :compiler-options {:optimizations :simple}
-                              :output-dir "shells/electron/js/renderer"
-                              :asset-path "js/renderer"}
+                              :output-dir       "shells/electron/js/renderer"
+                              :asset-path       "js/renderer"}
 
           :test-dev          {:target    :browser-test
                               :test-dir  "resources/public/js/test"
