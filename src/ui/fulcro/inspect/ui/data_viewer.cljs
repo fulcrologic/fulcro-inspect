@@ -80,15 +80,17 @@
     (if (and (not static?) (> (count content) vec-max-inline))
       (dom/div #js {:className   (:toggle-button css)
                     :onMouseDown events/stop-event
-                    :onClick     #(if (events/shift-key? %)
-                                    (do
-                                      (events/stop-event %)
-                                      (clip/copy-to-clipboard (pprint-str content))
-                                      (effects/animate-text-out (gobj/get % "target") "Copied"))
-                                    (toggle % path))}
+                    :onClick     #(toggle % path)}
         (if (expanded path)
           ui/arrow-down
-          ui/arrow-right)))
+          ui/arrow-right)
+
+        (if (expanded path)
+          (dom/div {:className (:copy-button css)
+                    :onClick   #(do
+                                  (events/stop-event %)
+                                  (clip/copy-to-clipboard (pprint-str content))
+                                  (effects/animate-text-out (gobj/get % "target") "Copied"))} (ui/icon :content_copy)))))
 
     (cond
       (expanded path)
@@ -129,7 +131,13 @@
                     :className (:toggle-button css)}
         (if (expanded path)
           ui/arrow-down
-          ui/arrow-right)))
+          ui/arrow-right)
+        (if (expanded path)
+          (dom/div {:className (:copy-button css)
+                    :onClick   #(do
+                                  (events/stop-event %)
+                                  (clip/copy-to-clipboard (pprint-str content))
+                                  (effects/animate-text-out (gobj/get % "target") "Copied"))} (ui/icon :content_copy)))))
 
     (cond
       (empty? content)
@@ -299,7 +307,17 @@
                                       :margin           "0px 1px 1px"
                                       :background-color "rgba(100, 255, 100, 0.08)"}]
 
-                   [:.toggle-button ui/css-triangle]
+                   [:.toggle-button ui/css-triangle
+                    [:svg
+                     {:width      "14px"
+                      :margin-top "-5px"}]]
+
+                   [:.copy-button
+                    {:margin-top "3px"
+                     :opacity    "0.4"
+                     :transition "all 200ms"}
+                    [:&:hover
+                     {:opacity "0.7"}]]
 
                    [:.list-item {:display     "flex"
                                  :align-items "flex-start"}]
@@ -327,6 +345,8 @@
                    [:.path-action {:cursor "pointer"}
                     [:&:hover
                      [:div {:text-decoration "underline"}]]]]}
+
+  (js/console.log "CSS" css)
 
   (dom/div :.container
     (render-data {:expanded    expanded
