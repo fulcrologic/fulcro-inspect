@@ -102,6 +102,10 @@ Use `cmd`/`meta` key + click to expand/collapse the whole sub-tree:
 
 ![Expand/collapse sub-tree](https://raw.githubusercontent.com/fulcrologic/fulcro-inspect/master/doc/db-expand-children.gif)
 
+To copy contents from maps or sequences, expand it and them click on the copy button:
+
+![Copy data](https://raw.githubusercontent.com/fulcrologic/fulcro-inspect/master/doc/db-copy.gif)
+
 ## Contributing
 
 To run the development version of the extension, first install the npm packages:

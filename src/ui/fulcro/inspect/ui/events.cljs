@@ -53,6 +53,13 @@
 
 (defn key-code [name] {::key-code (get KEYS name)})
 
+(defn shift-key? [e] (gobj/get e "shiftKey"))
+(defn ctrl-key? [e] (gobj/get e "ctrlKey"))
+
+(defn stop-event [e]
+  (.preventDefault e)
+  (.stopPropagation e))
+
 (defn parse-keystroke [keystroke]
   (if-let [{:keys [modifiers key]} (s/conform ::keystroke keystroke)]
     {::key-code  (get KEYS key)

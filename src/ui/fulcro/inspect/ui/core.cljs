@@ -10,7 +10,8 @@
             [fulcro.client.localized-dom :as dom]
             [fulcro.inspect.ui.events :as events]
             [garden.selectors :as gs]
-            [goog.object :as gobj]))
+            [goog.object :as gobj]
+            [fulcro.inspect.ui.debounce-input :as di]))
 
 (def mono-font-family "monospace")
 
@@ -188,6 +189,10 @@
 
 (defn toolbar-text-field [props]
   (dom/input (h/props->html {:className (:input (css/get-classnames ToolBar))
+                             :type      "text"} props)))
+
+(defn toolbar-debounced-text-field [props]
+  (di/debounce-input (merge {:className (:input (css/get-classnames ToolBar))
                              :type      "text"} props)))
 
 (fp/defsc AutoFocusInput
