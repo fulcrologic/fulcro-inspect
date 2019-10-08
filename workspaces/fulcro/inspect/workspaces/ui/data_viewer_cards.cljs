@@ -5,9 +5,7 @@
             [nubank.workspaces.card-types.fulcro :as ct.fulcro]
             [nubank.workspaces.core :as ws]
             [nubank.workspaces.lib.fulcro-portal :as f.portal]
-            [nubank.workspaces.model :as wsm]
-            [edn-query-language.core :as eql]
-            [clojure.test.check.generators :as gen]))
+            [nubank.workspaces.model :as wsm]))
 
 (fp/defsc DataViewerDemo
   [this {::keys [viewer]}]

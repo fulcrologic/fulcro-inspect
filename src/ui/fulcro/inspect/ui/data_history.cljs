@@ -225,17 +225,18 @@
                                                         (h/get-in-path [::watcher/id (::watcher/id watcher) ::watcher/root-data ::data-viewer/content]))]
                                         (fp/transact! this [`(save-snapshot {::snapshot-db ~content})]))}
           (ui/icon {:title "Save snapshot of current state"} :add_a_photo))
-        (ui/toolbar-text-field {:placeholder "Search (press return to expand tree)"
-                                :value       (or search "")
-                                :style       {:margin "0 6px"
-                                              :width  "210px"}
-                                :onKeyDown   (fn [e]
-                                               (when (= (.-keyCode e) (get events/KEYS "return"))
-                                                 (.preventDefault e)
-                                                 (fp/transact! this `[(data-viewer/search-expand
-                                                                        ~{:viewer (::watcher/root-data watcher)
-                                                                          :search search})])))
-                                :onChange    #(m/set-string! this ::search :event %)})
+        (ui/toolbar-debounced-text-field
+          {:placeholder "Search (press return to expand tree)"
+           :value       (or search "")
+           :style       {:margin "0 6px"
+                         :width  "210px"}
+           :onKeyDown   (fn [e]
+                          (when (= (.-keyCode e) (get events/KEYS "return"))
+                            (.preventDefault e)
+                            (fp/transact! this `[(data-viewer/search-expand
+                                                   ~{:viewer (::watcher/root-data watcher)
+                                                     :search search})])))
+           :onChange    #(m/set-string! this ::search :event %)})
         (dom/div {:className (:flex ui/scss)})
         (ui/toolbar-action {:disabled (not (seq snapshots))}
           (ui/icon {:onClick #(fm/toggle! this ::show-snapshots?)

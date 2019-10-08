@@ -346,8 +346,6 @@
                     [:&:hover
                      [:div {:text-decoration "underline"}]]]]}
 
-  (js/console.log "CSS" css)
-
   (dom/div :.container
     (render-data {:expanded    expanded
                   :static?     static?
