@@ -22,7 +22,7 @@
    :css-include [dv/DataViewer]}
   (dom/div :.container
     (dom/div)
-    (dv/data-viewer viewer)))
+    (dv/data-viewer viewer {::dv/on-expand-change (fn [& args] (js/console.log "Expand change" args))})))
 
 (def sample-data
   '{:nubank.workspaces.ui/workspace-root

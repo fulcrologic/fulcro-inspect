@@ -277,7 +277,7 @@
 (fp/defsc DataViewer
   [this
    {::keys [content expanded elide-one? static?]}
-   {::keys [path-action search]}
+   {::keys [path-action search on-expand-change]}
    css]
   {:initial-state (fn [content] {::id       (random-uuid)
                                  ::content  content
@@ -351,9 +351,14 @@
                   :static?     static?
                   :search      search
                   :elide-one?  elide-one?
-                  :toggle      #(fp/transact! this [`(toggle {::path       ~%2
-                                                              ::propagate? ~(or (.-altKey %)
-                                                                              (.-metaKey %))})])
+                  :toggle      #(do
+                                  (fp/transact! this [`(toggle {::path       ~%2
+                                                                ::propagate? ~(or (.-altKey %)
+                                                                                  (.-metaKey %))})])
+                                  (if on-expand-change
+                                    (on-expand-change %2
+                                      (-> this fp/app-state deref
+                                          (get-in (conj (fp/get-ident this) ::expanded))))))
                   :css         css
                   :path        []
                   :path-action path-action}
