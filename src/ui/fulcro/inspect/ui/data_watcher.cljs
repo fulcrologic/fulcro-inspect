@@ -48,7 +48,7 @@
 
       (storage/update! [::watches app-id] #(into [path] %)))))
 
-(defmutation remove-data-watch [{:keys [index]}]
+(defmutation remove-data-watch [{:keys [index path]}]
   (action [{:keys [ref state] :as env}]
     (let [app-id (db.h/ref-app-id @state ref)]
       (doseq [app-uuid (db.h/matching-apps @state app-id)
@@ -58,18 +58,25 @@
         (swap! state db.h/deep-remove-ref watch-ref)
         (db.h/swap-entity! env' update ::watches #(db.h/vec-remove-index index %)))
 
+      (storage/remove! [::watches-expanded app-id path])
       (storage/update! [::watches app-id] #(db.h/vec-remove-index index %)))))
+
+(defmutation update-watcher-expanded [{:keys [path expanded]}]
+  (action [{:keys [ref state]}]
+    (let [app-id (db.h/ref-app-id @state ref)]
+      (storage/set! [::watches-expanded app-id path] expanded))))
 
 (fp/defsc WatchPin
   [this {::keys   [watch-path data-viewer]
          :ui/keys [expanded?]}
    {::keys               [delete-item]
-    ::f.data-viewer/keys [path-action]}]
-  {:initial-state (fn [{:keys [path content]}]
+    ::f.data-viewer/keys [path-action on-expand-change]}]
+  {:initial-state (fn [{:keys [path content expanded]}]
                     {:ui/expanded? true
                      ::watch-id    (random-uuid)
                      ::watch-path  path
-                     ::data-viewer (fp/get-initial-state f.data-viewer/DataViewer content)})
+                     ::data-viewer (assoc (fp/get-initial-state f.data-viewer/DataViewer content)
+                                     ::f.data-viewer/expanded (or expanded {}))})
    :ident         [::watch-id ::watch-id]
    :query         [:ui/expanded? ::watch-id ::watch-path
                    {::data-viewer (fp/get-query f.data-viewer/DataViewer)}]
@@ -98,7 +105,8 @@
           (pr-str watch-path)))
       (if expanded?
         (f.data-viewer/data-viewer data-viewer
-          {::f.data-viewer/path-action path-action})))))
+          {::f.data-viewer/path-action      path-action
+           ::f.data-viewer/on-expand-change on-expand-change})))))
 
 (def watch-pin (fp/factory WatchPin {:keyfn ::watch-id}))
 
@@ -119,7 +127,13 @@
                     (-> (assoc x ::content content)
                         (fp/computed {::delete-item
                                       (fn [_]
-                                        (fp/transact! this [`(remove-data-watch {:index ~i})]))
+                                        (fp/transact! this [`(remove-data-watch {:path  ~(::watch-path x)
+                                                                                 :index ~i})]))
+
+                                      ::f.data-viewer/on-expand-change
+                                      (fn [path expanded]
+                                        (fp/transact! this [`(update-watcher-expanded {:path     ~(::watch-path x)
+                                                                                       :expanded ~expanded})]))
 
                                       ::f.data-viewer/path-action
                                       #(fp/transact! this [`(add-data-watch {:path ~(vec (concat (::watch-path x) %))})])})))
