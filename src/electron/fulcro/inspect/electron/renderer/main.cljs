@@ -1,10 +1,5 @@
 (ns fulcro.inspect.electron.renderer.main
   (:require
-    [fulcro.client :as fulcro]
-    [fulcro-css.css :as css]
-    [fulcro.client.primitives :as fp]
-    [fulcro.inspect.ui.multi-inspector :as multi-inspector]
-    [fulcro.client.localized-dom :as dom]
     [cljs.core.async :as async :refer [go <! put!]]
     [com.wsscode.common.async-cljs :refer [<?maybe]]
     [com.wsscode.pathom.core :as p]
@@ -204,7 +199,6 @@
 
 (defn handle-remote-message [{:keys [port event responses*]}]
   (when-let [{:keys [type data]} (event-data event)]
-    (js/console.log "Got client message" type data)
     (let [data (assoc data ::port port)]
       (case type
         :fulcro.inspect.client/init-app
@@ -290,7 +284,8 @@
                      (make-network port* (ui-parser/parser) responses*))
         node       (js/document.createElement "div")]
     (js/document.body.appendChild node)
-    (reset! global-inspector* (fulcro/mount app GlobalRoot node))))
+    (reset! global-inspector* (fulcro/mount app GlobalRoot node))
+    (reset! dom-node node)))
 
 (defn global-inspector
   ([] @global-inspector*)
