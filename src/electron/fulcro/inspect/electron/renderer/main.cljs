@@ -4,7 +4,7 @@
     [com.wsscode.common.async-cljs :refer [<?maybe]]
     [com.wsscode.pathom.core :as p]
     [com.wsscode.pathom.fulcro.network :as pfn]
-    [fulcro-css.css-injection :as cssi]
+    [fulcro-css.css :as css]
     [fulcro.client :as fulcro]
     [fulcro.client.localized-dom :as dom]
     [fulcro.client.mutations :as fm]
