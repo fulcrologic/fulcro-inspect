@@ -40,7 +40,7 @@
   },
   "scripts": {
     "dev-chrome": "shadow-cljs watch chrome-devtool chrome workspaces",
-    "dev-electron": "shadow-cljs watch electron-main electron-renderer devcards"
+    "dev-electron": "shadow-cljs watch electron-main electron-renderer workspaces"
   },
   "author": "",
   "license": "MIT"
