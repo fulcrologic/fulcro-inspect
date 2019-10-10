@@ -37,9 +37,9 @@
           :electron-renderer {:target           :browser
                               :modules          {:main {:entries [fulcro.inspect.electron.renderer.main]}}
                               :devtools         {:devtools-url "http://localhost:9632"
-                                                 :loader-mode  :eval
                                                  :after-load   fulcro.inspect.electron.renderer.main/start}
-                              :compiler-options {:optimizations :simple}
+                              :compiler-options {:closure-output-charset "US-ASCII"
+                                                 :optimizations :simple}
                               :output-dir       "shells/electron/js/renderer"
                               :asset-path       "js/renderer"}
 
