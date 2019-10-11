@@ -58,9 +58,14 @@ applications can connect to for exchanging inspect messages. This means
 you need to have your application configured with a different preload
 that knows how to connect.
 
-You will need to add `socket.io-client` to your `package.json` when
+You will need to add `socket.io-client` (VERSION 1.7.4) to your `package.json` when
 building with shadow-cljs. If you're not
 using shadow-cljs you'll need to require the cljsjs version of that library.
+
+IMPORTANT: The electron app is built with socket.io version 1.7.4
+(as of the latest electron release) because of bugs/issues in the 2.x
+series. You should use a matching client version in your package.json
+when using the websocket preload.
 
 Then make sure you add this preload to your preloads:
 

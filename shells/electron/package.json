@@ -10,7 +10,7 @@
   "repository": "https://github.com:/fulcrologic/fulcro-inspect.git",
   "dependencies": {
     "express": "^4.16.3",
-    "socket.io": "^2.1.1"
+    "socket.io": "1.7.4"
   },
   "devDependencies": {
     "electron": "^6.0.12",
