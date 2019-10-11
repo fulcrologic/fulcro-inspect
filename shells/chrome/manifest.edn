@@ -1,7 +1,7 @@
 {:manifest_version        2
  :name                    "Fulcro Inspect"
  :version                 "1.0.17"
- :description             "Developer tool to inspect Fulcro applications"
+ :description             "Developer tool to inspect Fulcro applications. Fulcro is a web development framework that uses React and Clojurescript. This extensions adds inspection capabilities for Fulcro developers, capabilities as: inspecting the current state of the client UI database, tracking of transactions triggered by the application, network connections with deserialized transit/edn, and a built-in query runner to test your Fulcro network setup. Follow instructions to setup your application at: https://github.com/fulcrologic/fulcro-inspect."
 
  :icons                   {"16"  "icon-16.png"
                            "32"  "icon-32.png"
