@@ -294,7 +294,6 @@
    @global-inspector*))
 
 (defn start []
-  (js/console.log "start")
   (if @global-inspector*
     (fulcro/mount @global-inspector* GlobalRoot @dom-node)
     (start-global-inspector {})))
