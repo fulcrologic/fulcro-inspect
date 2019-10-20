@@ -97,11 +97,11 @@
                         (assoc-in [::inspector/app-state ::data-history/watcher ::data-watcher/id] [app-uuid-key app-uuid])
                         (assoc-in [::inspector/app-state ::data-history/watcher ::data-watcher/watches]
                           (->> (storage/get [::data-watcher/watches app-id] [])
-                               (mapv (fn [path]
-                                       (fp/get-initial-state data-watcher/WatchPin
-                                         {:path     path
-                                          :expanded (storage/get [::data-watcher/watches-expanded app-id path] {})
-                                          :content  (get-in initial-state path)})))))
+                            (mapv (fn [path]
+                                    (fp/get-initial-state data-watcher/WatchPin
+                                      {:path     path
+                                       :expanded (storage/get [::data-watcher/watches-expanded app-id path] {})
+                                       :content  (get-in initial-state path)})))))
                         (assoc-in [::inspector/app-state ::data-history/snapshots] (storage/tget [::data-history/snapshots app-id] []))
                         (assoc-in [::inspector/network ::network/history-id] [app-uuid-key app-uuid])
                         (assoc-in [::inspector/element ::element/panel-id] [app-uuid-key app-uuid])

@@ -6,6 +6,9 @@
   org.clojure/clojurescript  {:mvn/version "1.10.520"}
   thheller/shadow-cljs       {:mvn/version "2.8.62"}
   com.cognitect/transit-cljs {:mvn/version "0.8.256"}
+
+  com.taoensso/tufte         {:mvn/version "2.1.0-RC4"}
+
   com.wsscode/pathom         {:mvn/version "2.2.26"}
   com.wsscode/pathom-viz     {:mvn/version "1.0.6"}
   devcards                   {:mvn/version "0.2.4"}
