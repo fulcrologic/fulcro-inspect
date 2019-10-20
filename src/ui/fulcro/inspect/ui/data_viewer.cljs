@@ -137,14 +137,13 @@
                                    old-content  :content
                                    :as          old-props} (fp/props this)]
                               (tufte/profile {}
-                                (tufte/p ::scu
-                                  (or
-                                    (not
-                                      (and
-                                        (leaf? content)
-                                        (= search old-search)
-                                        (= (old-expanded path) (expanded path))
-                                        (= old-content content))))))))}
+                                (tufte/p :scu
+                                  (not
+                                    (and
+                                      (leaf? content)
+                                      (= search old-search)
+                                      (= (old-expanded path) (expanded path))
+                                      (= old-content content)))))))}
   (tufte/profile {}
     (tufte/p :map
       (dom/div #js {:className (:data-row css)}
