@@ -9,7 +9,8 @@
     [fulcro.inspect.helpers.clipboard :as clip]
     [fulcro.inspect.ui.core :as ui]
     [fulcro.inspect.ui.effects :as effects]
-    [fulcro.inspect.ui.events :as events]))
+    [fulcro.inspect.ui.events :as events]
+    [fulcro.util :as util]))
 
 (declare DataViewer)
 
@@ -124,10 +125,17 @@
 (defn render-set [input content]
   (render-sequential (assoc input :open-close ["#{" "}"]) content))
 
-(defn scalar? [v] (not (or (map? v) (vector? v))))
+(defn is-normalized-edge? [v]
+  (or (util/ident? v)
+      (and (vector? v)
+           (util/ident? (first v)))))
+
+(defn scalar-or-normalized-edge? [v] (not (or (map? v)
+                                              (is-normalized-edge? v))))
+
 
 (defn leaf? [content]
-  (and (map? content) (every? #(scalar? %) (vals content))))
+  (and (map? content) (every? #(scalar-or-normalized-edge? %) (vals content))))
 
 (fp/defsc Map [this {:keys [css search expanded path toggle path-action elide-one? static? content] :as input}]
   {:shouldComponentUpdate (fn [new-props _]
