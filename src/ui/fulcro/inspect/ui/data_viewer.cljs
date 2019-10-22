@@ -145,16 +145,16 @@
                                    old-content  :content
                                    :as          old-props} (fp/props this)]
                               (tufte/profile {}
-                                (tufte/p :scu
-                                  (not
-                                    (and
-                                      (leaf? content)
-                                      (= search old-search)
-                                      (= (old-expanded path) (expanded path))
-                                      (= old-content content)))))))}
+                                             (tufte/p :map-scu
+                                                      (not
+                                                        (and
+                                                          (leaf? content)
+                                                          (= search old-search)
+                                                          (= (old-expanded path) (expanded path))
+                                                          (= old-content content)))))))}
   (tufte/profile {}
-    (tufte/p :map
-      (dom/div #js {:className (:data-row css)}
+                 (tufte/p :map-body
+                          (dom/div #js {:className (:data-row css)}
         (if (and (not static?)
               (or (not elide-one?)
                 (> 1 (count content))))
@@ -183,9 +183,9 @@
           (expanded path)
           (if (every? keyable? (keys content))
             (dom/div #js {:className (:map-container css)}
-              (tufte/p :sorted-1
-                (into []
-                  (mapcat (fn [[k v]]
+                     (tufte/p :map-mapcat
+                              (into []
+                                    (mapcat (fn [[k v]]
                             (if (expanded (conj path k))
                               [(dom/div #js {:key (str k "-key")}
                                  (dom/div #js {:className (:list-item-index css)}
@@ -205,7 +205,7 @@
                                        (render-data input k))
                                      (render-data input k))))
                                (dom/div #js {:key (str k "-value")} (render-data (update input :path conj k) v))])))
-                  (tufte/p :sort (sort-by (comp str first) content)))))
+                                    (tufte/p :map-sort (sort-by (comp str first) content)))))
 
             (dom/div #js {:className (:list-container css)}
               (render-ordered-list input content)))
@@ -390,8 +390,8 @@
 
   (dom/div :.container
     (tufte/profile {}
-      (tufte/p :top-level-render-data
-        (render-data {:expanded    expanded
+                   (tufte/p :data-viewer
+                            (render-data {:expanded expanded
                       :static?     static?
                       :search      search
                       :elide-one?  elide-one?
