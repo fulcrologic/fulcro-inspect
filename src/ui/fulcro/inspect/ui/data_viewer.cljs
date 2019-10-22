@@ -125,14 +125,14 @@
 (defn render-set [input content]
   (render-sequential (assoc input :open-close ["#{" "}"]) content))
 
-(defn is-normalized-edge? [v]
+(defn normalized-edge? [v]
   (or (util/ident? v)
       (and (vector? v)
            (util/ident? (first v)))))
 
-(defn scalar-or-normalized-edge? [v] (not (or (map? v)
-                                              (is-normalized-edge? v))))
-
+(defn scalar-or-normalized-edge? [v] (or
+                                       (normalized-edge? v)
+                                       (not (or (map? v) (vector? v) (set? v)))))
 
 (defn leaf? [content]
   (and (map? content) (every? #(scalar-or-normalized-edge? %) (vals content))))
