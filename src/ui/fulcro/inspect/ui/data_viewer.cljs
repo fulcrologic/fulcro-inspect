@@ -152,84 +152,96 @@
                                                           (= search old-search)
                                                           (= (old-expanded path) (expanded path))
                                                           (= old-content content)))))))}
-  (tufte/profile {}
-                 (tufte/p :map-body
-                          (dom/div #js {:className (:data-row css)}
-        (if (and (not static?)
-              (or (not elide-one?)
-                (> 1 (count content))))
-          (dom/div #js {:onMouseDown events/stop-event
-                        :onClick     #(if (events/shift-key? %)
-                                        (do
-                                          (events/stop-event %)
-                                          (clip/copy-to-clipboard (pprint-str content))
-                                          (effects/animate-text-out (gobj/get % "target") "Copied"))
-                                        (toggle % path))
-                        :className   (:toggle-button css)}
-            (if (expanded path)
-              ui/arrow-down
-              ui/arrow-right)
-            (if (expanded path)
-              (dom/div #js {:className (:copy-button css)
-                            :onClick   #(do
-                                          (events/stop-event %)
-                                          (clip/copy-to-clipboard (pprint-str content))
-                                          (effects/animate-text-out (gobj/get % "target") "Copied"))} (ui/icon :content_copy)))))
+  (tufte/profile
+    {}
+    (tufte/p
+      :map-body
 
-        (cond
-          (empty? content)
-          "{}"
+      (dom/div #js {:className (:data-row css)}
+               (tufte/profile {}
+                              (tufte/p :map-region-1
+                                       (if (and (not static?)
+                                                (or (not elide-one?)
+                                                    (> 1 (count content))))
+                                         (dom/div #js {:onMouseDown events/stop-event
+                                                       :onClick     #(if (events/shift-key? %)
+                                                                       (do
+                                                                         (events/stop-event %)
+                                                                         (clip/copy-to-clipboard (pprint-str content))
+                                                                         (effects/animate-text-out (gobj/get % "target") "Copied"))
+                                                                       (toggle % path))
+                                                       :className   (:toggle-button css)}
+                                                  (if (expanded path)
+                                                    ui/arrow-down
+                                                    ui/arrow-right)
+                                                  (if (expanded path)
+                                                    (dom/div #js {:className (:copy-button css)
+                                                                  :onClick   #(do
+                                                                                (events/stop-event %)
+                                                                                (clip/copy-to-clipboard (pprint-str content))
+                                                                                (effects/animate-text-out (gobj/get % "target") "Copied"))} (ui/icon :content_copy)))))))
 
-          (expanded path)
-          (if (every? keyable? (keys content))
-            (dom/div #js {:className (:map-container css)}
-                     (tufte/p :map-mapcat
-                              (into []
-                                    (mapcat (fn [[k v]]
-                            (if (expanded (conj path k))
-                              [(dom/div #js {:key (str k "-key")}
-                                 (dom/div #js {:className (:list-item-index css)}
-                                   (if path-action
-                                     (dom/div #js {:className (:path-action css)
-                                                   :onClick   #(path-action (conj path k))}
-                                       (render-data input k))
-                                     (render-data input k))))
-                               (dom/div #js {:key (str k "-key-space")})
-                               (dom/div #js {:className (:map-expanded-item css)
-                                             :key       (str k "-value")} (render-data (update input :path conj k) v))]
-                              [(dom/div #js {:key (str k "-key")}
-                                 (dom/div #js {:className (:list-item-index css)}
-                                   (if path-action
-                                     (dom/div #js {:className (:path-action css)
-                                                   :onClick   #(path-action (conj path k))}
-                                       (render-data input k))
-                                     (render-data input k))))
-                               (dom/div #js {:key (str k "-value")} (render-data (update input :path conj k) v))])))
-                                    (tufte/p :map-sort (sort-by (comp str first) content)))))
+               (cond
+                 (empty? content)
+                 "{}"
 
-            (dom/div #js {:className (:list-container css)}
-              (render-ordered-list input content)))
+                 (expanded path)
+                 (tufte/profile
+                   {}
+                   (tufte/p
+                     :map-region-2
+                     (if (every? keyable? (keys content))
+                       (dom/div #js {:className (:map-container css)}
+                                (into []
+                                      (mapcat (fn [[k v]]
+                                                (if (expanded (conj path k))
+                                                  [(dom/div #js {:key (str k "-key")}
+                                                            (dom/div #js {:className (:list-item-index css)}
+                                                                     (if path-action
+                                                                       (dom/div #js {:className (:path-action css)
+                                                                                     :onClick   #(path-action (conj path k))}
+                                                                                (render-data input k))
+                                                                       (render-data input k))))
+                                                   (dom/div #js {:key (str k "-key-space")})
+                                                   (dom/div #js {:className (:map-expanded-item css)
+                                                                 :key       (str k "-value")} (render-data (update input :path conj k) v))]
+                                                  [(dom/div #js {:key (str k "-key")}
+                                                            (dom/div #js {:className (:list-item-index css)}
+                                                                     (if path-action
+                                                                       (dom/div #js {:className (:path-action css)
+                                                                                     :onClick   #(path-action (conj path k))}
+                                                                                (render-data input k))
+                                                                       (render-data input k))))
+                                                   (dom/div #js {:key (str k "-value")} (render-data (update input :path conj k) v))])))
+                                      (tufte/p :map-sort (sort-by (comp str first) content))))
 
-          (or (expanded (vec (butlast path)))
-            (empty? path))
-          (dom/div #js {:className (:list-inline css)}
-            "{"
-            (->> content
-              (sort-by (comp str first))
-              (take map-max-inline)
-              (mapv (fn [[k v]]
-                      [(dom/div #js {:className (:map-inline-key-item css) :key (str k "-key")} (render-data input k))
-                       (dom/div #js {:className (:map-inline-value-item css) :key (str k "-value")} (render-data (update input :path conj k) v))]))
-              (interpose ", ")
-              (apply concat))
-            (if (> (count content) map-max-inline)
-              ", ")
-            (if (> (count content) map-max-inline)
-              (dom/div #js {:className (:list-inline-item css)} "..."))
-            "}")
+                       (dom/div #js {:className (:list-container css)}
+                                (render-ordered-list input content)))))
 
-          :else
-          "{...}")))))
+                 (or (expanded (vec (butlast path)))
+                     (empty? path))
+                 (tufte/profile
+                   {}
+                   (tufte/p
+                     :map-region-3
+                     (dom/div #js {:className (:list-inline css)}
+                              "{"
+                              (->> content
+                                   (sort-by (comp str first))
+                                   (take map-max-inline)
+                                   (mapv (fn [[k v]]
+                                           [(dom/div #js {:className (:map-inline-key-item css) :key (str k "-key")} (render-data input k))
+                                            (dom/div #js {:className (:map-inline-value-item css) :key (str k "-value")} (render-data (update input :path conj k) v))]))
+                                   (interpose ", ")
+                                   (apply concat))
+                              (if (> (count content) map-max-inline)
+                                ", ")
+                              (if (> (count content) map-max-inline)
+                                (dom/div #js {:className (:list-inline-item css)} "..."))
+                              "}")))
+
+                 :else
+                 "{...}")))))
 
 (def ui-map (fp/factory Map))
 
@@ -388,8 +400,8 @@
                     [:&:hover
                      [:div {:text-decoration "underline"}]]]]}
 
-  (dom/div :.container
-    (tufte/profile {}
+  (dom/div :.container {}
+           (tufte/profile {}
                    (tufte/p :data-viewer
                             (render-data {:expanded expanded
                       :static?     static?
