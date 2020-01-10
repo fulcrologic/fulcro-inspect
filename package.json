@@ -30,7 +30,7 @@
     "karma-cljs-test": "^0.1.0",
     "karma-firefox-launcher": "^0.1.7",
     "react": "^16.2.0",
-    "react-dom": "^16.2.0",
+    "react-dom": "^16.3.3",
     "shadow-cljs": "^2.8.59"
   },
   "repository": {
