@@ -28,6 +28,32 @@ chrome tools preload.  The Inspect UI will accept messages
 from any source, so the IPC messages from the node server
 just place them on the inspect message queue.
 
+== Development Notes (working on Inspect electron app)
+
+First, make sure you have a Fulcro application that is using the websocket-preload and is working
+with the distributed Fulcro Inspect electron app. This will make it easy to test that you
+got it working.
+
+The following steps are necessary to hack on Fulcro Inspect electron app:
+
+In the project root:
+
+1. `npm install`
+2. `shadow-cljs server`, go to the web dashboard, and start the 2 electron builds
+
+Then, cd into the `shells/electron` folder and do a `yarn`.
+
+Once that is done (and the shadow compiles are done), go BACK to the project root and run:
+
+```
+electron shells/electron
+```
+
+You should now have a working app.
+
+NOTE: At the moment the websocket management is crap. Could require various amounts of reloading app
+or restarting electron app.
+
 == General Usage (React Native)
 
 Requires Fulcro 3.0.2 or above.
