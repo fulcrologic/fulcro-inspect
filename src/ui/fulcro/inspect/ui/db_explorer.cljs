@@ -9,11 +9,30 @@
     [fulcro.inspect.ui.core :as ui]
     [fulcro.util :refer [ident?]]))
 
-(defmutation set-content [new-state]
+(defmutation set-current-state [new-state]
   (action [env]
-    (h/swap-entity! env assoc :current-database new-state)))
+    (h/swap-entity! env assoc :current-state new-state)))
 
-(defsc EntityLevel [this {:keys [entity selectIdent]}]
+(defn table? [v]
+  (and
+    (map? v)
+    (every? map? (vals v))))
+
+(defn ui-ident [f v]
+  (dom/button {:key (str "ident-" v) :onClick #(f v)} (str v)))
+
+(defn ui-db-value [{:keys [selectIdent selectMap]} v k]
+  (cond
+    (ident? v)
+    #_=> (ui-ident selectIdent v)
+    (and (vector? v) (every? ident? v) (vector? v))
+    #_=> (prim/fragment (map (partial ui-ident selectIdent) v))
+    (map? v)
+    #_=> (ui-ident #(selectMap k) (str "Show " (count v) " ..."))
+    (nil? v) "nil"
+    :else (str v)))
+
+(defsc EntityLevel [this {:keys [entity] :as params}]
   {}
   (prim/fragment
     (dom/tr
@@ -21,14 +40,9 @@
       (dom/th "Value"))
     (map
       (fn [[k v]]
-        (dom/tr
+        (dom/tr {:key (str "entity-key-" k)}
           (dom/td (str k))
-          (dom/td
-            (cond
-              (ident? v) (dom/button {:onClick #(when selectIdent (selectIdent v))}
-                           (str v))
-              (nil? v) "nil"
-              :else (str v)))))
+          (dom/td (ui-db-value params v k))))
       entity)))
 
 (def ui-entity-level (prim/factory EntityLevel))
@@ -40,15 +54,15 @@
       (dom/th "Entity ID"))
     (map
       (fn [entity-id]
-        (dom/tr
+        (dom/tr {:key (str "table-key-" entity-id)}
           (dom/td
-            (dom/button {:onClick #(when selectEntity (selectEntity entity-id))}
-              (pr-str entity-id)))))
+            (dom/button {:onClick #(selectEntity entity-id)}
+              (str entity-id)))))
       entity-ids)))
 
 (def ui-table-level (prim/factory TableLevel))
 
-(defsc TopLevel [this {:keys [tables root-values selectTopKey]}]
+(defsc TopLevel [this {:keys [tables root-values selectTopKey] :as params}]
   {}
   (prim/fragment
     (dom/tr
@@ -56,10 +70,10 @@
       (dom/th "Entities"))
     (map
       (fn [[k v]]
-        (dom/tr
+        (dom/tr {:key (str "top-tables-key-" k)}
           (dom/td (str k))
           (dom/td
-            (dom/button {:onClick #(when selectTopKey (selectTopKey k))}
+            (dom/button {:onClick #(selectTopKey k)}
               (str "Show " (count v) " ...")))))
       (sort tables))
     (dom/tr
@@ -67,9 +81,9 @@
       (dom/th "Value"))
     (map
       (fn [[k v]]
-        (dom/tr
+        (dom/tr {:key (str "top-values-key-" k)}
           (dom/td (str k))
-          (dom/td (str v))))
+          (dom/td (ui-db-value params v k))))
       root-values)))
 
 (def ui-top-level (prim/factory TopLevel))
@@ -83,59 +97,65 @@
         reconciler (prim/any->reconciler this)]
     (prim/transact! reconciler [::id id] `[(set-path {:path ~path})])))
 
-(defsc DBExplorer [this {:ui/keys [path] :keys [current-database]}]
-  {:query         [:ui/path ::id :current-database]
+(defmutation append-to-path [{:keys [sub-path]}]
+  (action [env]
+    (h/swap-entity! env update :ui/path into sub-path)))
+
+(defn append-to-path! [this & sub-path]
+  (let [{::keys [id]} (prim/props this)
+        reconciler (prim/any->reconciler this)]
+    (prim/transact! reconciler [::id id] `[(append-to-path {:sub-path ~sub-path})])))
+
+(defn ui-db-path [this path]
+  {}
+  (dom/div {}
+    (dom/button {:onClick #(set-path! this [])} "TOP")
+    (when (seq (drop-last path))
+      (map
+        (fn [sub-path]
+          (prim/fragment
+            ">" (dom/button {:onClick #(set-path! this sub-path)}
+                  (str (last sub-path)))))
+        (let [[x & xs] (drop-last path)]
+          (reductions conj [x] xs))))
+    (when (last path)
+      (prim/fragment
+        ">" (dom/button {:disabled true}
+              (str (last path)))))))
+
+(defsc DBExplorer [this {:ui/keys [path] :keys [current-state]}]
+  {:query         [:ui/path ::id :current-state]
    ;   :initLocalState (fn [] {:selectTopKey (fn [k] (select-top-key this k))})
    :ident         [::id ::id]
-   :initial-state {:current-database {}}}
+   :initial-state {:current-state {}}}
   (let [{:keys [selectTopKey]} (prim/get-state this)
         mode (cond
                (empty? path) :top
-               (= 1 (count path)) :table
-               (= 2 (count path)) :entity)]
+               (and (= 1 (count path))
+                 (table? (get-in current-state path))) :table
+               :else :entity)]
     (dom/div {}
-      (case mode
-        :top (dom/div {}
-               (dom/button "TOP"))
-        :table (dom/div {}
-                 (dom/button {:onClick #(set-path! this [])}
-                   "TOP")
-                 ">"
-                 (dom/button {:disabled true}
-                   (str (first path))))
-        :entity (dom/div {}
-                  (dom/button {:onClick #(set-path! this [])}
-                    "TOP")
-                  ">"
-                  (dom/button {:onClick #(set-path! this [(first path)])}
-                    (str (first path)))
-                  ">"
-                  (dom/button {:disabled true}
-                    (str (second path)))))
-      ;(ui/icon :remove_red_eye)
+      (ui-db-path this path)
       (dom/table {}
         (dom/tbody
           (case mode
-            :top (let [top-keys    (set (sort (keys current-database)))
+            :top (let [top-keys    (set (sort (keys current-state)))
                        tables      (filter
                                      (fn [k]
-                                       (let [v (get current-database k)]
-                                         (and
-                                           (map? v)
-                                           (every? map? (vals v)))))
+                                       (let [v (get current-state k)]
+                                         (table? v)))
                                      top-keys)
-                       root-values (select-keys current-database (set/difference top-keys (set tables)))]
-                   (ui-top-level {:tables       (select-keys current-database tables)
+                       root-values (select-keys current-state (set/difference top-keys (set tables)))]
+                   (ui-top-level {:tables       (select-keys current-state tables)
                                   :root-values  root-values
+                                  :selectIdent  (fn [ident] (set-path! this ident))
+                                  :selectMap    (fn [k] (append-to-path! this k))
                                   :selectTopKey (fn [k] (set-path! this [k]))}))
-            :table (ui-table-level {:entity-ids   (or
-                                                    (sort (keys (get-in current-database path)))
-                                                    [])
-                                    :selectEntity (fn [id]
-                                                    (set-path! this (conj path id)))})
-            :entity (ui-entity-level {:entity (get-in current-database path)
-                                      :selectIdent (fn [ident]
-                                                     (set-path! this ident))})
+            :table (ui-table-level {:entity-ids   (keys (get-in current-state path))
+                                    :selectEntity (fn [id] (append-to-path! this id))})
+            :entity (ui-entity-level {:entity      (get-in current-state path)
+                                      :selectMap   (fn [k] (append-to-path! this k))
+                                      :selectIdent (fn [ident] (set-path! this ident))})
             (dom/div "Internal Error")))))))
 
 (def ui-db-explorer (prim/factory DBExplorer))

@@ -196,11 +196,11 @@
     (let [state (assoc new-state :fulcro.inspect.client/state-hash state-hash)]
       (fp/transact! (:reconciler @global-inspector*)
         [::db-explorer/id [app-uuid-key app-uuid]]
-        [`(db-explorer/set-content ~state) :current-database])
+        [`(db-explorer/set-current-state ~state) :current-state])
       (fp/transact! (:reconciler @global-inspector*)
         [::data-history/history-id [app-uuid-key app-uuid]]
         [`(data-history/set-content ~state)
-         :current-database
+         :current-state
          ::data-history/history]))))
 
 (defn new-client-tx [{:fulcro.inspect.core/keys   [app-uuid]
