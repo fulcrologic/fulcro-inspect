@@ -17,6 +17,7 @@
     [fulcro.inspect.remote.transit :as encode]
     [fulcro.inspect.ui-parser :as ui-parser]
     [fulcro.inspect.ui.data-history :as data-history]
+    [fulcro.inspect.ui.db-explorer :as db-explorer]
     [fulcro.inspect.ui.data-watcher :as data-watcher]
     [fulcro.inspect.ui.element :as element]
     [fulcro.inspect.ui.i18n :as i18n]
@@ -112,6 +113,7 @@
                         (assoc :fulcro.inspect.core/client-connection-id client-connection-id)
                         (assoc :fulcro.inspect.core/app-id app-id)
                         (assoc ::inspector/name (dedupe-name app-id))
+                        (assoc-in [::inspector/db-explorer ::db-explorer/id] [app-uuid-key app-uuid])
                         (assoc-in [::inspector/app-state ::data-history/history-id] [app-uuid-key app-uuid])
                         (assoc-in [::inspector/app-state ::data-history/watcher ::data-watcher/id] [app-uuid-key app-uuid])
                         (assoc-in [::inspector/app-state ::data-history/watcher ::data-watcher/watches]
@@ -193,8 +195,13 @@
 
     (let [state (assoc new-state :fulcro.inspect.client/state-hash state-hash)]
       (fp/transact! (:reconciler @global-inspector*)
+        [::db-explorer/id [app-uuid-key app-uuid]]
+        [`(db-explorer/set-content ~state) :current-database])
+      (fp/transact! (:reconciler @global-inspector*)
         [::data-history/history-id [app-uuid-key app-uuid]]
-        [`(data-history/set-content ~state) ::data-history/history]))))
+        [`(data-history/set-content ~state)
+         :current-database
+         ::data-history/history]))))
 
 (defn new-client-tx [{:fulcro.inspect.core/keys   [app-uuid]
                       :fulcro.inspect.client/keys [tx]}]

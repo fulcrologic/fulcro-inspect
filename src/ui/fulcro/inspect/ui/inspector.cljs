@@ -5,6 +5,7 @@
             [fulcro.inspect.ui.core :as ui]
             [fulcro.inspect.ui.data-history :as data-history]
             [fulcro.inspect.ui.data-viewer :as data-viewer]
+            [fulcro.inspect.ui.db-explorer :as db-explorer]
             [fulcro.inspect.ui.data-watcher :as data-watcher]
             [fulcro.inspect.ui.element :as element]
             [fulcro.inspect.ui.i18n :as i18n]
@@ -15,23 +16,24 @@
 
 (fp/defsc Inspector
   [this
-   {::keys   [app-state tab element network transactions i18n oge index-explorer client-connection-id]
+   {::keys   [app-state db-explorer tab element network transactions i18n oge index-explorer client-connection-id]
     :ui/keys [more-open?]} _ css]
   {:initial-state
    (fn [state]
      {::id                   (random-uuid)
       ::client-connection-id -1
-      ::name                 ""
-      ::tab                  ::page-db
-      ::app-state            (-> (fp/get-initial-state data-history/DataHistory state)
-                               (assoc-in [::data-history/watcher ::data-watcher/root-data ::data-viewer/expanded]
-                                 {[] true}))
-      ::element              (fp/get-initial-state element/Panel nil)
-      ::i18n                 (fp/get-initial-state i18n/TranslationsViewer nil)
-      ::index-explorer       (fp/get-initial-state fiex/IndexExplorer {})
-      ::network              (fp/get-initial-state network/NetworkHistory nil)
-      ::oge                  (fp/get-initial-state oge/OgeView {})
-      ::transactions         (fp/get-initial-state transactions/TransactionList [])
+      ::name           ""
+      ::tab            ::page-db
+      ::app-state      (-> (fp/get-initial-state data-history/DataHistory state)
+                         (assoc-in [::data-history/watcher ::data-watcher/root-data ::data-viewer/expanded]
+                           {[] true}))
+      ::element        (fp/get-initial-state element/Panel nil)
+      ::i18n           (fp/get-initial-state i18n/TranslationsViewer nil)
+      ::index-explorer (fp/get-initial-state fiex/IndexExplorer {})
+      ::network        (fp/get-initial-state network/NetworkHistory nil)
+      ::oge            (fp/get-initial-state oge/OgeView {})
+      ::transactions   (fp/get-initial-state transactions/TransactionList [])
+      ::db-explorer    (fp/get-initial-state db-explorer/DBExplorer {})
       :ui/more-open?         false})
 
    :ident
@@ -41,6 +43,7 @@
    [::tab ::id ::name :fulcro.inspect.core/app-id :ui/more-open?
     {[:fulcro.inspect.core/floating-panel "main"] [:ui/dock-side]}
     {::app-state (fp/get-query data-history/DataHistory)}
+    {::db-explorer (fp/get-query db-explorer/DBExplorer)}
     {::element (fp/get-query element/Panel)}
     {::network (fp/get-query network/NetworkHistory)}
     {::i18n (fp/get-query i18n/TranslationsViewer)}
@@ -116,6 +119,7 @@
     (dom/div :.container {:onClick #(if more-open? (mutations/set-value! this :ui/more-open? false))}
       (dom/div :.tabs
         (tab-item {:title "DB" :page ::page-db})
+        (tab-item {:title "DB Explorer" :page ::page-db-explorer})
         (tab-item {:title "Element" :page ::page-element})
         (tab-item {:title "Transactions" :page ::page-transactions})
         (tab-item {:title "Network" :page ::page-network})
@@ -136,6 +140,9 @@
         (case tab
           ::page-db
           (data-history/data-history app-state)
+
+          ::page-db-explorer
+          (db-explorer/ui-db-explorer db-explorer)
 
           ::page-element
           (element/panel element)
