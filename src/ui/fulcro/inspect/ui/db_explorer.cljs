@@ -4,7 +4,8 @@
     [fulcro.client.primitives :as prim :refer [defsc]]
     [fulcro.client.mutations :refer [defmutation]]
     [fulcro.client.dom :as dom]
-    [fulcro.inspect.helpers :as h]))
+    [fulcro.inspect.helpers :as h]
+    [clojure.set :as set]))
 
 (defmutation set-content [new-state]
   (action [env]
@@ -26,19 +27,24 @@
     (fn [idx entity-id]
       (dom/div {:key (str idx)}
         (dom/button {:onClick #(when selectEntity (selectEntity entity-id))}
-          (pr-str entity-id))))
+          (pr-str entity-id))
+        (dom/button {} "Add this entity to Watch list")))
     entity-ids))
 
 (def ui-table-level (prim/factory TableLevel))
 
-(defsc TopLevel [this {:keys [top-keys selectTopKey]}]
+(defsc TopLevel [this {:keys [tables root-values selectTopKey]}]
   {}
-  (map-indexed
-    (fn [idx k]
-      (dom/div {:key (str idx)}
-        (dom/button {:onClick #(when selectTopKey (selectTopKey k))}
-          (pr-str k))))
-    top-keys))
+  (dom/div
+    (dom/pre
+      (with-out-str
+        (pprint root-values)))
+    (map-indexed
+      (fn [idx k]
+        (dom/div {:key (str idx)}
+          (dom/button {:onClick #(when selectTopKey (selectTopKey k))}
+            (pr-str k))))
+      tables)))
 
 (def ui-top-level (prim/factory TopLevel))
 
@@ -66,10 +72,26 @@
                (= 1 (count path)) :table
                (= 2 (count path)) :entity)]
     (dom/div {}
-      (map-indexed (fn [idx k] (dom/button {:key idx} (str k))) (into ["TOP"] path))
       (case mode
-        :top (let [top-keys (sort (keys current-database))]
-               (ui-top-level {:top-keys     top-keys
+        :top (dom/div {} (dom/button "TOP"))
+        :table (dom/div {}
+                 (dom/button {:onClick #(set-path! this [])} "TOP")
+                 (dom/button {} (str (first path))))
+        :entity (dom/div {}
+                  (dom/button {:onClick #(set-path! this [])} "TOP")
+                  (dom/button {} (str (second path)))))
+      (case mode
+        :top (let [top-keys    (set (sort (keys current-database)))
+                   tables      (filter
+                                 (fn [k]
+                                   (let [v (get current-database k)]
+                                     (and
+                                       (map? v)
+                                       (every? map? (vals v)))))
+                                 top-keys)
+                   root-values (select-keys current-database (set/difference top-keys (set tables)))]
+               (ui-top-level {:tables       tables
+                              :root-values  root-values
                               :selectTopKey (fn [k] (set-path! this [k]))}))
         :table (ui-table-level {:entity-ids   (or
                                                 (sort (keys (get-in current-database path)))
