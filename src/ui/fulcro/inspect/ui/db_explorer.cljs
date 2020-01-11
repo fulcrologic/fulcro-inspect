@@ -90,25 +90,42 @@
 
 (defmutation set-path [{:keys [path]}]
   (action [env]
-    (h/swap-entity! env assoc :ui/path path)))
+    (h/swap-entity! env assoc :ui/path path)
+    (h/swap-entity! env update :ui/history conj path)))
 
 (defn set-path! [this path]
   (let [{::keys [id]} (prim/props this)
         reconciler (prim/any->reconciler this)]
-    (prim/transact! reconciler [::id id] `[(set-path {:path ~path})])))
+    (prim/transact! reconciler [::id id]
+      `[(set-path {:path ~path})])))
 
 (defmutation append-to-path [{:keys [sub-path]}]
-  (action [env]
-    (h/swap-entity! env update :ui/path into sub-path)))
+  (action [{:as env :keys [state ref]}]
+    (h/swap-entity! env update :ui/path into sub-path)
+    (h/swap-entity! env update :ui/history conj
+      (get-in @state (conj ref :ui/path)))))
 
 (defn append-to-path! [this & sub-path]
   (let [{::keys [id]} (prim/props this)
         reconciler (prim/any->reconciler this)]
-    (prim/transact! reconciler [::id id] `[(append-to-path {:sub-path ~sub-path})])))
+    (prim/transact! reconciler [::id id]
+      `[(append-to-path {:sub-path ~sub-path})])))
+
+(defmutation pop-history [_]
+  (action [{:as env :keys [state ref]}]
+    (h/swap-entity! env update :ui/history (comp vec drop-last))
+    (h/swap-entity! env assoc :ui/path (last (get-in @state (conj ref :ui/history))))))
+
+(defn pop-history! [this]
+  (let [{::keys [id]} (prim/props this)
+        reconciler (prim/any->reconciler this)]
+    (prim/transact! reconciler [::id id]
+      `[(pop-history {})])))
 
 (defn ui-db-path [this path]
   {}
   (dom/div {}
+    (dom/button {:onClick #(pop-history! this)} "<")
     (dom/button {:onClick #(set-path! this [])} "TOP")
     (when (seq (drop-last path))
       (map
@@ -123,11 +140,13 @@
         ">" (dom/button {:disabled true}
               (str (last path)))))))
 
-(defsc DBExplorer [this {:ui/keys [path] :keys [current-state]}]
-  {:query         [:ui/path ::id :current-state]
+(defsc DBExplorer [this {:ui/keys [path history] :keys [current-state]}]
+  {:query         [:ui/path :ui/history ::id :current-state]
    ;   :initLocalState (fn [] {:selectTopKey (fn [k] (select-top-key this k))})
    :ident         [::id ::id]
-   :initial-state {:current-state {}}}
+   :initial-state {:current-state {}
+                   :ui/path []
+                   :ui/history []}}
   (let [{:keys [selectTopKey]} (prim/get-state this)
         mode (cond
                (empty? path) :top
@@ -135,6 +154,7 @@
                  (table? (get-in current-state path))) :table
                :else :entity)]
     (dom/div {}
+      ;(pr-str history)
       (ui-db-path this path)
       (dom/table {}
         (dom/tbody
