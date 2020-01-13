@@ -1,6 +1,6 @@
 {
   "name": "fulcro-inspect-electron",
-  "version": "2.2.1-alpha",
+  "version": "2.2.1",
   "description": "Electron Version of Fulcro Inspect",
   "homepage": "https://github.com/fulcrologic/fulcro-inspect",
   "main": "js/background/main.js",
@@ -12,12 +12,12 @@
   "repository": "https://github.com:/fulcrologic/fulcro-inspect.git",
   "dependencies": {
     "express": "^4.16.3",
-    "socket.io": "1.7.4"
+    "socket.io": "1.7.4",
+    "electron-settings": "^3.2.0"
   },
   "devDependencies": {
     "electron": "^6.0.12",
-    "electron-builder": "^21.2.0",
-    "electron-settings": "^3.2.0"
+    "electron-builder": "^21.2.0"
   },
   "scripts": {
     "postinstall": "install-app-deps",
