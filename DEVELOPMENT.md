@@ -19,6 +19,8 @@ via:
 ```
 $ ./build-linux.sh
 root@234987:/project# eletron-builder build -wl
+root@234987:/project# exit
+$ ls dist
 ```
 
 and the resulting files will be in `dist`.
