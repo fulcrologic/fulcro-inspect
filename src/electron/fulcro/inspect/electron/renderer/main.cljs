@@ -27,18 +27,33 @@
     [fulcro.inspect.ui.network :as network]
     [fulcro.inspect.ui.transactions :as transactions]
     [goog.object :as gobj]
-    [taoensso.encore :as enc]))
+    [taoensso.encore :as enc]
+    [fulcro.client.mutations :as m]))
 
 (defonce electron (js/require "electron"))
+(defonce settings (js/require "electron-settings"))
 (def ipcRenderer (gobj/get electron "ipcRenderer"))
 
-(fp/defsc GlobalRoot [this {:keys [ui/root]}]
-  {:initial-state (fn [params] {:ui/root (fp/get-initial-state multi-inspector/MultiInspector params)})
-   :query         [{:ui/root (fp/get-query multi-inspector/MultiInspector)}]
+(fm/defmutation set-port [{:keys [port]}]
+  (action [{:keys [state]}] (swap! state assoc :ui/websocket-port port)))
+
+(fp/defsc GlobalRoot [this {:ui/keys [root websocket-port]}]
+  {:initial-state (fn [params] {:ui/root           (fp/get-initial-state multi-inspector/MultiInspector params)
+                                :ui/websocket-port (or (.get settings "port") 8237)})
+   :query         [{:ui/root (fp/get-query multi-inspector/MultiInspector)}
+                   :ui/websocket-port]
    :css           [[:body {:margin "0" :padding "0" :box-sizing "border-box"}]]
    :css-include   [multi-inspector/MultiInspector]}
   (dom/div
     (css/style-element this)
+    (dom/div (dom/label "Websocket Port: ")
+      (dom/input {:value    websocket-port
+                  :type     "number"
+                  :onChange (fn [e]
+                              (fp/transact! this `[(set-port {:port ~(.. e -target -value)})]))})
+      (dom/button {:onClick (fn []
+                              (.send ipcRenderer "event" #js {:port    websocket-port
+                                                              :restart true}))} "Restart Websockets"))
     (multi-inspector/multi-inspector root)))
 
 (defonce ^:private global-inspector* (atom nil))
@@ -46,7 +61,7 @@
 
 (def app-uuid-key :fulcro.inspect.core/app-uuid)
 
-(def current-tab-id 42 #_js/chrome.devtools.inspectedWindow.tabId)
+(def current-tab-id 42)
 
 ;; LANDMARK: This is how we talk back to the node server, which can send the websocket message
 (defn post-message [port type data]
@@ -89,7 +104,7 @@
 (defonce last-disposed-app* (atom nil))
 
 (defn start-app [{:fulcro.inspect.core/keys   [app-id app-uuid client-connection-id]
-                  :fulcro.inspect.client/keys [initial-state state-hash remotes]}]
+                  :fulcro.inspect.client/keys [initial-state state-hash remotes] :as data}]
   (let [inspector     @global-inspector*
         initial-state (assoc initial-state :fulcro.inspect.client/state-hash state-hash)
         new-inspector (-> (fp/get-initial-state inspector/Inspector initial-state)

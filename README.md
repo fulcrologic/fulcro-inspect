@@ -77,19 +77,38 @@ Then make sure you add this preload to your preloads:
 or call the function `com.fulcrologic.fulcro.inspect.inspect-client/install-ws` somewhere in your 
 development startup.
 
-At the moment the Electron App has some limitations:
+### Choosing the Websocket Port
 
-* There is no way to set the websocket port. So, conflicts on that port will
-just make it not work. There is a simple fix, we just haven't created the UI for it.
-* Only one app can connect to Inspect at a time. The most recent-connecting 
-  application will take precedence.
-  If you're running something like workspaces then please use the Chrome extension.
-* Start Inspect before running your app.
+The Electron app includes an input field at the top of the UI for the websocket
+port to use (default 8237). Pressing `Restart Websockets` will cause it to
+save the port and restart the websocket server. This allows you to use an alternate port should
+8237 already be bound by another process; however, in order to do this
+you *must* change the port in *two* places: That input field, and in your
+build configuration.
 
-You should be able to reload your app at any time and have it reconnect.
+In your CLJS build, set closure-defines. In `shadow-cljs.edn` this is done
+like this:
 
-The electron app is very new and lightly tested, but should mature 
-rapidly.
+```
+ :builds   {:main     {:target     :browser
+                       ...
+                       :dev        {:closure-defines  {com.fulcrologic.fulcro.inspect.inspect_ws/SERVER_PORT 3003}}
+                       :devtools   {:preloads [com.fulcrologic.fulcro.inspect.websocket-preload]}}}
+```
+
+The value of `SERVER_PORT` must match what you wish to use in the Electron
+app. The electron app itself will remember the port you last used between
+restarts, so you can safely set some known good value for this in your
+system (note: only admins can use ports 1-1024, so choose a number
+bigger than that).
+
+### Known Limitations
+
+* Applications connect to inspect when they start. If you start
+  the electron version of Inspect after your app, then you'll need to reload
+  you app for it to connect.
+
+## Inspect Features
 
 ### DB Tab
 

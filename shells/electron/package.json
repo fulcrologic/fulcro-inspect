@@ -4,8 +4,10 @@
   "description": "Electron Version of Fulcro Inspect",
   "homepage": "https://github.com/fulcrologic/fulcro-inspect",
   "main": "js/background/main.js",
-  "author": {"name": "Tony Kay",
-    "email": "tony@fulcrologic.com" },
+  "author": {
+    "name": "Tony Kay",
+    "email": "tony@fulcrologic.com"
+  },
   "license": "MIT",
   "repository": "https://github.com:/fulcrologic/fulcro-inspect.git",
   "dependencies": {
@@ -14,7 +16,8 @@
   },
   "devDependencies": {
     "electron": "^6.0.12",
-    "electron-builder": "^21.2.0"
+    "electron-builder": "^21.2.0",
+    "electron-settings": "^3.2.0"
   },
   "scripts": {
     "postinstall": "install-app-deps",
@@ -51,7 +54,6 @@
       "target": "nsis",
       "icon": "build/icon.ico"
     },
-    "nsis": {
-    }
+    "nsis": {}
   }
 }
