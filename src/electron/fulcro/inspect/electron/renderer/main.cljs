@@ -26,7 +26,8 @@
     [fulcro.inspect.ui.multi-oge :as multi-oge]
     [fulcro.inspect.ui.network :as network]
     [fulcro.inspect.ui.transactions :as transactions]
-    [goog.object :as gobj]))
+    [goog.object :as gobj]
+    [taoensso.encore :as enc]))
 
 (defonce electron (js/require "electron"))
 (def ipcRenderer (gobj/get electron "ipcRenderer"))
@@ -47,14 +48,16 @@
 
 (def current-tab-id 42 #_js/chrome.devtools.inspectedWindow.tabId)
 
+;; LANDMARK: This is how we talk back to the node server, which can send the websocket message
 (defn post-message [port type data]
   (.send ipcRenderer "event" #js {:fulcro-inspect-devtool-message (encode/write {:type type :data data :timestamp (js/Date.)})
-                                  :tab-id                         current-tab-id})
-  #_(.postMessage port #js {:fulcro-inspect-devtool-message (encode/write {:type type :data data :timestamp (js/Date.)})
-                            :tab-id                         current-tab-id}))
+                                  :client-connection-id           (:fulcro.inspect.core/client-connection-id data)
+                                  :tab-id                         current-tab-id}))
 
 (defn event-data [event]
   (some-> event (gobj/get "fulcro-inspect-remote-message") encode/read))
+
+(defn client-connection-id [event] (some-> event (gobj/get "client-id")))
 
 (defn inc-id [id]
   (let [new-id (if-let [[_ prefix d] (re-find #"(.+?)(\d+)$" (str id))]
@@ -85,23 +88,24 @@
 
 (defonce last-disposed-app* (atom nil))
 
-(defn start-app [{:fulcro.inspect.core/keys   [app-id app-uuid]
+(defn start-app [{:fulcro.inspect.core/keys   [app-id app-uuid client-connection-id]
                   :fulcro.inspect.client/keys [initial-state state-hash remotes]}]
   (let [inspector     @global-inspector*
         initial-state (assoc initial-state :fulcro.inspect.client/state-hash state-hash)
         new-inspector (-> (fp/get-initial-state inspector/Inspector initial-state)
                         (assoc ::inspector/id app-uuid)
+                        (assoc :fulcro.inspect.core/client-connection-id client-connection-id)
                         (assoc :fulcro.inspect.core/app-id app-id)
                         (assoc ::inspector/name (dedupe-name app-id))
                         (assoc-in [::inspector/app-state ::data-history/history-id] [app-uuid-key app-uuid])
                         (assoc-in [::inspector/app-state ::data-history/watcher ::data-watcher/id] [app-uuid-key app-uuid])
                         (assoc-in [::inspector/app-state ::data-history/watcher ::data-watcher/watches]
                           (->> (storage/get [::data-watcher/watches app-id] [])
-                               (mapv (fn [path]
-                                       (fp/get-initial-state data-watcher/WatchPin
-                                         {:path     path
-                                          :expanded (storage/get [::data-watcher/watches-expanded app-id path] {})
-                                          :content  (get-in initial-state path)})))))
+                            (mapv (fn [path]
+                                    (fp/get-initial-state data-watcher/WatchPin
+                                      {:path     path
+                                       :expanded (storage/get [::data-watcher/watches-expanded app-id path] {})
+                                       :content  (get-in initial-state path)})))))
                         (assoc-in [::inspector/app-state ::data-history/snapshots] (storage/tget [::data-history/snapshots app-id] []))
                         (assoc-in [::inspector/network ::network/history-id] [app-uuid-key app-uuid])
                         (assoc-in [::inspector/element ::element/panel-id] [app-uuid-key app-uuid])
@@ -198,8 +202,9 @@
       [`(fm/set-props {::multi-inspector/client-stale? true})])))
 
 (defn handle-remote-message [{:keys [port event responses*]}]
-  (when-let [{:keys [type data]} (event-data event)]
-    (let [data (assoc data ::port port)]
+  (enc/when-let [{:keys [type data]} (event-data event)
+                 client-id (client-connection-id event)]
+    (let [data (assoc data ::port port :fulcro.inspect.core/client-connection-id client-id)]
       (case type
         :fulcro.inspect.client/init-app
         (start-app data)
@@ -236,25 +241,9 @@
 (defonce message-handler-ch (async/chan (async/dropping-buffer 1024)))
 
 (defn event-loop [app responses*]
-
   (.on ipcRenderer "event" (fn [_ msg]
                              (handle-remote-message {:event      msg
-                                                     :responses* responses*})))
-  #_(let [port (js/chrome.runtime.connect #js {:name "fulcro-inspect-devtool"})]
-      (.addListener (.-onMessage port) #(put! message-handler-ch {:port       port
-                                                                  :event      %
-                                                                  :responses* responses*}))
-
-      (go
-        (loop []
-          (when-let [msg (<! message-handler-ch)]
-            (<?maybe (handle-remote-message msg))
-            (recur))))
-
-      (.postMessage port #js {:name "init" :tab-id current-tab-id})
-      (post-message port :fulcro.inspect.client/request-page-apps {})
-
-      port))
+                                                     :responses* responses*}))))
 
 (defn make-network [port* parser responses*]
   (pfn/fn-network

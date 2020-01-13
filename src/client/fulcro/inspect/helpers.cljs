@@ -200,6 +200,13 @@
                    app-uuid
                    :fulcro.inspect.core/app-id])))
 
+(defn ref-client-connection-id
+  [state ref]
+  (let [app-uuid (ref-app-uuid ref)]
+    (get-in state [:fulcro.inspect.ui.inspector/id
+                   app-uuid
+                   :fulcro.inspect.core/client-connection-id])))
+
 (defn comp-app-uuid
   "Read app uuid from a component"
   [comp]
@@ -223,8 +230,9 @@
       state
       apps)))
 
-(defn remote-mutation [{:keys [ast ref]} key]
+(defn remote-mutation [{:keys [state ast ref]} key]
   (-> (assoc ast :key key)
+    (assoc-in [:params :fulcro.inspect.core/client-connection-id] (ref-client-connection-id @state ref))
       (assoc-in [:params :fulcro.inspect.core/app-uuid] (ref-app-uuid ref))))
 
 (defn pprint [x]

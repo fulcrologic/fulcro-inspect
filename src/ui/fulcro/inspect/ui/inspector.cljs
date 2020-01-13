@@ -15,23 +15,24 @@
 
 (fp/defsc Inspector
   [this
-   {::keys   [app-state tab element network transactions i18n oge index-explorer]
+   {::keys   [app-state tab element network transactions i18n oge index-explorer client-connection-id]
     :ui/keys [more-open?]} _ css]
   {:initial-state
    (fn [state]
-     {::id             (random-uuid)
-      ::name           ""
-      ::tab            ::page-db
-      ::app-state      (-> (fp/get-initial-state data-history/DataHistory state)
-                           (assoc-in [::data-history/watcher ::data-watcher/root-data ::data-viewer/expanded]
-                             {[] true}))
-      ::element        (fp/get-initial-state element/Panel nil)
-      ::i18n           (fp/get-initial-state i18n/TranslationsViewer nil)
-      ::index-explorer (fp/get-initial-state fiex/IndexExplorer {})
-      ::network        (fp/get-initial-state network/NetworkHistory nil)
-      ::oge            (fp/get-initial-state oge/OgeView {})
-      ::transactions   (fp/get-initial-state transactions/TransactionList [])
-      :ui/more-open?   false})
+     {::id                   (random-uuid)
+      ::client-connection-id -1
+      ::name                 ""
+      ::tab                  ::page-db
+      ::app-state            (-> (fp/get-initial-state data-history/DataHistory state)
+                               (assoc-in [::data-history/watcher ::data-watcher/root-data ::data-viewer/expanded]
+                                 {[] true}))
+      ::element              (fp/get-initial-state element/Panel nil)
+      ::i18n                 (fp/get-initial-state i18n/TranslationsViewer nil)
+      ::index-explorer       (fp/get-initial-state fiex/IndexExplorer {})
+      ::network              (fp/get-initial-state network/NetworkHistory nil)
+      ::oge                  (fp/get-initial-state oge/OgeView {})
+      ::transactions         (fp/get-initial-state transactions/TransactionList [])
+      :ui/more-open?         false})
 
    :ident
    [::id ::id]
