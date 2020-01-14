@@ -25,7 +25,7 @@
 (defn restart-ws!
   "Call to reset the websocket server"
   [{:keys [content-atom]}]
-  (.set settings "noop" 42)a ; just to make sure the file is created.
+  (.set settings "noop" 42) ; just to make sure the file is created.
   (let [io (Server)
         port (or (.get settings "port") 8237)]
     (when @server-atom
