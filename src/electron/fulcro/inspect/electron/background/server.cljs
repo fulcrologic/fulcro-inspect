@@ -8,7 +8,6 @@
     [fulcro.inspect.remote.transit :as encode]
     [taoensso.encore :as enc]))
 
-(defonce server-port (atom (or (.get settings "port") 8237)))
 (defonce next-client-id (atom 1))
 (defonce clients (atom {}))
 (defonce app-uuids (atom {}))
@@ -26,7 +25,9 @@
 (defn restart-ws!
   "Call to reset the websocket server"
   [{:keys [content-atom]}]
-  (let [io (Server)]
+  (.set settings "noop" 42)a ; just to make sure the file is created.
+  (let [io (Server)
+        port (or (.get settings "port") 8237)]
     (when @server-atom
       (.close @server-atom))
     (reset! server-atom io)
@@ -50,8 +51,8 @@
                                   (when app-uuid
                                     (swap! app-uuids assoc id (uuid app-uuid)))
                                   (process-client-message web-contents msg id))))))))
-    (js/console.log "Fulcro Inspect Listening on port " @server-port)
-    (.listen io @server-port)))
+    (js/console.log "Fulcro Inspect Listening on port " port)
+    (.listen io port)))
 
 (defn start!
   "Call to start (or restart) the websocket server"
@@ -59,7 +60,6 @@
   (.on ipcMain "event" (fn [evt arg]
                          (if (gobj/get arg "restart")
                            (let [port (gobj/get arg "port")]
-                             (reset! server-port port)
                              (.set settings "port" port)
                              (restart-ws! env))
                            (enc/when-let [connection-id (gobj/get arg "client-connection-id")

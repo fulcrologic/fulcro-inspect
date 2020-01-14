@@ -15,12 +15,12 @@
                                    :protocol "file:"
                                    :slashes  "true"}))
     (.. win -webContents openDevTools)
-    (reset! contents (.-webContents win))))
+    (reset! contents (.-webContents win))
+    (server/start! {:content-atom contents})))
 
 (defn init []
   (js/console.log "start")
-  (electron/app.on "ready" create-window)
-  (server/start! {:content-atom contents}))
+  (electron/app.on "ready" create-window))
 
 (defn done []
   (js/console.log "Done reloading"))
