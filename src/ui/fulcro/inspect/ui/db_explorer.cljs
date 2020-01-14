@@ -134,29 +134,42 @@
     (prim/transact! reconciler [::id id]
       `[(append-to-path {:sub-path ~sub-path})])))
 
-(defn path-walk [f path e]
-  (let [e' (f path e)]
-    (cond
-      (map? e')  (->> e'
-                   (map (fn [[k x]] [k (path-walk f (conj path k) x)]))
-                   (into (empty e')))
-      (coll? e') (->> e'
-                   (map-indexed (fn [i x] (path-walk f (conj path i) x)))
-                   (into (empty e')))
-      :else      e')))
+(defn paths-to-matching
+  ([re data] (paths-to-matching re data [] []))
+  ([re data path] (paths-to-matching re data path []))
+  ([re data path matches]
+   (cond
+     (map? data)
+     #_=> (->> data
+            (map
+              (fn [[k v]]
+                (paths-to-matching re v (conj path k)
+                  (cond-> matches
+                    (re-find re (str k))
+                    #_=> (conj {:path path :value k})))))
+            (apply concat)
+            (distinct))
+     (coll? data)
+     #_=> (->> data
+            (map-indexed
+              (fn [i x]
+                (paths-to-matching re x (conj path i) matches)))
+            (apply concat)
+            (distinct))
+     :else
+     #_=> (distinct
+            (cond-> matches
+              (re-find re (str data))
+              #_=> (conj {:path path :value data}))))))
 
 (defn search-for!* [{:as env :keys [state ref]} search]
   (h/swap-entity! env assoc :ui/search-results
-    (let [paths (atom [])]
-      (path-walk (fn [path x]
-                   (when (and (not (coll? x))
-                           (re-find (re-pattern search) (str x)))
-                     (swap! paths conj {:path path :value x}))
-                   x)
-        [] (let [{:as props :keys [current-state]} (get-in @state ref)]
-             (get-in current-state
-               (-> props :ui/path :path))))
-      @paths)))
+    (let [props         (get-in @state ref)
+          current-state (:current-state props)
+          current-path  (-> props :ui/path :path)
+          focused-state (get-in current-state current-path)]
+      (paths-to-matching (re-pattern search)
+        focused-state current-path))))
 
 (defmutation search-for [{:keys [search]}]
   (action [{:as env :keys [state ref]}]
@@ -264,7 +277,7 @@
                       (map
                         (fn [{:keys [path value]}]
                           (dom/tr {:key (str "search-path-" path)}
-                            (dom/td (ui-ident #(set-path! this (drop-last %)) path))
+                            (dom/td (ui-ident #(set-path! this %) path))
                             (dom/td (str value))))
                         search-results))
             :top (let [top-keys    (set (sort (keys current-state)))
