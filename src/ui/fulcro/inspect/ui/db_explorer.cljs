@@ -6,6 +6,7 @@
     [fulcro.client.primitives :as prim :refer [defsc]]
     [fulcro.inspect.helpers :as h]
     [fulcro.inspect.ui.core :as ui]
+    [fulcro.inspect.ui.data-watcher :as dw]
     [fulcro.util :refer [ident?]]
     [fulcro.client.mutations :as m]
     [clojure.string :as str]))
@@ -55,10 +56,11 @@
     :else (pr-str v)))
 
 (defn key-sort-fn [x]
-  (if (or (keyword? x) (symbol? x))
-    (name x) #_else x))
+  (cond-> x
+    (or (keyword? x) (symbol? x))
+    name))
 
-(defsc EntityLevel [this {:keys [entity] :as params}]
+(defsc EntityLevel [this {:keys [entity addDataWatch] :as params}]
   {}
   (prim/fragment
     (dom/tr
@@ -173,12 +175,12 @@
 
 (defn search-for!* [{:as env :keys [state ref]} search]
   (h/swap-entity! env assoc :ui/search-results
-    (let [props         (get-in @state ref)
-          current-state (:current-state props)
-          current-path  (-> props :ui/path :path)
-          focused-state (get-in current-state current-path)
+    (let [props                  (get-in @state ref)
+          current-state          (:current-state props)
+          current-path           (-> props :ui/path :path)
+          focused-state          (get-in current-state current-path)
           internal-fulcro-tables #{:com.fulcrologic.fulcro.components/queries}
-          searchable-state (reduce #(dissoc %1 %2) focused-state internal-fulcro-tables)]
+          searchable-state       (reduce #(dissoc %1 %2) focused-state internal-fulcro-tables)]
       (paths-to-matching (re-pattern search)
         searchable-state current-path))))
 
@@ -229,6 +231,13 @@
     (prim/transact! reconciler [::id id]
       `[(pop-history {})])))
 
+(defn add-data-watch! [this path]
+  (let [{::keys [id]} (prim/props this)
+        reconciler (prim/any->reconciler this)]
+    (prim/transact! reconciler [::id id]
+      `[(dw/add-data-watch
+          ~{:path path})])))
+
 (defn ui-db-path [this {:keys [path search]} history]
   {}
   (dom/div {}
@@ -269,7 +278,8 @@
                    :ui/search-results []
                    :ui/path           {:path []}
                    :ui/history        []}}
-  (let [{:keys [selectTopKey]} (prim/get-state this)]
+  (let [{:keys [selectTopKey]} (prim/get-state this)
+        explorer-mode (mode props)]
     (dom/div {}
       (ui-db-path this path history)
       (dom/div
@@ -277,12 +287,13 @@
                     :onChange  #(m/set-string! this :ui/search :event %)
                     :onKeyDown #(when (= 13 (.-keyCode %))
                                   (search-for! this search))})
-        (ui/icon {:onClick #(clear-search! this)}
-          :cancel))
+        (ui/icon {:onClick #(clear-search! this)} :cancel)
+        (when (= :entity explorer-mode)
+          (ui/icon {:onClick #(add-data-watch! this (:path path))} :remove_red_eye)))
       ;(pr-str history)
       (dom/table {}
         (dom/tbody
-          (case (mode props)
+          (case explorer-mode
             :search (prim/fragment
                       (dom/tr
                         (dom/th "Path")
@@ -308,6 +319,7 @@
             :table (ui-table-level {:entity-ids   (keys (get-in current-state (:path path)))
                                     :selectEntity (fn [id] (append-to-path! this id))})
             :entity (ui-entity-level {:entity      (get-in current-state (:path path))
+                                      :addDataWatch (fn [] (add-data-watch! this (:path path)))
                                       :selectMap   (fn [k] (append-to-path! this k))
                                       :selectIdent (fn [ident] (set-path! this ident))})
             (dom/div "Internal Error")))))))
