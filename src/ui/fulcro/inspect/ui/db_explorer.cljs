@@ -22,17 +22,6 @@
 (defn ui-ident [f v]
   (dom/div (dom/button {:key (str "ident-" v) :onClick #(f v)} (str v))))
 
-(defn ui-db-value [{:keys [selectIdent selectMap]} v k]
-  (cond
-    (ident? v)
-    #_=> (ui-ident selectIdent v)
-    (and (vector? v) (every? ident? v))
-    #_=> (prim/fragment (map (partial ui-ident selectIdent) v))
-    (map? v)
-    #_=> (ui-ident #(selectMap k) (str "Show " (count v) " ..."))
-    (nil? v) "nil"
-    :else (str v)))
-
 (defn compact [s]
   (str/join "."
     (let [segments (str/split s #"\.")]
@@ -42,12 +31,32 @@
         (last segments)))))
 
 (defn ui-db-key [x]
+  (if (keyword? x)
+    (dom/p ":"
+      (when (namespace x)
+        (dom/span {:title (namespace x) :style {:color "grey"}}
+          (str (compact (namespace x)) "/")))
+      (dom/span {:style {:fontWeight "bold"}}
+        (name x)))
+    (pr-str x)))
+
+(defn ui-db-value [{:keys [selectIdent selectMap]} v k]
   (cond
-    (or (keyword? x) (symbol? x))
-    #_=> (str (if (keyword? x) ":" "'") (name x) (if (not (namespace x)) "" (str " \\ " (compact (namespace x)))))
-    (and (string? x) (re-find #".+\..+/" x))
-    #_=> (apply str (reverse (update (str/split x #"/") 0 #(->> % compact (str " \\ ")))))
-    :else (str x)))
+    (nil? v)
+    #_=> "nil"
+    (keyword? v)
+    #_=> (ui-db-key v)
+    (map? v)
+    #_=> (ui-ident #(selectMap k) (str "Show " (count v) " ..."))
+    (ident? v)
+    #_=> (ui-ident selectIdent v)
+    (and (vector? v) (every? ident? v))
+    #_=> (prim/fragment (map (partial ui-ident selectIdent) v))
+    :else (pr-str v)))
+
+(defn key-sort-fn [x]
+  (if (or (keyword? x) (symbol? x))
+    (name x) #_else x))
 
 (defsc EntityLevel [this {:keys [entity] :as params}]
   {}
@@ -60,7 +69,8 @@
         (dom/tr {:key (str "entity-key-" k)}
           (dom/td (ui-db-key k))
           (dom/td (ui-db-value params v k))))
-      entity)))
+      (sort-by (comp key-sort-fn first)
+        entity))))
 
 (def ui-entity-level (prim/factory EntityLevel))
 
@@ -75,7 +85,7 @@
           (dom/td
             (dom/button {:onClick #(selectEntity entity-id)}
               (ui-db-key entity-id)))))
-      (sort-by ui-db-key
+      (sort-by key-sort-fn
         entity-ids))))
 
 (def ui-table-level (prim/factory TableLevel))
@@ -93,7 +103,7 @@
           (dom/td
             (dom/button {:onClick #(selectTopKey k)}
               (str "Show " (count v) " ...")))))
-      (sort-by (comp ui-db-key first)
+      (sort-by (comp key-sort-fn first)
         tables))
     (dom/tr
       (dom/th "Key")
@@ -103,7 +113,7 @@
         (dom/tr {:key (str "top-values-key-" k)}
           (dom/td (ui-db-key k))
           (dom/td (ui-db-value params v k))))
-      (sort-by (comp ui-db-key first)
+      (sort-by (comp key-sort-fn first)
         root-values))))
 
 (def ui-top-level (prim/factory TopLevel))
@@ -138,38 +148,39 @@
   ([re data] (paths-to-matching re data [] []))
   ([re data path] (paths-to-matching re data path []))
   ([re data path matches]
-   (cond
-     (map? data)
-     #_=> (->> data
-            (map
-              (fn [[k v]]
-                (paths-to-matching re v (conj path k)
-                  (cond-> matches
-                    (re-find re (str k))
-                    #_=> (conj {:path path :value k})))))
-            (apply concat)
-            (distinct))
-     (coll? data)
-     #_=> (->> data
-            (map-indexed
-              (fn [i x]
-                (paths-to-matching re x (conj path i) matches)))
-            (apply concat)
-            (distinct))
-     :else
-     #_=> (distinct
-            (cond-> matches
-              (re-find re (str data))
-              #_=> (conj {:path path :value data}))))))
+   (-> (cond
+         (map? data)
+         #_=> (->> data
+                (map
+                  (fn [[k v]]
+                    (paths-to-matching re v (conj path k)
+                      (cond-> matches
+                        (re-find re (str k))
+                        #_=> (conj {:path path :value k})))))
+                (apply concat))
+         (coll? data)
+         #_=> (->> data
+                (map-indexed
+                  (fn [i x]
+                    (paths-to-matching re x (conj path i) matches)))
+                (apply concat))
+         :else
+         #_=> (cond-> matches
+                (re-find re (str data))
+                #_=> (conj {:path path :value data})))
+     (distinct)
+     (vec))))
 
 (defn search-for!* [{:as env :keys [state ref]} search]
   (h/swap-entity! env assoc :ui/search-results
     (let [props         (get-in @state ref)
           current-state (:current-state props)
           current-path  (-> props :ui/path :path)
-          focused-state (get-in current-state current-path)]
+          focused-state (get-in current-state current-path)
+          internal-fulcro-tables #{:com.fulcrologic.fulcro.components/queries}
+          searchable-state (reduce #(dissoc %1 %2) focused-state internal-fulcro-tables)]
       (paths-to-matching (re-pattern search)
-        focused-state current-path))))
+        searchable-state current-path))))
 
 (defmutation search-for [{:keys [search]}]
   (action [{:as env :keys [state ref]}]
@@ -208,7 +219,9 @@
       (h/swap-entity! env assoc :ui/path new-path)
       (when-let [search (:search new-path)]
         (search-for!* env search)
-        (h/swap-entity! env assoc :ui/search search)))))
+        (h/swap-entity! env assoc :ui/search search))
+      (when (not (:search new-path))
+        (h/swap-entity! env assoc :ui/search "")))))
 
 (defn pop-history! [this]
   (let [{::keys [id]} (prim/props this)
@@ -280,7 +293,7 @@
                             (dom/td (ui-ident #(set-path! this %) path))
                             (dom/td (str value))))
                         search-results))
-            :top (let [top-keys    (set (sort (keys current-state)))
+            :top (let [top-keys    (set (keys current-state))
                        tables      (filter
                                      (fn [k]
                                        (let [v (get current-state k)]
