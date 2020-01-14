@@ -202,18 +202,6 @@
 (defn pop-history!* [env]
   (h/swap-entity! env update :ui/history (comp vec drop-last)))
 
-(defmutation clear-search [_]
-  (action [env]
-    (h/swap-entity! env assoc :ui/search "")
-    (h/swap-entity! env update :ui/path dissoc :search)
-    (pop-history!* env)))
-
-(defn clear-search! [this]
-  (let [{::keys [id]} (prim/props this)
-        reconciler (prim/any->reconciler this)]
-    (prim/transact! reconciler [::id id]
-      `[(clear-search ~{})])))
-
 (defmutation pop-history [_]
   (action [{:as env :keys [state ref]}]
     (pop-history!* env)
@@ -287,7 +275,6 @@
                     :onChange  #(m/set-string! this :ui/search :event %)
                     :onKeyDown #(when (= 13 (.-keyCode %))
                                   (search-for! this search))})
-        (ui/icon {:onClick #(clear-search! this)} :cancel)
         (when (= :entity explorer-mode)
           (ui/icon {:onClick #(add-data-watch! this (:path path))} :remove_red_eye)))
       ;(pr-str history)
