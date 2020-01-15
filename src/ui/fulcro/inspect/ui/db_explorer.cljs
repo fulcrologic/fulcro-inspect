@@ -30,17 +30,22 @@
           (drop-last segments))
         (last segments)))))
 
+(defn compact-keyword [kw]
+  (if (namespace kw)
+    (keyword
+      (compact (namespace kw))
+      (name kw))
+    kw))
+
 (defn ui-ident [f v]
-  (let [segments (str/split (str v) #"\s")]
+  (let [ident (mapv compact-keyword v)
+        segments (str/split (str ident) #"\s")]
     (div
       (a {:key     (str "ident-" v)
           :title   (str v)
           :onClick #(f v)}
         (map #(dom/span {:style {:whiteSpace "nowrap"}}
-                (str " "
-                  (cond-> %
-                    (re-find #"\." %)
-                    (compact))))
+                (str " " %))
           segments)))))
 
 (defn ui-db-key [selectIdent x]
