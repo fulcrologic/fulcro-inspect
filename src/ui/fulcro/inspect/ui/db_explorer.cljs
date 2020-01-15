@@ -64,7 +64,6 @@
 (defsc EntityLevel [this {:keys [entity] :as params}]
   {}
   (prim/fragment
-    (dom/div (str "entity-level-" (hash entity)))
     (dom/tr
       (dom/th "Key")
       (dom/th "Value"))
@@ -83,7 +82,6 @@
 (defsc TableLevel [this {:keys [entity-ids selectEntity]}]
   {}
   (prim/fragment
-    (dom/div (str "table-level-" (hash entity-ids)))
     (dom/tr
       (dom/th "Entity ID"))
     (map
@@ -100,7 +98,6 @@
 (defsc TopLevel [this {:keys [tables root-values selectTopKey] :as params}]
   {}
   (prim/fragment
-    (dom/div (str "top-level-" (hash tables) "-" (hash root-values)))
     (dom/tr
       (dom/th "Table")
       (dom/th "Entities"))
@@ -180,7 +177,7 @@
                (if (table? table)
                  (reduce-kv (fn [paths id entity]
                               (cond-> paths
-                                (re-find re (str id))
+                                (re-find re (pr-str id))
                                 (conj {:path [table-key id]})))
                    paths table)
                  paths))
@@ -203,7 +200,7 @@
           searchable-state)))))
 
 (defmutation search-for [search-params]
-  (action [{:as env :keys [state ref]}]
+  (action [env]
     (h/swap-entity! env update :ui/history conj search-params)
     (h/swap-entity! env assoc :ui/path search-params)
     (search-for!* env search-params)))
@@ -262,7 +259,7 @@
               (str (last path)))))
     (when search-query
       (prim/fragment ">" (dom/button {:disabled true}
-                           (str ":search \"" search-query \"))))))
+                           (str ":search! <" search-query ">"))))))
 
 (defn ui-search-results* [this search-results]
   (prim/fragment
@@ -276,7 +273,7 @@
       (fn [{:keys [path value]}]
         (dom/tr {:key (str "search-path-" path)}
           (dom/td (ui-ident #(set-path! this %) path))
-          (when value (dom/td (str value)))))
+          (when value (dom/td (pr-str value)))))
       (sort-by (comp str :path) search-results))))
 
 (defn mode [{:as props :keys [current-state]}]
