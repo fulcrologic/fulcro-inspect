@@ -207,11 +207,14 @@
     (h/swap-entity! env assoc :ui/path search-params)
     (search-for!* env search-params)))
 
-(defn search-for! [this search-query search-type]
+(defn search-for! [this search-query [shift-key? search-type]]
   (let [{::keys [id]} (prim/props this)
-        reconciler (prim/any->reconciler this)]
+        reconciler (prim/any->reconciler this)
+        invert-search-type {:search/by-id :search/by-value
+                            :search/by-value :search/by-id}]
     (prim/transact! reconciler [::id id]
-      `[(search-for ~{:search-type  search-type
+      `[(search-for ~{:search-type  (cond-> search-type
+                                      shift-key? invert-search-type)
                       :search-query search-query})])))
 
 (defn pop-history!* [env]
@@ -307,7 +310,8 @@
                       :placeholder "Search DB for:"
                       :onChange    #(m/set-string! this :ui/search-query :event %)
                       :onKeyDown   #(when (= 13 (.-keyCode %))
-                                      (search-for! this search-query search-type))})
+                                      (search-for! this search-query
+                                        [(.-shiftKey %) search-type]))})
           (dom/div {}
             (dom/label {}
               (dom/input {:type     "radio"
