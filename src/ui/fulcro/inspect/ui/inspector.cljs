@@ -12,11 +12,14 @@
             [fulcro.inspect.ui.index-explorer :as fiex]
             [fulcro.inspect.ui.multi-oge :as oge]
             [fulcro.inspect.ui.network :as network]
+            [fulcro.inspect.ui.settings :as settings]
             [fulcro.inspect.ui.transactions :as transactions]))
 
 (fp/defsc Inspector
   [this
-   {::keys   [app-state db-explorer tab element network transactions i18n oge index-explorer client-connection-id]
+   {::keys   [app-state tab client-connection-id
+              db-explorer element network transactions
+              i18n oge index-explorer settings]
     :ui/keys [more-open?]} _ css]
   {:initial-state
    (fn [state]
@@ -34,6 +37,7 @@
       ::oge                  (fp/get-initial-state oge/OgeView {})
       ::transactions         (fp/get-initial-state transactions/TransactionList [])
       ::db-explorer          (fp/get-initial-state db-explorer/DBExplorer {})
+      ::settings             (fp/get-initial-state settings/Settings {})
       :ui/more-open?         false})
 
    :ident
@@ -49,7 +53,8 @@
     {::i18n (fp/get-query i18n/TranslationsViewer)}
     {::transactions (fp/get-query transactions/TransactionList)}
     {::index-explorer (fp/get-query fiex/IndexExplorer)}
-    {::oge (fp/get-query oge/OgeView)}]
+    {::oge (fp/get-query oge/OgeView)}
+    {::settings (fp/get-query settings/Settings)}]
 
    :css
    [[:.container {:display        "flex"
@@ -126,6 +131,7 @@
         (tab-item {:title "Query" :page ::page-oge})
         (tab-item {:title "Index Explorer" :page ::page-index-explorer})
         (tab-item {:title "i18n" :page ::page-i18n})
+        (tab-item {:title "Settings" :page ::page-settings})
         (dom/div :.flex)
         #_(dom/div #js {:className (:more css)
                         :onClick   (fn [e]
@@ -161,6 +167,9 @@
 
           ::page-i18n
           (i18n/translations-viewer i18n)
+
+          ::page-settings
+          (settings/ui-settings settings)
 
           (dom/div
             "Invalid page " (pr-str tab)))))))

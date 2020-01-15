@@ -328,7 +328,7 @@
   (div :.ui.form
     (div :.inline.fields {:style {:marginBottom "0"}}
       (div :.ui.buttons
-        (dom/button :.ui.icon.button
+        (button :.ui.icon.button
           {:onClick  #(pop-history! this)
            :disabled (empty? history)}
           (dom/i :.left.arrow.icon)))
