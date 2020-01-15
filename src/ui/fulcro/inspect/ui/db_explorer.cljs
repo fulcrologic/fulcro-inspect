@@ -9,7 +9,8 @@
     [fulcro.inspect.ui.data-watcher :as dw]
     [fulcro.util :refer [ident?]]
     [fulcro.client.mutations :as m]
-    [clojure.string :as str]))
+    [clojure.string :as str]
+    [taoensso.encore :as enc]))
 
 (defmutation set-current-state [new-state]
   (action [env]
@@ -60,25 +61,29 @@
     (or (keyword? x) (symbol? x))
     name))
 
-(defsc EntityLevel [this {:keys [entity addDataWatch] :as params}]
+(defsc EntityLevel [this {:keys [entity] :as params}]
   {}
   (prim/fragment
+    (dom/div (str "entity-level-" (hash entity)))
     (dom/tr
       (dom/th "Key")
       (dom/th "Value"))
-    (map
-      (fn [[k v]]
-        (dom/tr {:key (str "entity-key-" k)}
-          (dom/td (ui-db-key k))
-          (dom/td (ui-db-value params v k))))
-      (sort-by (comp key-sort-fn first)
-        entity))))
+    (if (map? entity)
+      (map
+        (fn [[k v]]
+          (dom/tr {:key (str "entity-key-" k)}
+            (dom/td (ui-db-key k))
+            (dom/td (ui-db-value params v k))))
+        (sort-by (comp key-sort-fn first)
+          entity))
+      #_else (dom/tr (dom/td "DEBUG PR-STR:" (pr-str entity))))))
 
 (def ui-entity-level (prim/factory EntityLevel))
 
 (defsc TableLevel [this {:keys [entity-ids selectEntity]}]
   {}
   (prim/fragment
+    (dom/div (str "table-level-" (hash entity-ids)))
     (dom/tr
       (dom/th "Entity ID"))
     (map
@@ -95,6 +100,7 @@
 (defsc TopLevel [this {:keys [tables root-values selectTopKey] :as params}]
   {}
   (prim/fragment
+    (dom/div (str "top-level-" (hash tables) "-" (hash root-values)))
     (dom/tr
       (dom/th "Table")
       (dom/th "Entities"))
@@ -146,58 +152,68 @@
     (prim/transact! reconciler [::id id]
       `[(append-to-path {:sub-path ~sub-path})])))
 
-(defn paths-to-matching
-  ([re data] (paths-to-matching re data [] []))
-  ([re data path] (paths-to-matching re data path []))
-  ([re data path matches]
-   (-> (cond
-         (map? data)
-         #_=> (->> data
-                (map
-                  (fn [[k v]]
-                    (paths-to-matching re v (conj path k)
-                      (cond-> matches
-                        (re-find re (str k))
-                        #_=> (conj {:path path :value k})))))
-                (apply concat))
-         (coll? data)
-         #_=> (->> data
-                (map-indexed
-                  (fn [i x]
-                    (paths-to-matching re x (conj path i) matches)))
-                (apply concat))
-         :else
-         #_=> (cond-> matches
-                (re-find re (str data))
-                #_=> (conj {:path path :value data})))
-     (distinct)
-     (vec))))
+(letfn [(TABLE [re path table-key]
+          (fn [matches entity-key entity]
+            (cond-> matches
+              (re-find re (str entity))
+              (conj {:path (conj path table-key entity-key)
+                     :value (ENTITY re entity)}))))
+        (ENTITY [re e] (->> e
+                         (filter (fn [[_ v]] (re-find re (pr-str v))))
+                         (into (empty e))))
+        (VALUE [re path matches k v]
+          (cond-> matches
+            (re-find re (pr-str v))
+            (conj {:path (conj path k)
+                   :value v})))]
+  (defn paths-to-values
+    [re state path]
+    (reduce-kv
+      (fn [matches k v]
+        (cond
+          (table? v) (reduce-kv (TABLE re path k) matches v)
+          :else (VALUE re path matches k v)))
+      [] state)))
 
-(defn search-for!* [{:as env :keys [state ref]} search]
-  (h/swap-entity! env assoc :ui/search-results
-    (let [props                  (get-in @state ref)
-          current-state          (:current-state props)
-          current-path           (-> props :ui/path :path)
-          focused-state          (get-in current-state current-path)
-          internal-fulcro-tables #{:com.fulcrologic.fulcro.components/queries}
-          searchable-state       (reduce #(dissoc %1 %2) focused-state internal-fulcro-tables)]
-      (paths-to-matching (re-pattern search)
-        searchable-state current-path))))
+(defn paths-to-ids [re state]
+  (reduce-kv (fn [paths table-key table]
+               (if (table? table)
+                 (reduce-kv (fn [paths id entity]
+                              (cond-> paths
+                                (re-find re (str id))
+                                (conj {:path [table-key id]})))
+                   paths table)
+                 paths))
+    [] state))
 
-(defmutation search-for [{:keys [search]}]
+(defn search-for!* [{:as env :keys [state ref]} {:keys [search-query search-type]}]
+  (let [props                  (get-in @state ref)
+        current-state          (:current-state props)
+        internal-fulcro-tables #{:com.fulcrologic.fulcro.components/queries}
+        searchable-state       (reduce dissoc current-state internal-fulcro-tables)]
+    (h/swap-entity! env assoc :ui/search-results
+      (case search-type
+        :search/by-value
+        (paths-to-values
+          (re-pattern search-query)
+          searchable-state [])
+        :search/by-id
+        (paths-to-ids
+          (re-pattern search-query)
+          searchable-state)))))
+
+(defmutation search-for [search-params]
   (action [{:as env :keys [state ref]}]
-    (h/swap-entity! env update :ui/history conj
-      (merge
-        (get-in @state (conj ref :ui/path))
-        {:search search}))
-    (h/swap-entity! env assoc-in [:ui/path :search] search)
-    (search-for!* env search)))
+    (h/swap-entity! env update :ui/history conj search-params)
+    (h/swap-entity! env assoc :ui/path search-params)
+    (search-for!* env search-params)))
 
-(defn search-for! [this search]
+(defn search-for! [this search-query search-type]
   (let [{::keys [id]} (prim/props this)
         reconciler (prim/any->reconciler this)]
     (prim/transact! reconciler [::id id]
-      `[(search-for ~{:search search})])))
+      `[(search-for ~{:search-type  search-type
+                      :search-query search-query})])))
 
 (defn pop-history!* [env]
   (h/swap-entity! env update :ui/history (comp vec drop-last)))
@@ -207,11 +223,11 @@
     (pop-history!* env)
     (let [new-path (last (get-in @state (conj ref :ui/history)))]
       (h/swap-entity! env assoc :ui/path new-path)
-      (when-let [search (:search new-path)]
-        (search-for!* env search)
-        (h/swap-entity! env assoc :ui/search search))
-      (when (not (:search new-path))
-        (h/swap-entity! env assoc :ui/search "")))))
+      (enc/when-let [search-query (:search-query new-path)
+                     search-type  (:search-type new-path)]
+        (search-for!* env new-path)
+        (h/swap-entity! env assoc :ui/search-query search-query)
+        (h/swap-entity! env assoc :ui/search-type search-type)))))
 
 (defn pop-history! [this]
   (let [{::keys [id]} (prim/props this)
@@ -226,8 +242,7 @@
       `[(dw/add-data-watch
           ~{:path path})])))
 
-(defn ui-db-path [this {:keys [path search]} history]
-  {}
+(defn ui-db-path* [this {:keys [path search-query]} history]
   (dom/div {}
     (dom/button {:onClick  #(pop-history! this)
                  :disabled (empty? history)} "<")
@@ -242,55 +257,85 @@
           (reductions conj [x] xs))))
     (when (last path)
       (prim/fragment
-        ">" (dom/button {:disabled (not search)
+        ">" (dom/button {:disabled (not search-query)
                          :onClick  #(set-path! this path)}
               (str (last path)))))
-    (when search
-      (prim/fragment ">" (dom/button {:disabled true} (str ":search \"" search \"))))))
+    (when search-query
+      (prim/fragment ">" (dom/button {:disabled true}
+                           (str ":search \"" search-query \"))))))
+
+(defn ui-search-results* [this search-results]
+  (prim/fragment
+    (dom/tr
+      (dom/th "Path")
+      (when (some :value search-results)
+        (dom/th "Value")))
+    ;;TODO: highlight matching sections
+    ;;TODO: render with folding
+    (map
+      (fn [{:keys [path value]}]
+        (dom/tr {:key (str "search-path-" path)}
+          (dom/td (ui-ident #(set-path! this %) path))
+          (when value (dom/td (str value)))))
+      (sort-by (comp str :path) search-results))))
 
 (defn mode [{:as props :keys [current-state]}]
-  (let [{:keys [path search]} (:ui/path props)]
+  (let [{:keys [path search-query]} (:ui/path props)]
     (cond
-      search :search
+      search-query :search
       (empty? path) :top
       (and (= 1 (count path))
         (table? (get-in current-state path))) :table
       :else :entity)))
 
-(defsc DBExplorer [this {:as props :ui/keys [path history search search-results] :keys [current-state]}]
-  {:query         [:ui/path :ui/history :ui/search :ui/search-results ::id :current-state]
-   ;   :initLocalState (fn [] {:selectTopKey (fn [k] (select-top-key this k))})
+(defsc DBExplorer [this {:as      props :keys [current-state]
+                         :ui/keys [path history search-query search-results search-type]}]
+  {:query         [:ui/path :ui/history :ui/search-query :ui/search-results :ui/search-type
+                   ::id :current-state]
    :ident         [::id ::id]
    :initial-state {:current-state     {}
-                   :ui/search         ""
+                   :ui/search-query   ""
                    :ui/search-results []
+                   :ui/search-type    :search/by-value
                    :ui/path           {:path []}
                    :ui/history        []}}
-  (let [{:keys [selectTopKey]} (prim/get-state this)
-        explorer-mode (mode props)]
+  (let [explorer-mode (mode props)]
     (dom/div {}
-      (ui-db-path this path history)
-      (dom/div
-        (dom/input {:value     search
-                    :onChange  #(m/set-string! this :ui/search :event %)
-                    :onKeyDown #(when (= 13 (.-keyCode %))
-                                  (search-for! this search))})
+      (ui/toolbar {}
+        (ui/toolbar-action {}
+          (ui/icon {} :search)
+          (dom/input {:value       search-query
+                      :placeholder "Search DB for:"
+                      :onChange    #(m/set-string! this :ui/search-query :event %)
+                      :onKeyDown   #(when (= 13 (.-keyCode %))
+                                      (search-for! this search-query search-type))})
+          (dom/div {}
+            (dom/label {}
+              (dom/input {:type     "radio"
+                          :name     "search_type"
+                          :checked  (= search-type :search/by-value)
+                          :value    (= search-type :search/by-value)
+                          :onChange #(m/set-string! this :ui/search-type
+                                       :value :search/by-value)})
+              "by Value"))
+          (dom/div {}
+            (dom/label {}
+              (dom/input {:type     "radio"
+                          :name     "search_type"
+                          :value    (= search-type :search/by-id)
+                          :checked  (= search-type :search/by-id)
+                          :onChange #(m/set-string! this :ui/search-type
+                                       :value :search/by-id)})
+              "by ID")))
         (when (= :entity explorer-mode)
           (ui/icon {:onClick #(add-data-watch! this (:path path))} :remove_red_eye)))
-      ;(pr-str history)
+      (ui-db-path* this path history)
+      ;(dom/div (pr-str history)
+      ;(dom/div (pr-str search-results))
       (dom/table {}
         (dom/tbody
           (case explorer-mode
-            :search (prim/fragment
-                      (dom/tr
-                        (dom/th "Path")
-                        (dom/th "Value"))
-                      (map
-                        (fn [{:keys [path value]}]
-                          (dom/tr {:key (str "search-path-" path)}
-                            (dom/td (ui-ident #(set-path! this %) path))
-                            (dom/td (str value))))
-                        search-results))
+            :search (ui-search-results* this search-results)
             :top (let [top-keys    (set (keys current-state))
                        tables      (filter
                                      (fn [k]
@@ -305,10 +350,10 @@
                                   :selectTopKey (fn [k] (set-path! this [k]))}))
             :table (ui-table-level {:entity-ids   (keys (get-in current-state (:path path)))
                                     :selectEntity (fn [id] (append-to-path! this id))})
-            :entity (ui-entity-level {:entity      (get-in current-state (:path path))
+            :entity (ui-entity-level {:entity       (get-in current-state (:path path))
                                       :addDataWatch (fn [] (add-data-watch! this (:path path)))
-                                      :selectMap   (fn [k] (append-to-path! this k))
-                                      :selectIdent (fn [ident] (set-path! this ident))})
+                                      :selectMap    (fn [k] (append-to-path! this k))
+                                      :selectIdent  (fn [ident] (set-path! this ident))})
             (dom/div "Internal Error")))))))
 
 (def ui-db-explorer (prim/factory DBExplorer))

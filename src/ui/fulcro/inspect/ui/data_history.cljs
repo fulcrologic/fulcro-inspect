@@ -213,7 +213,7 @@
 
         (ui/toolbar-action {:disabled at-end?
                             :onClick  #(fp/transact! this `[(navigate-history ~{::current-index (inc current-index)})])}
-          (ui/icon {:title "Foward one version"} :chevron_right))
+          (ui/icon {:title "Forward one version"} :chevron_right))
 
         (ui/toolbar-action {:onClick
                             (if at-end?
