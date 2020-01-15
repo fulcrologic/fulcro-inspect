@@ -22,15 +22,6 @@
     (map? v)
     (every? map? (vals v))))
 
-(defn ui-ident [f v]
-  (let [segments (str/split (str v) #"\s")]
-    (div
-      (a
-        {:key     (str "ident-" v)
-         ;:style   {:whiteSpace "nowrap"}
-         :onClick #(f v)}
-        (map #(dom/span {:style {:whiteSpace "nowrap"}} (str " " %)) segments)))))
-
 (defn compact [s]
   (str/join "."
     (let [segments (str/split s #"\.")]
@@ -38,6 +29,19 @@
         (mapv first
           (drop-last segments))
         (last segments)))))
+
+(defn ui-ident [f v]
+  (let [segments (str/split (str v) #"\s")]
+    (div
+      (a {:key     (str "ident-" v)
+          :title   (str v)
+          :onClick #(f v)}
+        (map #(dom/span {:style {:whiteSpace "nowrap"}}
+                (str " "
+                  (cond-> %
+                    (re-find #"\." %)
+                    (compact))))
+          segments)))))
 
 (defn ui-db-key [selectIdent x]
   (cond
@@ -366,8 +370,8 @@
                                    :checked  (= search-type :search/by-id)
                                    :onChange #(m/set-string! this :ui/search-type
                                                 :value :search/by-id)})
-                           (label {} "by ID")))))
-        )
+                           (label {} "by ID"))))))
+
       (ui-db-path* this path history)
       (when (= :entity explorer-mode)
         (button :.ui.basic.button
