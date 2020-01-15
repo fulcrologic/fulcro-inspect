@@ -6,7 +6,6 @@
     [fulcro.client.mutations :refer [defmutation]]
     [fulcro.client.primitives :as prim :refer [defsc]]
     [fulcro.inspect.helpers :as h]
-    [fulcro.inspect.ui.core :as ui]
     [fulcro.inspect.ui.data-watcher :as dw]
     [fulcro.util :refer [ident?]]
     [fulcro.client.mutations :as m]
@@ -38,14 +37,14 @@
     kw))
 
 (defn ui-ident [f v]
-  (let [ident (mapv compact-keyword v)
+  (let [ident    (mapv compact-keyword v)
         segments (str/split (str ident) #"\s")]
     (div
       (a {:key     (str "ident-" v)
+          :href    "#"
           :title   (str v)
           :onClick #(f v)}
-        (map #(dom/span {:style {:whiteSpace "nowrap"}}
-                (str " " %))
+        (map #(span {:style {:whiteSpace "nowrap"}} (str " " %))
           segments)))))
 
 (defn ui-db-key [selectIdent x]
@@ -68,7 +67,7 @@
       (keyword? v)
       #_=> (ui-db-key selectIdent v)
       (map? v)
-      #_=> (a {:onClick #(selectMap k)} (str (count (keys v)) " items"))
+      #_=> (a {:href "#" :onClick #(selectMap k)} (str (count (keys v)) " items"))
       (ident? v)
       #_=> (ui-ident selectIdent v)
       (and (vector? v) (every? ident? v))
@@ -107,7 +106,7 @@
       (fn [entity-id]
         (dom/tr {:key (str "table-key-" entity-id)}
           (dom/td
-            (a {:onClick #(selectEntity entity-id)}
+            (a {:href "#" :onClick #(selectEntity entity-id)}
               (ui-db-key selectIdent entity-id)))))
       (sort-by key-sort-fn
         entity-ids))))
@@ -119,8 +118,8 @@
   (prim/fragment
     (dom/tr {:colSpan "2"}
       (dom/th (dom/h2 :.ui.header
-                {:style {:marginTop    "10px"
-                         :marginBottom "10px"}}
+                {:style {:marginTop    "0.5rem"
+                         :marginBottom "0.5rem"}}
                 "Tables")))
     (dom/tr
       (dom/th "Table")
@@ -130,15 +129,15 @@
         (dom/tr {:key (str "top-tables-key-" k)}
           (dom/td (ui-db-key selectIdent k))
           (dom/td
-            (a {:onClick #(selectTopKey k)}
+            (a {:href "#" :onClick #(selectTopKey k)}
               (str (count (keys v)) " items.")))))
       (sort-by (comp key-sort-fn first)
         tables))
     (dom/tr {:colSpan "2"}
       (dom/th
         (dom/h2 :.ui.header
-          {:style {:marginTop    "10px"
-                   :marginBottom "10px"}}
+          {:style {:marginTop    "0.5rem"
+                   :marginBottom "0.5rem"}}
           "Top-Level Keys")))
     (dom/tr
       (dom/th "Key")
@@ -269,22 +268,19 @@
   (let [{::keys [id]} (prim/props this)
         reconciler (prim/any->reconciler this)]
     (prim/transact! reconciler [::id id]
-      `[(dw/add-data-watch
-          ~{:path path})])))
+      `[(dw/add-data-watch ~{:path path})])))
 
 (defn ui-db-path* [this {:keys [path search-query]} history]
   (prim/fragment
     (div :.ui.large.breadcrumb
-      {:style {:marginBottom "10px"}}
-      (a :.section
-        {:onClick #(set-path! this [])} "Top")
+      (a :.section {:onClick #(set-path! this [])} "Top")
       (when (seq (drop-last path))
         (map
           (fn [sub-path]
             (prim/fragment {:key (str "db-path-" sub-path)}
               (dom/i :.right.angle.icon.divider)
               (a :.section {:onClick #(set-path! this sub-path)
-                            :title (str (last sub-path))}
+                            :title   (str (last sub-path))}
                 (str (compact-keyword (last sub-path))))))
           (let [[x & xs] (drop-last path)]
             (reductions conj [x] xs))))
@@ -292,7 +288,7 @@
         (prim/fragment
           (dom/i :.right.angle.icon.divider)
           (a :.active.section {:disabled (not search-query)
-                               :title (str (last path))
+                               :title    (str (last path))
                                :onClick  #(set-path! this path)}
             (str (compact-keyword (last path))))))
       (when search-query
@@ -328,8 +324,38 @@
         (table? (get-in current-state path))) :table
       :else :entity)))
 
+(defn ui-toolbar* [this {:ui/keys [history search-query search-type]}]
+  (div :.ui.form
+    (div :.inline.fields {:style {:marginBottom "0"}}
+      (div :.ui.buttons
+        (dom/button :.ui.icon.button
+          {:onClick  #(pop-history! this)
+           :disabled (empty? history)}
+          (dom/i :.left.arrow.icon)))
+      (div :.ui.icon.input
+        (input {:value       search-query
+                :placeholder "Search DB for:"
+                :onChange    #(m/set-string! this :ui/search-query :event %)
+                :onKeyDown   #(when (= 13 (.-keyCode %))
+                                (search-for! this search-query
+                                  [(.-shiftKey %) search-type]))})
+        (dom/i :.search.icon.link
+          {:onClick #(search-for! this search-query
+                       [(.-shiftKey %) search-type])}))
+      (div :.ui.buttons
+        (button :.ui.button.toggle
+          {:className (if (= search-type :search/by-value) "active" "basic")
+           :onClick   #(m/set-string! this :ui/search-type
+                         :value :search/by-value)}
+          "by Value")
+        (button :.ui.button.toggle
+          {:className (if (= search-type :search/by-id) "active" "basic")
+           :onClick   #(m/set-string! this :ui/search-type
+                         :value :search/by-id)}
+          "by ID")))))
+
 (defsc DBExplorer [this {:as      props :keys [current-state]
-                         :ui/keys [path history search-query search-results search-type]}]
+                         :ui/keys [path history search-results]}]
   {:query         [:ui/path :ui/history :ui/search-query :ui/search-results :ui/search-type
                    ::id :current-state]
    :ident         [::id ::id]
@@ -340,54 +366,18 @@
                    :ui/path           {:path []}
                    :ui/history        []}}
   (let [explorer-mode (mode props)]
-    (div {}
-      (prim/fragment
-        (div :.ui.form
-          (div :.inline.fields
-            (div :.ui.buttons
-              (dom/button :.ui.icon.button
-                {:onClick  #(pop-history! this)
-                 :disabled (empty? history)}
-                (dom/i :.left.arrow.icon))
-              (dom/button :.ui.icon.button
-                {:onClick  #(search-for! this search-query
-                              [(.-shiftKey %) search-type])
-                 :disabled (empty? history)}
-                (dom/i :.search.icon)))
-            (div :.field
-              (input {:value       search-query
-                      :placeholder "Search DB for:"
-                      :onChange    #(m/set-string! this :ui/search-query :event %)
-                      :onKeyDown   #(when (= 13 (.-keyCode %))
-                                      (search-for! this search-query
-                                        [(.-shiftKey %) search-type]))}))
-            (div :.field
-              (div :.ui.radio.checkbox
-                (input {:type     "radio"
-                        :name     "search_type"
-                        :checked  (= search-type :search/by-value)
-                        :value    (= search-type :search/by-value)
-                        :onChange #(m/set-string! this :ui/search-type
-                                     :value :search/by-value)})
-                (label {} "by Value")))
-            (div :.field (div :.ui.radio.checkbox
-                           (input {:type     "radio"
-                                   :name     "search_type"
-                                   :value    (= search-type :search/by-id)
-                                   :checked  (= search-type :search/by-id)
-                                   :onChange #(m/set-string! this :ui/search-type
-                                                :value :search/by-id)})
-                           (label {} "by ID"))))))
-
-      (ui-db-path* this path history)
-      (when (= :entity explorer-mode)
-        (button :.ui.basic.button
-          {:onClick #(add-data-watch! this (:path path))}
-          "Add Watch"))
+    (div
+      (ui-toolbar* this props)
       ;(div (pr-str history)
       ;(div (pr-str search-results))
-      (div :.ui.container
-        (dom/table :.ui.compact.celled.fluid.table
+      (div :.ui.container {:style {:marginLeft "0.5rem"}}
+        (ui-db-path* this path history)
+        (when (= :entity explorer-mode)
+          (button :.ui.tertiary.button.animated.icon
+            {:onClick #(add-data-watch! this (:path path))}
+            (div :.visible.content (dom/i :.icon.eye))
+            (div :.hidden.content "Watch")))
+        (dom/table :.ui.compact.celled.fluid.table {:style {:marginTop "0"}}
           (dom/tbody
             (case explorer-mode
               :search (ui-search-results* this search-results)
@@ -406,10 +396,9 @@
               :table (ui-table-level {:entity-ids   (keys (get-in current-state (:path path)))
                                       :selectIdent  (fn [ident] (set-path! this ident))
                                       :selectEntity (fn [id] (append-to-path! this id))})
-              :entity (ui-entity-level {:entity       (get-in current-state (:path path))
-                                        :addDataWatch (fn [] (add-data-watch! this (:path path)))
-                                        :selectMap    (fn [k] (append-to-path! this k))
-                                        :selectIdent  (fn [ident] (set-path! this ident))})
+              :entity (ui-entity-level {:entity      (get-in current-state (:path path))
+                                        :selectMap   (fn [k] (append-to-path! this k))
+                                        :selectIdent (fn [ident] (set-path! this ident))})
               (div "Internal Error"))))))))
 
 (def ui-db-explorer (prim/factory DBExplorer))
