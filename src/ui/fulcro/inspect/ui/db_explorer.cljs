@@ -31,7 +31,7 @@
         (last segments)))))
 
 (defn compact-keyword [kw]
-  (if (namespace kw)
+  (if (and (keyword? kw) (namespace kw))
     (keyword
       (compact (namespace kw))
       (name kw))
@@ -283,16 +283,18 @@
           (fn [sub-path]
             (prim/fragment {:key (str "db-path-" sub-path)}
               (dom/i :.right.angle.icon.divider)
-              (a :.section {:onClick #(set-path! this sub-path)}
-                (str (last sub-path)))))
+              (a :.section {:onClick #(set-path! this sub-path)
+                            :title (str (last sub-path))}
+                (str (compact-keyword (last sub-path))))))
           (let [[x & xs] (drop-last path)]
             (reductions conj [x] xs))))
       (when (last path)
         (prim/fragment
           (dom/i :.right.angle.icon.divider)
           (a :.active.section {:disabled (not search-query)
+                               :title (str (last path))
                                :onClick  #(set-path! this path)}
-            (str (last path)))))
+            (str (compact-keyword (last path))))))
       (when search-query
         (prim/fragment
           (dom/i :.right.angle.icon.divider)
