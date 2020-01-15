@@ -44,7 +44,9 @@
           :href    "#"
           :title   (str v)
           :onClick #(f v)}
-        (map #(span {:style {:whiteSpace "nowrap"}} (str " " %))
+        (map #(span {:key (str "ident-segment-" v "-" %)
+                     :style {:whiteSpace "nowrap"}}
+                (str " " %))
           segments)))))
 
 (defn ui-db-key [selectIdent x]
