@@ -32,24 +32,26 @@
           (drop-last segments))
         (last segments)))))
 
-(defn ui-db-key [x]
-  (if (keyword? x)
-    (dom/p ":"
-      (when (namespace x)
-        (dom/span {:title (namespace x) :style {:color "grey"}}
-          (str (compact (namespace x)) "/")))
-      (dom/span {:style {:fontWeight "bold"}}
-        (name x)))
-    (pr-str x)))
+(defn ui-db-key [selectIdent x]
+  (cond
+    (keyword? x)
+    #_=> (dom/p ":"
+           (when (namespace x)
+             (dom/span {:title (namespace x) :style {:color "grey"}}
+               (str (compact (namespace x)) "/")))
+           (dom/span {:style {:fontWeight "bold"}}
+             (name x)))
+    (ident? x) (ui-ident selectIdent x)
+    :else (pr-str x)))
 
 (defn ui-db-value [{:keys [selectIdent selectMap]} v k]
   (cond
     (nil? v)
     #_=> "nil"
     (keyword? v)
-    #_=> (ui-db-key v)
+    #_=> (ui-db-key selectIdent v)
     (map? v)
-    #_=> (ui-ident #(selectMap k) (str "Show " (count v) " ..."))
+    #_=> (ui-ident #(selectMap k) (str "Show " (count (keys v)) " ..."))
     (ident? v)
     #_=> (ui-ident selectIdent v)
     (and (vector? v) (every? ident? v))
@@ -61,7 +63,7 @@
     (or (keyword? x) (symbol? x))
     name))
 
-(defsc EntityLevel [this {:keys [entity] :as params}]
+(defsc EntityLevel [this {:keys [selectIdent entity] :as params}]
   {}
   (prim/fragment
     (dom/tr
@@ -71,7 +73,7 @@
       (map
         (fn [[k v]]
           (dom/tr {:key (str "entity-key-" k)}
-            (dom/td (ui-db-key k))
+            (dom/td (ui-db-key selectIdent k))
             (dom/td (ui-db-value params v k))))
         (sort-by (comp key-sort-fn first)
           entity))
@@ -79,7 +81,7 @@
 
 (def ui-entity-level (prim/factory EntityLevel))
 
-(defsc TableLevel [this {:keys [entity-ids selectEntity]}]
+(defsc TableLevel [this {:keys [selectIdent entity-ids selectEntity]}]
   {}
   (prim/fragment
     (dom/tr
@@ -89,13 +91,13 @@
         (dom/tr {:key (str "table-key-" entity-id)}
           (dom/td
             (dom/button {:onClick #(selectEntity entity-id)}
-              (ui-db-key entity-id)))))
+              (ui-db-key selectIdent entity-id)))))
       (sort-by key-sort-fn
         entity-ids))))
 
 (def ui-table-level (prim/factory TableLevel))
 
-(defsc TopLevel [this {:keys [tables root-values selectTopKey] :as params}]
+(defsc TopLevel [this {:keys [selectIdent tables root-values selectTopKey] :as params}]
   {}
   (prim/fragment
     (dom/tr
@@ -104,10 +106,10 @@
     (map
       (fn [[k v]]
         (dom/tr {:key (str "top-tables-key-" k)}
-          (dom/td (ui-db-key k))
+          (dom/td (ui-db-key selectIdent k))
           (dom/td
             (dom/button {:onClick #(selectTopKey k)}
-              (str "Show " (count v) " ...")))))
+              (str "Show " (count (keys v)) " ...")))))
       (sort-by (comp key-sort-fn first)
         tables))
     (dom/tr
@@ -116,7 +118,7 @@
     (map
       (fn [[k v]]
         (dom/tr {:key (str "top-values-key-" k)}
-          (dom/td (ui-db-key k))
+          (dom/td (ui-db-key selectIdent k))
           (dom/td (ui-db-value params v k))))
       (sort-by (comp key-sort-fn first)
         root-values))))
@@ -346,6 +348,7 @@
                                   :selectMap    (fn [k] (append-to-path! this k))
                                   :selectTopKey (fn [k] (set-path! this [k]))}))
             :table (ui-table-level {:entity-ids   (keys (get-in current-state (:path path)))
+                                    :selectIdent  (fn [ident] (set-path! this ident))
                                     :selectEntity (fn [id] (append-to-path! this id))})
             :entity (ui-entity-level {:entity       (get-in current-state (:path path))
                                       :addDataWatch (fn [] (add-data-watch! this (:path path)))
