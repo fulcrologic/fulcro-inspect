@@ -11,9 +11,10 @@
   "license": "MIT",
   "repository": "https://github.com:/fulcrologic/fulcro-inspect.git",
   "dependencies": {
+    "electron-settings": "^3.2.0",
     "express": "^4.16.3",
-    "socket.io": "1.7.4",
-    "electron-settings": "^3.2.0"
+    "express-ws": "^4.0.0",
+    "socket.io": "1.7.4"
   },
   "devDependencies": {
     "electron": "^6.0.12",
