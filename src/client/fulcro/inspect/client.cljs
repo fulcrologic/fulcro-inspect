@@ -240,8 +240,12 @@
        :else
        (js/console.warn "Invalid network" {:network network})))))
 
+;; LANDMARK: This is how the inspect UI talks to whichever chrome (browser extension or electron) is hosting the tool
 (defn handle-devtool-message [{:keys [type data]}]
   (case type
+    ::restart-websocket
+    (post-message ::restart-websocket {})
+
     ::request-page-apps
     (doseq [{:keys [reconciler networking]} (vals @apps*)]
       (post-message ::init-app {app-uuid-key                (app-uuid reconciler)

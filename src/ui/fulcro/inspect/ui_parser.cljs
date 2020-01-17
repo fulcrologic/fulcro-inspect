@@ -7,6 +7,9 @@
             [com.wsscode.pathom.profile :as pp]
             [com.wsscode.pathom.viz.index-explorer :as iex]))
 
+;; LANDMARK: This is the general code that abstract communication between the Fulcro UI and whatever environment it
+;; happens to be embedded within (CHrome browser plugin on Electron app)
+
 (s/def ::msg-id uuid?)
 
 (def indexes (atom {}))
@@ -80,6 +83,11 @@
   {}
   (fn [{:keys [send-message]} input]
     (send-message :fulcro.inspect.client/pick-element input)))
+
+(defmutation 'restart-websockets
+  {}
+  (fn [{:keys [send-message]} input]
+    (send-message :fulcro.inspect.client/show-dom-preview input)))
 
 (defmutation 'show-dom-preview
   {}

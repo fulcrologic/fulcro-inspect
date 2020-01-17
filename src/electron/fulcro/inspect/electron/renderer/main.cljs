@@ -54,7 +54,7 @@
 (defn post-message [port type data]
   (.send ipcRenderer "event"
     #js {:fulcro-inspect-devtool-message (encode/write {:type type :data data :timestamp (js/Date.)})
-         :client-connection-id           (:fulcro.inspect.core/client-connection-id data)
+         :client-connection-id           (encode/write (:fulcro.inspect.core/client-connection-id data))
          :app-uuid                       (encode/write (:fulcro.inspect.core/app-uuid data))
          :tab-id                         current-tab-id}))
 

@@ -27,7 +27,7 @@
     (let [{:keys [state ref]} env
           {::keys [watcher current-index history]} (get-in @state ref)]
       (if (or (= 0 (count history))
-              (= current-index (dec (count history))))
+            (= current-index (dec (count history))))
         (do
           (if-not (= current-index (dec *max-history*))
             (h/swap-entity! env update ::current-index inc))
@@ -37,8 +37,8 @@
           (h/swap-entity! env update ::current-index dec)))
 
       (h/swap-entity! env update ::history #(->> (conj % (new-state content))
-                                                 (take-last *max-history*)
-                                                 (vec))))))
+                                              (take-last *max-history*)
+                                              (vec))))))
 
 (fm/defmutation navigate-history [{::keys [current-index]}]
   (action [{:keys [state ref] :as env}]
@@ -52,8 +52,8 @@
     (let [history (get-in @state ref)]
       (if (::show-dom-preview? history)
         (-> (db.h/remote-mutation env 'show-dom-preview)
-            (assoc-in [:params :fulcro.inspect.client/state-hash]
-              (get-in history [::history current-index :fulcro.inspect.client/state-hash])))
+          (assoc-in [:params :fulcro.inspect.client/state-hash]
+            (get-in history [::history current-index :fulcro.inspect.client/state-hash])))
         false))))
 
 (fm/defmutation hide-dom-preview [_]
@@ -66,7 +66,7 @@
   (refresh [_] [::current-index])
   (remote [{:keys [ast ref]}]
     (-> (assoc ast :key 'reset-app)
-        (assoc-in [:params :fulcro.inspect.core/app-uuid] (db.h/ref-app-uuid ref)))))
+      (assoc-in [:params :fulcro.inspect.core/app-uuid] (db.h/ref-app-uuid ref)))))
 
 (fp/defsc Snapshot
   [this
@@ -222,7 +222,7 @@
           (ui/icon {:title (if at-end? "Force app re-render" "Reset App To This State")} :settings_backup_restore))
 
         (ui/toolbar-action {:onClick #(let [content (-> this fp/get-reconciler fp/app-state deref
-                                                        (h/get-in-path [::watcher/id (::watcher/id watcher) ::watcher/root-data ::data-viewer/content]))]
+                                                      (h/get-in-path [::watcher/id (::watcher/id watcher) ::watcher/root-data ::data-viewer/content]))]
                                         (fp/transact! this [`(save-snapshot {::snapshot-db ~content})]))}
           (ui/icon {:title "Save snapshot of current state"} :add_a_photo))
         (ui/toolbar-debounced-text-field
@@ -257,9 +257,9 @@
                   (ui/icon {:title "Not implemented yet."} :file_download)))
             (for [s (sort-by ::snapshot-label #(compare %2 %) snapshots)]
               (snapshot s {::current?           (= (-> (get-in watcher [::watcher/root-data ::data-viewer/content])
-                                                       (dissoc :fulcro.inspect.core/app-uuid))
+                                                     (dissoc :fulcro.inspect.core/app-uuid))
                                                   (-> (get s ::snapshot-db)
-                                                      (dissoc :fulcro.inspect.core/app-uuid)))
+                                                    (dissoc :fulcro.inspect.core/app-uuid)))
                            ::on-delete-snapshot (fn [{::keys [snapshot-label] :as s}]
                                                   (if (js/confirm (str "Delete " snapshot-label " snapshot?"))
                                                     (fp/transact! this `[(delete-snapshot ~s)])))

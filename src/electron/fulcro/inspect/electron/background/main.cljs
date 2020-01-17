@@ -5,8 +5,6 @@
     ["path" :as path]
     ["url" :as url]))
 
-(defonce contents (atom nil))
-
 (defn create-window []
   (let [win (electron/BrowserWindow. #js {:width          800
                                           :height         600
@@ -15,8 +13,7 @@
                                    :protocol "file:"
                                    :slashes  "true"}))
     (.. win -webContents openDevTools)
-    (reset! contents (.-webContents win))
-    (server/start! {:content-atom contents})))
+    (server/start! (.-webContents win))))
 
 (defn init []
   (js/console.log "start")
