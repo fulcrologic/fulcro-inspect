@@ -38,6 +38,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Express Boilerplate Plumbing
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defn routes [express-app {:keys [ajax-post-fn ajax-get-or-ws-handshake-fn]}]
   (doto express-app
     (.ws "/chsk"
@@ -97,29 +98,31 @@
     (swap! app-uuid->client-id dissoc app-uuid)
     (forward-client-message-to-renderer message client-id app-uuid)))
 
+(defn create-channel-socket-server []
+  (let [packer (tp/make-packer {})
+        {:keys [ch-recv] :as server} (sente-express/make-express-channel-socket-server!
+                                       {:packer        packer
+                                        :csrf-token-fn nil
+                                        :user-id-fn    :client-id})]
+    (go-loop []
+      (when-some [{:keys [client-id event]} (<! ch-recv)]
+        (spy "server received client message: " event)
+        (let [[event-type event-data] event]
+          (case event-type
+            :inspect/message (let [app-uuid (-> event-data :data :fulcro.inspect.core/app-uuid)]
+                               (when (and (uuid? app-uuid) (not (contains? @app-uuid->client-id app-uuid)))
+                                 (js/console.log "Saving app uuid client-id association")
+                                 (swap! client-id->app-uuid assoc client-id app-uuid)
+                                 (swap! app-uuid->client-id assoc app-uuid client-id))
+                               (forward-client-message-to-renderer event-data client-id app-uuid))
+            (spy "Unsupported event" event))))
+      (recur))
+    server))
+
 (defn start-ws! []
   (when-not @channel-socket-server
     (reset! channel-socket-server
-      (let [packer (tp/make-packer {})
-            {:keys [ch-recv send-fn connected-uids] :as result} (sente-express/make-express-channel-socket-server!
-                                                                  {:packer        packer
-                                                                   :csrf-token-fn nil
-                                                                   :user-id-fn    (fn initialize-user-id-from-request [req]
-                                                                                    (:client-id req))})]
-
-        (go-loop []
-          (when-some [{:keys [client-id event] :as data} (<! ch-recv)]
-            (let [[event-type event-data] event]
-              (case event-type
-                :inspect/message (let [app-uuid (-> event-data :data :fulcro.inspect.core/app-uuid)]
-                                   (when (and (uuid? app-uuid) (not (contains? @app-uuid->client-id app-uuid)))
-                                     (js/console.log "Saving app uuid client-id association")
-                                     (swap! client-id->app-uuid assoc client-id app-uuid)
-                                     (swap! app-uuid->client-id assoc app-uuid client-id))
-                                   (forward-client-message-to-renderer event-data client-id app-uuid))
-                (spy "Unsupported event" event))))
-          (recur))
-        result)))
+      (create-channel-socket-server)))
   (let [port (get-setting "port" 8237)]
     (js/console.log "Fulcro Inspect Listening on port " port)
     (reset! server-atom (start-web-server! port))))
@@ -132,21 +135,23 @@
   (reset! server-atom nil)
   (start-ws!))
 
+;; LANDMARK: Hook up of incoming messages from Electron renderer
 (defn handle-message-from-renderer [_ msg]
   (js/console.log "Inspect renderer wants to send to client: " msg)
   (if (gobj/get msg "restart")
     (let [port (gobj/get msg "port")]
       (set-setting! "port" port)
       (restart!))
-    (let [{:keys [send-fn]} @channel-socket-server]
-      ;; TODO: IF it has an app UUID, then we'll send it
-      ;(enc/when-let [app-uuid  (some-> msg (gobj/get "app-uuid") (encode/read))
-      ;               client-id (get (map-invert @app-uuids) app-uuid)
-      ;               client    (get @clients client-id))]
+    (let [{:keys [send-fn]} @channel-socket-server
+          devtool-message (-> msg
+                            (gobj/get "fulcro-inspect-devtool-message")
+                            (encode/read))]
+
       (some-> msg
         (gobj/get "app-uuid")
         (encode/read)
-        (send-fn [:fulcro.inspect/event msg])))))
+        (@app-uuid->client-id)
+        (send-fn [:fulcro.inspect/event devtool-message])))))
 
 (defn start!
   "Called on overall Inspect App startup (once)"
@@ -154,7 +159,6 @@
   (set-setting! "ensure_settings_persisted" true)
   (reset! content-atom web-content)
   (start-ws!)
-  ;; LANDMARK: Hook up of incoming messages from Electron renderer
   (.on ipcMain "event" handle-message-from-renderer))
 
 
