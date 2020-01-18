@@ -25,7 +25,8 @@
             [fulcro.inspect.ui.multi-oge :as multi-oge]
             [fulcro.inspect.ui.network :as network]
             [fulcro.inspect.ui.transactions :as transactions]
-            [goog.object :as gobj]))
+            [goog.object :as gobj]
+            [fulcro.inspect.ui.db-explorer :as db-explorer]))
 
 (fp/defsc GlobalRoot [this {:keys [ui/root]}]
   {:initial-state (fn [params] {:ui/root (fp/get-initial-state multi-inspector/MultiInspector params)})
@@ -88,6 +89,7 @@
                           (assoc ::inspector/id app-uuid)
                           (assoc :fulcro.inspect.core/app-id app-id)
                           (assoc ::inspector/name (dedupe-name app-id))
+                        (assoc-in [::inspector/db-explorer ::db-explorer/id] [app-uuid-key app-uuid])
                           (assoc-in [::inspector/app-state ::data-history/history-id] [app-uuid-key app-uuid])
                           (assoc-in [::inspector/app-state ::data-history/watcher ::data-watcher/id] [app-uuid-key app-uuid])
                           (assoc-in [::inspector/app-state ::data-history/watcher ::data-watcher/watches]
@@ -168,6 +170,9 @@
         [`(fm/set-props ~{::i18n/current-locale current-locale})]))
 
     (let [state (assoc new-state :fulcro.inspect.client/state-hash state-hash)]
+      (fp/transact! (:reconciler @global-inspector*)
+        [::db-explorer/id [app-uuid-key app-uuid]]
+        [`(db-explorer/set-current-state ~state) :current-state])
       (fp/transact! (:reconciler @global-inspector*)
         [::data-history/history-id [app-uuid-key app-uuid]]
         [`(data-history/set-content ~state) ::data-history/history]))))
