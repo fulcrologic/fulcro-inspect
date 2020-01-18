@@ -44,7 +44,7 @@
           :href    "#"
           :title   (str v)
           :onClick #(f v)}
-        (map #(span {:key (str "ident-segment-" v "-" %)
+        (map #(span {:key   (str "ident-segment-" v "-" %)
                      :style {:whiteSpace "nowrap"}}
                 (str " " %))
           segments)))))
@@ -77,9 +77,9 @@
       :else (pr-str v))))
 
 (defn key-sort-fn [x]
-  (cond-> x
-    (or (keyword? x) (symbol? x))
-    name))
+  (if (or (keyword? x) (symbol? x))
+    (name x)
+    (str x)))
 
 (defsc EntityLevel [this {:keys [selectIdent entity] :as params}]
   {}
@@ -367,40 +367,44 @@
                    :ui/search-type    :search/by-value
                    :ui/path           {:path []}
                    :ui/history        []}}
-  (let [explorer-mode (mode props)]
-    (div
-      (ui-toolbar* this props)
-      ;(div (pr-str history)
-      ;(div (pr-str search-results))
-      (div :.ui.container {:style {:marginLeft "0.5rem"}}
-        (ui-db-path* this path history)
-        (when (= :entity explorer-mode)
-          (button :.ui.tertiary.button.animated.icon
-            {:onClick #(add-data-watch! this (:path path))}
-            (div :.visible.content (dom/i :.icon.eye))
-            (div :.hidden.content "Watch")))
-        (dom/table :.ui.compact.celled.fluid.table {:style {:marginTop "0"}}
-          (dom/tbody
-            (case explorer-mode
-              :search (ui-search-results* this search-results)
-              :top (let [top-keys    (set (keys current-state))
-                         tables      (filter
-                                       (fn [k]
-                                         (let [v (get current-state k)]
-                                           (table? v)))
-                                       top-keys)
-                         root-values (select-keys current-state (set/difference top-keys (set tables)))]
-                     (ui-top-level {:tables       (select-keys current-state tables)
-                                    :root-values  root-values
-                                    :selectIdent  (fn [ident] (set-path! this ident))
-                                    :selectMap    (fn [k] (append-to-path! this k))
-                                    :selectTopKey (fn [k] (set-path! this [k]))}))
-              :table (ui-table-level {:entity-ids   (keys (get-in current-state (:path path)))
+  (try
+    (let [explorer-mode (mode props)]
+      (div
+        (ui-toolbar* this props)
+        ;(div (pr-str history)
+        ;(div (pr-str search-results))
+        (div :.ui.container {:style {:marginLeft "0.5rem"}}
+          (ui-db-path* this path history)
+          (when (= :entity explorer-mode)
+            (button :.ui.tertiary.button.animated.icon
+              {:onClick #(add-data-watch! this (:path path))}
+              (div :.visible.content (dom/i :.icon.eye))
+              (div :.hidden.content "Watch")))
+          (dom/table :.ui.compact.celled.fluid.table {:style {:marginTop "0"}}
+            (dom/tbody
+              (case explorer-mode
+                :search (ui-search-results* this search-results)
+                :top (let [top-keys    (set (keys current-state))
+                           tables      (filter
+                                         (fn [k]
+                                           (let [v (get current-state k)]
+                                             (table? v)))
+                                         top-keys)
+                           root-values (select-keys current-state (set/difference top-keys (set tables)))]
+                       (ui-top-level {:tables       (select-keys current-state tables)
+                                      :root-values  root-values
                                       :selectIdent  (fn [ident] (set-path! this ident))
-                                      :selectEntity (fn [id] (append-to-path! this id))})
-              :entity (ui-entity-level {:entity      (get-in current-state (:path path))
-                                        :selectMap   (fn [k] (append-to-path! this k))
-                                        :selectIdent (fn [ident] (set-path! this ident))})
-              (div "Internal Error"))))))))
+                                      :selectMap    (fn [k] (append-to-path! this k))
+                                      :selectTopKey (fn [k] (set-path! this [k]))}))
+                :table (ui-table-level {:entity-ids   (keys (get-in current-state (:path path)))
+                                        :selectIdent  (fn [ident] (set-path! this ident))
+                                        :selectEntity (fn [id] (append-to-path! this id))})
+                :entity (ui-entity-level {:entity      (get-in current-state (:path path))
+                                          :selectMap   (fn [k] (append-to-path! this k))
+                                          :selectIdent (fn [ident] (set-path! this ident))})
+                (div "Internal Error")))))))
+    (catch :default e
+      (dom/div (str "Inspect rendering threw an exception. Start a new tab to try again. Report an issue. Excection:"
+                 (ex-message e))))))
 
 (def ui-db-explorer (prim/factory DBExplorer))
