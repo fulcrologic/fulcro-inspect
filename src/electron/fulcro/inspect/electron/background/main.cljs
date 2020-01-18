@@ -32,7 +32,7 @@
     (server/start! (.-webContents win))))
 
 (defn init []
-  (js/console.log "start")
+  (js/console.log "init")
   (electron/app.on "ready" create-window))
 
 (defn done []

@@ -4,32 +4,18 @@
     ["electron-settings" :as settings]
     [cljs.core.async :as async :refer [put! take! >! <!] :refer-macros [go go-loop]]
     [cljs.nodejs :as nodejs]
-    [clojure.set :refer [map-invert]]
-    [clojure.string :as str]
-    [clojure.pprint :refer [pprint]]
-    [fulcro.logging :as log]
+    [fulcro.inspect.remote.transit :as encode]
     [fulcro.websockets.transit-packer :as tp]
     [goog.object :as gobj]
     [taoensso.encore :as enc]
     [taoensso.sente.server-adapters.express :as sente-express]
-    [clojure.set :as set]
-    [fulcro.inspect.remote.transit :as encode]))
+    [taoensso.timbre :as log]))
 
 (defonce channel-socket-server (atom nil))
 
-(defn spy [msg v]
-  (js/console.log msg (with-out-str (pprint v)))
-  v)
-
-(def http (nodejs/require "http"))
-(def express (nodejs/require "express"))
-(def express-ws (nodejs/require "express-ws"))
-(def ws (nodejs/require "ws"))
-(def body-parser (nodejs/require "body-parser"))
-
-(defonce content-atom (atom nil))
-(defonce client-id->app-uuid (atom {}))
 (defonce app-uuid->client-id (atom {}))
+(defonce client-id->app-uuid (atom {}))
+(defonce content-atom (atom nil))
 (defonce server-atom (atom nil))
 
 (defn get-setting [k default] (or (.get settings k) default))
@@ -38,6 +24,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Express Boilerplate Plumbing
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def http (nodejs/require "http"))
+(def express (nodejs/require "express"))
+(def express-ws (nodejs/require "express-ws"))
+(def ws (nodejs/require "ws"))
+(def body-parser (nodejs/require "body-parser"))
 
 (defn routes [express-app {:keys [ajax-post-fn ajax-get-or-ws-handshake-fn]}]
   (doto express-app
@@ -61,7 +53,7 @@
     (routes ch-server)))
 
 (defn start-web-server! [port]
-  (js/console.log "Starting express...")
+  (log/info "Starting express...")
   (let [express-app       (express)
         express-ws-server (express-ws express-app)]
     (wrap-defaults express-app routes @channel-socket-server)
@@ -78,8 +70,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; LANDMARK: ws-client message -> renderer
-(defn forward-client-message-to-renderer [msg client-id app-uuid]
-  (spy "Inspect client->renderer message" msg)
+(defn forward-client-message-to-renderer! [msg client-id app-uuid]
+  (log/debug "Inspect client->renderer msg-type:" (:type msg))
+  (log/trace "Inspect client->renderer message:" msg)
+  (log/trace "Inspect client->renderer:" {:client-id client-id :app-uuid app-uuid})
   (try
     (when @content-atom
       (.send @content-atom "event"
@@ -96,39 +90,42 @@
                            :timestamp (js/Date.)}]
     (swap! client-id->app-uuid dissoc client-id)
     (swap! app-uuid->client-id dissoc app-uuid)
-    (forward-client-message-to-renderer message client-id app-uuid)))
+    (forward-client-message-to-renderer! message client-id app-uuid)))
 
-(defn create-channel-socket-server []
-  (let [packer (tp/make-packer {})
-        {:keys [ch-recv] :as server} (sente-express/make-express-channel-socket-server!
-                                       {:packer        packer
-                                        :csrf-token-fn nil
-                                        :user-id-fn    :client-id})]
-    (go-loop []
-      (when-some [{:keys [client-id event]} (<! ch-recv)]
-        (spy "server received client message: " event)
-        (let [[event-type event-data] event]
-          (case event-type
-            :inspect/message (let [app-uuid (-> event-data :data :fulcro.inspect.core/app-uuid)]
-                               (when (and (uuid? app-uuid) (not (contains? @app-uuid->client-id app-uuid)))
-                                 (js/console.log "Saving app uuid client-id association")
-                                 (swap! client-id->app-uuid assoc client-id app-uuid)
-                                 (swap! app-uuid->client-id assoc app-uuid client-id))
-                               (forward-client-message-to-renderer event-data client-id app-uuid))
-            (spy "Unsupported event" event))))
-      (recur))
-    server))
+(defn ?record-app-uuid-mapping! [app-uuid client-id]
+  (when (and (uuid? app-uuid) (not (contains? @app-uuid->client-id app-uuid)))
+    (log/debug "Saving app uuid client-id association: "
+      {:client-id client-id
+       :app-uuid  app-uuid})
+    (swap! client-id->app-uuid assoc client-id app-uuid)
+    (swap! app-uuid->client-id assoc app-uuid client-id)))
 
 (defn start-ws! []
   (when-not @channel-socket-server
     (reset! channel-socket-server
-      (create-channel-socket-server)))
+      (sente-express/make-express-channel-socket-server!
+        {:packer        (tp/make-packer {})
+         :csrf-token-fn nil
+         :user-id-fn    :client-id})))
+  (go-loop []
+    (when-some [{:keys [client-id event]} (<! (:ch-recv @channel-socket-server))]
+      (let [[event-type event-data] event]
+        (log/debug "Server received:" event-type)
+        (log/trace "-> with event data:" event-data)
+        (case event-type
+          :fulcro.inspect/message
+          (let [app-uuid (-> event-data :data :fulcro.inspect.core/app-uuid)]
+            (?record-app-uuid-mapping! app-uuid client-id)
+            (forward-client-message-to-renderer! event-data client-id app-uuid))
+          #_else
+          (log/debug "Unsupported event" event))))
+    (recur))
   (let [port (get-setting "port" 8237)]
-    (js/console.log "Fulcro Inspect Listening on port " port)
+    (log/info "Fulcro Inspect Listening on port " port)
     (reset! server-atom (start-web-server! port))))
 
 (defn restart! []
-  (js/console.log "Stopping websockets.")
+  (log/info "Stopping websockets.")
   (when @server-atom
     ((:stop-fn @server-atom)))
   (reset! channel-socket-server nil)
@@ -136,21 +133,26 @@
   (start-ws!))
 
 ;; LANDMARK: Hook up of incoming messages from Electron renderer
-(defn handle-message-from-renderer [_ msg]
-  (js/console.log "Inspect renderer wants to send to client: " msg)
+(defn forward-renderer-message-to-client! [_ msg]
   (if (gobj/get msg "restart")
     (let [port (gobj/get msg "port")]
+      (log/info "Received restart message:" :port port)
+      (log/warn "restart message:" msg)
       (set-setting! "port" port)
       (restart!))
     (let [{:keys [send-fn]} @channel-socket-server
+          _ (log/trace "renderer->client message:" msg)
           devtool-message (-> msg
                             (gobj/get "fulcro-inspect-devtool-message")
                             (encode/read))]
-
+      (log/debug "renderer->client devtool-message type:" (:type devtool-message))
+      (log/trace "renderer->client devtool-message:" devtool-message)
       (some-> msg
         (gobj/get "app-uuid")
         (encode/read)
+        (->> (log/spy :trace "app-uuid:"))
         (@app-uuid->client-id)
+        (->> (log/spy :trace "client-id:"))
         (send-fn [:fulcro.inspect/event devtool-message])))))
 
 (defn start!
@@ -159,6 +161,4 @@
   (set-setting! "ensure_settings_persisted" true)
   (reset! content-atom web-content)
   (start-ws!)
-  (.on ipcMain "event" handle-message-from-renderer))
-
-
+  (.on ipcMain "event" forward-renderer-message-to-client!))
