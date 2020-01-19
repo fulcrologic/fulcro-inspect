@@ -64,6 +64,10 @@ The electron app is built with sente version 1.15.0
 websockets this version difference could cause problems depending on the
 version difference.
 
+WARNING: React Native builds will need to set an environment variable
+(or JVM system property) `SENTE_ELIDE_JS_REQUIRE=true` in order for
+sente to work inside of mobile runtimes.
+
 To use the electron inspect make sure you add this preload to your preloads:
 
 ```clojure
