@@ -42,7 +42,7 @@ and add the following preload to your shadow-cljs config:
 
 That preload is actually part of Fulcro 3.x itself.
 
-## Using the Fulcro 3.x Electron App (ALPHA)
+## Using the Fulcro 3.x Electron App
 
 Fulcro Inspect now has a standalone electron app. This only works with 
 Fulcro 3, and there are no plans to back-port to 2.x. You can download
@@ -58,16 +58,13 @@ applications can connect to for exchanging inspect messages. This means
 you need to have your application configured with a different preload
 that knows how to connect.
 
-You will need to add `socket.io-client` (VERSION 1.7.4) to your `package.json` when
-building with shadow-cljs. If you're not
-using shadow-cljs you'll need to require the cljsjs version of that library.
+IMPORTANT: Inspect 2.3.0-RC1 requires Fulcro 3.1.5-RC1 or greater.
+The electron app is built with sente version 1.15.0
+(as of the latest electron release). If you use sente on your project for
+websockets this version difference could cause problems depending on the
+version difference.
 
-IMPORTANT: The electron app is built with socket.io version 1.7.4
-(as of the latest electron release) because of bugs/issues in the 2.x
-series. You should use a matching client version in your package.json
-when using the websocket preload.
-
-Then make sure you add this preload to your preloads:
+To use the electron inspect make sure you add this preload to your preloads:
 
 ```clojure
 :compiler {...
@@ -77,7 +74,7 @@ Then make sure you add this preload to your preloads:
 or call the function `com.fulcrologic.fulcro.inspect.inspect-client/install-ws` somewhere in your 
 development startup.
 
-### Choosing the Websocket Port
+### Choosing the Websocket Port (work in progress)
 
 The Electron app includes an input field at the top of the UI for the websocket
 port to use (default 8237). Pressing `Restart Websockets` will cause it to
