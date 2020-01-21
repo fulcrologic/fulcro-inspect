@@ -132,7 +132,7 @@
           (dom/td
             (a {:href "#" :onClick #(selectTopKey k)}
               (str (count (keys v)) " items")))))
-      (sort-by key tables))
+      (sort-by (comp str key) tables))
     (dom/tr {:colSpan "2"}
       (dom/th
         (dom/h2 :.ui.header
