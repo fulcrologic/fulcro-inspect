@@ -39,9 +39,8 @@
 (defn ui-ident [f v]
   (let [ident    (mapv compact-keyword v)
         segments (str/split (str ident) #"\s")]
-    (div
-      (a {:key     (str "ident-" v)
-          :href    "#"
+    (div {:key (str "ident-" v)}
+      (a {:href    "#"
           :title   (str v)
           :onClick #(f v)}
         (map #(span {:key   (str "ident-segment-" v "-" %)
