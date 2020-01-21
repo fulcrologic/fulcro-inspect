@@ -131,9 +131,8 @@
           (dom/td (ui-db-key selectIdent k))
           (dom/td
             (a {:href "#" :onClick #(selectTopKey k)}
-              (str (count (keys v)) " items.")))))
-      (sort-by (comp key-sort-fn first)
-        tables))
+              (str (count (keys v)) " items")))))
+      (sort-by key tables))
     (dom/tr {:colSpan "2"}
       (dom/th
         (dom/h2 :.ui.header
