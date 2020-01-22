@@ -108,7 +108,14 @@
       (sente-express/make-express-channel-socket-server!
         {:packer        (tp/make-packer {})
          :csrf-token-fn nil
-         :user-id-fn    :client-id})))
+         :user-id-fn    :client-id}))
+    (let [{:keys [connected-uids]} @channel-socket-server]
+      (add-watch connected-uids ::connections
+        (fn [_ _ old new]
+          (log/info "UIDS" old new)
+          (log/info "client->uuid" @client-id->app-uuid)
+          ))
+      ))
   (go-loop []
     (when-some [{:keys [client-id event]} (<! (:ch-recv @channel-socket-server))]
       (let [[event-type event-data] event]
