@@ -29,10 +29,12 @@
 (def express (nodejs/require "express"))
 (def express-ws (nodejs/require "express-ws"))
 (def ws (nodejs/require "ws"))
+(def cors (nodejs/require "cors"))
 (def body-parser (nodejs/require "body-parser"))
 
 (defn routes [express-app {:keys [ajax-post-fn ajax-get-or-ws-handshake-fn]}]
   (doto express-app
+    (.use (cors))
     (.ws "/chsk"
       (fn [ws req next]
         (ajax-get-or-ws-handshake-fn req nil nil
@@ -141,7 +143,7 @@
       (set-setting! "port" port)
       (restart!))
     (let [{:keys [send-fn]} @channel-socket-server
-          _ (log/trace "renderer->client message:" msg)
+          _               (log/trace "renderer->client message:" msg)
           devtool-message (-> msg
                             (gobj/get "fulcro-inspect-devtool-message")
                             (encode/read))]
