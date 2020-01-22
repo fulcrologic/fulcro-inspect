@@ -374,10 +374,9 @@
         (div :.ui.container {:style {:marginLeft "0.5rem"}}
           (ui-db-path* this path history)
           (when (= :entity explorer-mode)
-            (button :.ui.tertiary.button.animated.icon
+            (button :.ui.tertiary.button
               {:onClick #(add-data-watch! this (:path path))}
-              (div :.visible.content (dom/i :.icon.eye))
-              (div :.hidden.content "Watch")))
+              "Add to DB Watches"))
           (dom/table :.ui.compact.celled.fluid.table {:style {:marginTop "0"}}
             (dom/tbody
               (case explorer-mode
