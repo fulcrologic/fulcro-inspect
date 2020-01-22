@@ -86,6 +86,7 @@
       (log/error e))))
 
 (defn disconnect-client! [client-id]
+  (log/debug "Attempting to disconnect client with id:" client-id)
   (enc/when-let [app-uuid (get @client-id->app-uuid client-id)
                  message  {:type      :fulcro.inspect.client/dispose-app
                            :data      {:fulcro.inspect.core/app-uuid app-uuid}
@@ -108,17 +109,10 @@
       (sente-express/make-express-channel-socket-server!
         {:packer        (tp/make-packer {})
          :csrf-token-fn nil
-         :user-id-fn    :client-id}))
-    (let [{:keys [connected-uids]} @channel-socket-server]
-      (add-watch connected-uids ::connections
-        (fn [_ _ old new]
-          (log/info "UIDS" old new)
-          (log/info "client->uuid" @client-id->app-uuid)
-          ;; cases to handle:
-          ;; 1. there is a client ID we don't know about...we need to send a message to ask for client detail...
-          ;; 2. There is a disconnect happening, and we need to dispose app...
-          ))
-      ))
+         :user-id-fn    :client-id})))
+  ;; TASK: cases to handle:
+  ;; 1. there is a client ID we don't know about...we need to send a message to ask for client detail...
+  ;; 2. There is a disconnect happening, and we need to dispose app...
   (go-loop []
     (when-some [{:keys [client-id event]} (<! (:ch-recv @channel-socket-server))]
       (let [[event-type event-data] event]
@@ -129,6 +123,8 @@
           (let [app-uuid (-> event-data :data :fulcro.inspect.core/app-uuid)]
             (?record-app-uuid-mapping! app-uuid client-id)
             (forward-client-message-to-renderer! event-data client-id app-uuid))
+          :chsk/uidport-close
+          (disconnect-client! client-id)
           #_else
           (log/debug "Unsupported event" event))))
     (recur))
