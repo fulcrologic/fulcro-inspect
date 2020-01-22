@@ -51,7 +51,7 @@
 (def current-tab-id 42)
 
 ;; LANDMARK: This is how we talk back to the node server, which can send the websocket message
-(defn post-message [port type data]
+(defn post-message [type data]
   (.send ipcRenderer "event"
     #js {:fulcro-inspect-devtool-message (encode/write {:type type :data data :timestamp (js/Date.)})
          :client-connection-id           (encode/write (:fulcro.inspect.core/client-connection-id data))
@@ -171,7 +171,8 @@
         new-state (if state-delta
                     (if-let [old-state (get-in @db-hash-index [app-uuid prev-state-hash])]
                       (diff/patch old-state state-delta)
-                      (js/console.error "Error patching state, no previous state available." state-hash))
+                      (do (js/console.warn "Error patching state, no previous state available." state-hash)
+                          (post-message :fulcro.inspect.client/request-page-apps {})))
                     state)]
 
     (swap! db-hash-index db-index-add app-uuid new-state state-hash)
@@ -211,12 +212,15 @@
     (fp/transact! (:reconciler inspector) [::multi-inspector/multi-inspector "main"]
       [`(fm/set-props {::multi-inspector/client-stale? true})])))
 
-(defn handle-remote-message [{:keys [port event responses*]}]
+(defn handle-remote-message [{:keys [event responses*]}]
   (enc/when-let [{:keys [type data]} (event-data event)
                  client-id (client-connection-id event)]
-    (let [data (assoc data ::port port :fulcro.inspect.core/client-connection-id client-id)]
+    (let [data (assoc data :fulcro.inspect.core/client-connection-id client-id)]
       (case type
         :fulcro.inspect.client/init-app
+        (start-app data)
+
+        #_#_:fulcro.inspect.client/re-init-app-state
         (start-app data)
 
         :fulcro.inspect.client/db-update
@@ -250,37 +254,38 @@
 
 (defonce message-handler-ch (async/chan (async/dropping-buffer 1024)))
 
-(defn event-loop [app responses*]
-  (.on ipcRenderer "event" (fn [_ msg]
-                             (handle-remote-message {:event      msg
-                                                     :responses* responses*}))))
+(defn event-loop! [app responses*]
+  (.on ipcRenderer "event"
+    (fn [_ msg]
+      (handle-remote-message
+        {:event      msg
+         :responses* responses*}))))
 
-(defn make-network [port* parser responses*]
+(defn make-network [parser responses*]
   (pfn/fn-network
     (fn [this edn ok error]
       (go
         (try
           (ok (<! (parser {:send-message (fn [type data]
-                                           (post-message @port* type data))
+                                           (post-message type data))
                            :responses*   responses*} edn)))
           (catch :default e
             (error e)))))
     false))
 
 (defn start-global-inspector [options]
-  (let [port*      (atom nil)
-        responses* (atom {})
+  (let [responses* (atom {})
         app        (fulcro/new-fulcro-client
                      :started-callback
                      (fn [app]
-                       (reset! port* (event-loop app responses*))
-                       (post-message @port* :fulcro.inspect.client/check-client-version {}))
+                       (event-loop! app responses*)
+                       (post-message :fulcro.inspect.client/check-client-version {}))
 
                      :shared
                      {::db-hash-index (atom {})}
 
                      :networking
-                     (make-network port* (ui-parser/parser) responses*))
+                     (make-network (ui-parser/parser) responses*))
         node       (js/document.createElement "div")]
     (js/document.body.appendChild node)
     (reset! global-inspector* (fulcro/mount app GlobalRoot node))
