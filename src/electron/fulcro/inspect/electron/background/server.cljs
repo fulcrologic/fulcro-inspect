@@ -114,6 +114,9 @@
         (fn [_ _ old new]
           (log/info "UIDS" old new)
           (log/info "client->uuid" @client-id->app-uuid)
+          ;; cases to handle:
+          ;; 1. there is a client ID we don't know about...we need to send a message to ask for client detail...
+          ;; 2. There is a disconnect happening, and we need to dispose app...
           ))
       ))
   (go-loop []
