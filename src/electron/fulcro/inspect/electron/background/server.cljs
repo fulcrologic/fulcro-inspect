@@ -142,7 +142,7 @@
   (if (gobj/get msg "restart")
     (let [port (gobj/get msg "port")]
       (log/info "Received restart message:" :port port)
-      (log/warn "restart message:" msg)
+      (log/warn "restart message:" (js->clj msg))
       (set-setting! "port" port)
       (restart!))
     (let [{:keys [send-fn]} @channel-socket-server
@@ -152,13 +152,19 @@
                             (encode/read))]
       (log/debug "renderer->client devtool-message type:" (:type devtool-message))
       (log/trace "renderer->client devtool-message:" devtool-message)
-      (some-> msg
-        (gobj/get "app-uuid")
-        (encode/read)
-        (->> (log/spy :trace "app-uuid:"))
-        (@app-uuid->client-id)
-        (->> (log/spy :trace "client-id:"))
-        (send-fn [:fulcro.inspect/event devtool-message])))))
+      (let [app-uuid (some->>
+                       (gobj/get msg "app-uuid")
+                       (encode/read)
+                       (log/spy :trace "app-uuid:"))]
+        (if-not app-uuid
+          (log/warn "Unable to find app-uuid in message:" (select-keys (js->clj msg) ["app-uuid"]))
+          (let [client-id (some->> app-uuid
+                            (get @app-uuid->client-id)
+                            (log/spy :trace "client-id:"))]
+            (if-not client-id
+              (log/warn "Could not find app-uuid in registered apps:"
+                {:app-uuid app-uuid :app-uuid->client-id @app-uuid->client-id})
+              (send-fn client-id [:fulcro.inspect/event devtool-message]))))))))
 
 (defn start!
   "Called on overall Inspect App startup (once)"
