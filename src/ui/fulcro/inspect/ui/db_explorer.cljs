@@ -75,11 +75,6 @@
       #_=> (prim/fragment (map (partial ui-ident selectIdent) v))
       :else (pr-str v))))
 
-(defn key-sort-fn [x]
-  (if (or (keyword? x) (symbol? x))
-    (name x)
-    (str x)))
-
 (defsc EntityLevel [this {:keys [selectIdent entity] :as params}]
   {}
   (prim/fragment
@@ -92,8 +87,7 @@
           (dom/tr {:key (str "entity-key-" k)}
             (dom/td (ui-db-key selectIdent k))
             (dom/td (ui-db-value params v k))))
-        (sort-by (comp key-sort-fn first)
-          entity))
+        (sort-by (comp str key) entity))
       #_else (dom/tr (dom/td "DEBUG PR-STR:" (pr-str entity))))))
 
 (def ui-entity-level (prim/factory EntityLevel))
@@ -109,8 +103,7 @@
           (dom/td
             (a {:href "#" :onClick #(selectEntity entity-id)}
               (ui-db-key selectIdent entity-id)))))
-      (sort-by key-sort-fn
-        entity-ids))))
+      (sort-by str entity-ids))))
 
 (def ui-table-level (prim/factory TableLevel))
 
@@ -147,7 +140,7 @@
         (dom/tr {:key (str "top-values-key-" k)}
           (dom/td (ui-db-key selectIdent k))
           (dom/td (ui-db-value params v k))))
-      (sort-by (comp key-sort-fn first)
+      (sort-by (comp str key)
         root-values))))
 
 (def ui-top-level (prim/factory TopLevel))
@@ -401,7 +394,7 @@
                                           :selectIdent (fn [ident] (set-path! this ident))})
                 (div "Internal Error")))))))
     (catch :default e
-      (dom/div (str "Inspect rendering threw an exception. Start a new tab to try again. Report an issue. Excection:"
+      (dom/div (str "Inspect rendering threw an exception. Start a new tab to try again. Report an issue. Exception:"
                  (ex-message e))))))
 
 (def ui-db-explorer (prim/factory DBExplorer))
