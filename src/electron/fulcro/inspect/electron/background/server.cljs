@@ -130,7 +130,7 @@
           :chsk/uidport-open
           (connect-client! client-id)
           #_else
-          (log/debug "Unsupported event" event))))
+          (log/debug "Unsupported event:" event "from client:" client-id))))
     (recur))
   (let [port (get-setting "port" 8237)]
     (log/info "Fulcro Inspect Listening on port " port)
@@ -179,4 +179,11 @@
   (set-setting! "ensure_settings_persisted" true)
   (reset! content-atom web-content)
   (start-ws!)
+  (.on web-content "dom-ready"
+    (fn on-inspect-reload-request-app-state []
+      (let [{:keys [send-fn]} @channel-socket-server
+            msg {:type :fulcro.inspect.client/request-page-apps
+                 :data {}}]
+        (doseq [[client-id _] @client-id->app-uuid]
+          (send-fn client-id [:fulcro.inspect/event msg])))))
   (.on ipcMain "event" forward-renderer-message-to-client!))
