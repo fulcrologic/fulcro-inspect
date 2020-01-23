@@ -137,6 +137,10 @@
       (fp/transact! (:reconciler inspector) [::multi-inspector/multi-inspector "main"]
         [`(multi-inspector/set-app {::inspector/id ~app-uuid})]))
 
+    (fp/transact! (:reconciler inspector)
+      [::db-explorer/id [app-uuid-key app-uuid]]
+      [`(db-explorer/set-current-state ~initial-state) :current-state])
+
     new-inspector))
 
 (defn dispose-app [{:fulcro.inspect.core/keys [app-uuid]}]
@@ -219,9 +223,6 @@
     (let [data (assoc data :fulcro.inspect.core/client-connection-id client-id)]
       (case type
         :fulcro.inspect.client/init-app
-        (start-app data)
-
-        #_#_:fulcro.inspect.client/re-init-app-state
         (start-app data)
 
         :fulcro.inspect.client/db-update
