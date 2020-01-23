@@ -26,7 +26,10 @@
     (.loadURL win (url/format #js {:pathname (path/join js/__dirname ".." ".." "index.html")
                                    :protocol "file:"
                                    :slashes  "true"}))
-    (.. win -webContents openDevTools)
+    (when (get-setting "BrowserWindow/OpenDevTools?" false)
+      (.. win -webContents openDevTools))
+    (.on (.-webContents win) "devtools-opened" #(set-setting! "BrowserWindow/OpenDevTools?" true))
+    (.on (.-webContents win) "devtools-closed" #(set-setting! "BrowserWindow/OpenDevTools?" false))
     (doto win
       (.on "resize" (debounce 500 #(save-state! win)))
       (.on "move" (debounce 500 #(save-state! win)))
