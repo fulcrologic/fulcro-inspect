@@ -103,6 +103,11 @@
     (swap! client-id->app-uuid assoc client-id app-uuid)
     (swap! app-uuid->client-id assoc app-uuid client-id)))
 
+(defn connect-client! [client-id]
+  (let [{:keys [send-fn]} @channel-socket-server
+        msg {:type :fulcro.inspect.client/request-page-apps :data {}}]
+    (send-fn client-id [:fulcro.inspect/event msg])))
+
 (defn start-ws! []
   (when-not @channel-socket-server
     (reset! channel-socket-server
@@ -122,6 +127,8 @@
             (forward-client-message-to-renderer! event-data client-id app-uuid))
           :chsk/uidport-close
           (disconnect-client! client-id)
+          :chsk/uidport-open
+          (connect-client! client-id)
           #_else
           (log/debug "Unsupported event" event))))
     (recur))
