@@ -8,7 +8,7 @@
     [fulcro.inspect.helpers :as h]
     [fulcro.inspect.ui.data-watcher :as dw]
     [fulcro.util :refer [ident?]]
-    [fulcro.client.mutations :as m]
+    [fulcro.client.mutations :as fm]
     [clojure.string :as str]
     [taoensso.encore :as enc]))
 
@@ -261,7 +261,13 @@
   (let [{::keys [id]} (prim/props this)
         reconciler (prim/any->reconciler this)]
     (prim/transact! reconciler [::id id]
-      `[(dw/add-data-watch ~{:path path})])))
+      `[(dw/add-data-watch ~{:path path})])
+    (let [[_ app-uuid] id]
+      (prim/transact! reconciler
+        [:fulcro.inspect.ui.inspector/id app-uuid]
+        `[(fm/set-props
+            ~{:fulcro.inspect.ui.inspector/tab
+              :fulcro.inspect.ui.inspector/page-db})]))))
 
 (defn ui-db-path* [this {:keys [path search-query]} history]
   (prim/fragment
@@ -328,7 +334,7 @@
       (div :.ui.icon.input
         (input {:value       search-query
                 :placeholder "Search DB for:"
-                :onChange    #(m/set-string! this :ui/search-query :event %)
+                :onChange    #(fm/set-string! this :ui/search-query :event %)
                 :onKeyDown   #(when (= 13 (.-keyCode %))
                                 (search-for! this search-query
                                   [(.-shiftKey %) search-type]))})
@@ -338,12 +344,12 @@
       (div :.ui.buttons
         (button :.ui.button.toggle
           {:className (if (= search-type :search/by-value) "active" "basic")
-           :onClick   #(m/set-string! this :ui/search-type
+           :onClick   #(fm/set-string! this :ui/search-type
                          :value :search/by-value)}
           "by Value")
         (button :.ui.button.toggle
           {:className (if (= search-type :search/by-id) "active" "basic")
-           :onClick   #(m/set-string! this :ui/search-type
+           :onClick   #(fm/set-string! this :ui/search-type
                          :value :search/by-id)}
           "by ID")))))
 
