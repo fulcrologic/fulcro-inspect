@@ -129,6 +129,8 @@
           (disconnect-client! client-id)
           :chsk/uidport-open
           (connect-client! client-id)
+          :chsk/ws-ping
+          (log/trace "ws-ping from client:" client-id)
           #_else
           (log/debug "Unsupported event:" event "from client:" client-id))))
     (recur))
