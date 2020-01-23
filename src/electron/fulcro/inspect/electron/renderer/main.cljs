@@ -172,7 +172,8 @@
                     (if-let [old-state (get-in @db-hash-index [app-uuid prev-state-hash])]
                       (diff/patch old-state state-delta)
                       (do (js/console.warn "Error patching state, no previous state available." state-hash)
-                          (post-message :fulcro.inspect.client/request-page-apps {})))
+                          (post-message :fulcro.inspect.client/request-page-apps
+                            {:fulcro.inspect.core/app-uuid app-uuid})))
                     state)]
 
     (swap! db-hash-index db-index-add app-uuid new-state state-hash)
