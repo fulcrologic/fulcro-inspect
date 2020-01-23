@@ -14,8 +14,6 @@
   (mapv (fn [[k v]] (set-setting! (str "BrowserWindow/" k) v))
     (js->clj (.getBounds window))))
 
-(defn debounce [ms f] (g.fns/debounce f ms))
-
 (defn create-window []
   (let [win (electron/BrowserWindow.
               #js {:width          (get-setting "BrowserWindow/width" 800)
@@ -30,10 +28,11 @@
       (.. win -webContents openDevTools))
     (.on (.-webContents win) "devtools-opened" #(set-setting! "BrowserWindow/OpenDevTools?" true))
     (.on (.-webContents win) "devtools-closed" #(set-setting! "BrowserWindow/OpenDevTools?" false))
-    (doto win
-      (.on "resize" (debounce 500 #(save-state! win)))
-      (.on "move" (debounce 500 #(save-state! win)))
-      (.on "close" (debounce 500 #(save-state! win))))
+    (let [save-window-state! (g.fns/debounce #(save-state! win) 500)]
+      (doto win
+        (.on "resize" save-window-state!)
+        (.on "move" save-window-state!)
+        (.on "close" save-window-state!)))
     (server/start! (.-webContents win))))
 
 (defn init []
