@@ -14,6 +14,10 @@
   (mapv (fn [[k v]] (set-setting! (str "BrowserWindow/" k) v))
     (js->clj (.getBounds window))))
 
+(defn toggle-settings-window! []
+  (let [msg {:type :fulcro.inspect.client/toggle-settings :data {}}]
+    (server/forward-client-message-to-renderer! msg nil nil)))
+
 (defn create-window []
   (let [win (electron/BrowserWindow.
               #js {:width          (get-setting "BrowserWindow/width" 800)
@@ -33,6 +37,27 @@
         (.on "resize" save-window-state!)
         (.on "move" save-window-state!)
         (.on "close" save-window-state!)))
+    (.setApplicationMenu electron/Menu
+      (.buildFromTemplate electron/Menu
+        ;;FIXME: cmd only if is osx
+        (clj->js [{:label   (.-name electron/app)
+                   :submenu [{:role "about"}
+                             {:type "separator"}
+                             {:label       "Settings"
+                              :accelerator "cmd+,"
+                              :click       #(toggle-settings-window!)}
+                             {:type "separator"}
+                             {:role "quit"}]}
+                  {:label   "View"
+                   :submenu [{:role "reload"}
+                             {:role "forcereload"}
+                             {:role "toggledevtools"}
+                             {:type "separator"}
+                             {:role "resetzoom"}
+                             {:role "zoomin" :accelerator "cmd+="}
+                             {:role "zoomout"}
+                             {:type "separator"}
+                             {:role "togglefullscreen"}]}])))
     (server/start! (.-webContents win))))
 
 (defn init []

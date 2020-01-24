@@ -148,19 +148,19 @@
 
 ;; LANDMARK: Hook up of incoming messages from Electron renderer
 (defn forward-renderer-message-to-client! [_ msg]
-  (if (gobj/get msg "restart")
-    (let [port (gobj/get msg "port")]
-      (log/info "Received restart message:" :port port)
-      (log/warn "restart message:" (js->clj msg))
-      (set-setting! "port" port)
-      (restart!))
-    (let [{:keys [send-fn]} @channel-socket-server
-          _               (log/trace "renderer->client message:" msg)
-          devtool-message (-> msg
-                            (gobj/get "fulcro-inspect-devtool-message")
-                            (encode/read))]
-      (log/debug "renderer->client devtool-message type:" (:type devtool-message))
-      (log/trace "renderer->client devtool-message:" devtool-message)
+  (let [{:keys [send-fn]} @channel-socket-server
+        _               (log/trace "renderer->client message:" msg)
+        devtool-message (-> msg
+                          (gobj/get "fulcro-inspect-devtool-message")
+                          (encode/read))]
+    (log/debug "renderer->client devtool-message type:" (:type devtool-message))
+    (log/trace "renderer->client devtool-message:" devtool-message)
+    (if (= :fulcro.inspect.client/restart-websockets (:type devtool-message))
+      (let [port (-> devtool-message :data :port)]
+        (log/warn "Received restart message!")
+        (log/trace "restart message:" (js->clj msg))
+        (set-setting! "port" port)
+        (restart!))
       (let [app-uuid (some->>
                        (gobj/get msg "app-uuid")
                        (encode/read)

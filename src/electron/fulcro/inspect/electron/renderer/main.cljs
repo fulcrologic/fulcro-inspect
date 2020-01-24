@@ -252,6 +252,11 @@
           (if (= -1 (version/compare client-version version/last-inspect-version))
             (notify-stale-app)))
 
+        :fulcro.inspect.client/toggle-settings
+        (fp/transact! (:reconciler @global-inspector*)
+          [::multi-inspector/multi-inspector "main"]
+          `[(multi-inspector/toggle-settings ~data)])
+
         (js/console.log "Unknown message" type)))))
 
 (defonce message-handler-ch (async/chan (async/dropping-buffer 1024)))
@@ -264,16 +269,16 @@
          :responses* responses*}))))
 
 (defn make-network [parser responses*]
-  (pfn/fn-network
-    (fn [this edn ok error]
-      (go
-        (try
-          (ok (<! (parser {:send-message (fn [type data]
-                                           (post-message type data))
-                           :responses*   responses*} edn)))
-          (catch :default e
-            (error e)))))
-    false))
+  (let [parser-env {:send-message post-message
+                    :responses* responses*}]
+    (pfn/fn-network
+      (fn [this edn ok error]
+        (go
+          (try
+            (ok (<! (parser parser-env edn)))
+            (catch :default e
+              (error e)))))
+      false)))
 
 (defn start-global-inspector [options]
   (let [responses* (atom {})
@@ -284,7 +289,8 @@
                        (post-message :fulcro.inspect.client/check-client-version {}))
 
                      :shared
-                     {::db-hash-index (atom {})}
+                     {::db-hash-index                    (atom {})
+                      :fulcro.inspect.renderer/electron? true}
 
                      :networking
                      (make-network (ui-parser/parser) responses*))

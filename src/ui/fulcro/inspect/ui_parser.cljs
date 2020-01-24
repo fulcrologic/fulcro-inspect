@@ -87,7 +87,7 @@
 (defmutation 'restart-websockets
   {}
   (fn [{:keys [send-message]} input]
-    (send-message :fulcro.inspect.client/show-dom-preview input)))
+    (send-message :fulcro.inspect.client/restart-websockets input)))
 
 (defmutation 'show-dom-preview
   {}
