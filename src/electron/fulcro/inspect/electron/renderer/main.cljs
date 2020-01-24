@@ -243,10 +243,6 @@
         :fulcro.inspect.client/set-active-app
         (set-active-app data)
 
-        :fulcro.inspect.client/message-response
-        (when-let [res-chan (get @responses* (::ui-parser/msg-id data))]
-          (put! res-chan (::ui-parser/msg-response data)))
-
         :fulcro.inspect.client/client-version
         (let [client-version (:version data)]
           (if (= -1 (version/compare client-version version/last-inspect-version))
