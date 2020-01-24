@@ -15,8 +15,8 @@
     (js->clj (.getBounds window))))
 
 (defn toggle-settings-window! []
-  (let [msg {:type :fulcro.inspect.client/toggle-settings :data {}}]
-    (server/forward-client-message-to-renderer! msg nil nil)))
+  (server/send-message-to-renderer!
+    {:type :fulcro.inspect.client/toggle-settings :data {}}))
 
 (defn create-window []
   (let [win (electron/BrowserWindow.

@@ -217,7 +217,7 @@
     (fp/transact! (:reconciler inspector) [::multi-inspector/multi-inspector "main"]
       [`(fm/set-props {::multi-inspector/client-stale? true})])))
 
-(defn handle-remote-message [{:keys [event responses*]}]
+(defn handle-remote-message [{:keys [responses*]} event]
   (enc/when-let [{:keys [type data]} (event-data event)
                  client-id (client-connection-id event)]
     (let [data (assoc data :fulcro.inspect.core/client-connection-id client-id)]
@@ -244,7 +244,7 @@
         (set-active-app data)
 
         :fulcro.inspect.client/message-response
-        (if-let [res-chan (get @responses* (::ui-parser/msg-id data))]
+        (when-let [res-chan (get @responses* (::ui-parser/msg-id data))]
           (put! res-chan (::ui-parser/msg-response data)))
 
         :fulcro.inspect.client/client-version
@@ -252,21 +252,28 @@
           (if (= -1 (version/compare client-version version/last-inspect-version))
             (notify-stale-app)))
 
-        :fulcro.inspect.client/toggle-settings
-        (fp/transact! (:reconciler @global-inspector*)
-          [::multi-inspector/multi-inspector "main"]
-          `[(multi-inspector/toggle-settings ~data)])
+        (js/console.log "Unknown remote message:" type)))))
 
-        (js/console.log "Unknown message" type)))))
+(defn handle-local-message [{:keys [responses*]} event]
+  (when-let [{:keys [type data]} (event-data event)]
+    (case type
+      :fulcro.inspect.client/message-response
+      (when-let [res-chan (get @responses* (::ui-parser/msg-id data))]
+        (put! res-chan (::ui-parser/msg-response data)))
 
-(defonce message-handler-ch (async/chan (async/dropping-buffer 1024)))
+      :fulcro.inspect.client/toggle-settings
+      (fp/transact! (:reconciler @global-inspector*)
+        [::multi-inspector/multi-inspector "main"]
+        `[(multi-inspector/toggle-settings ~data)])
+
+      (js/console.warn "Unknown local message:" type))))
 
 (defn event-loop! [app responses*]
   (.on ipcRenderer "event"
-    (fn [_ msg]
-      (handle-remote-message
-        {:event      msg
-         :responses* responses*}))))
+    (fn [_ event]
+      (or
+        (handle-remote-message {:responses* responses*} event)
+        (handle-local-message {:responses* responses*} event)))))
 
 (defn make-network [parser responses*]
   (let [parser-env {:send-message post-message

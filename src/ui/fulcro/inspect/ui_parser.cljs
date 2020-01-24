@@ -8,7 +8,7 @@
             [com.wsscode.pathom.viz.index-explorer :as iex]))
 
 ;; LANDMARK: This is the general code that abstract communication between the Fulcro UI and whatever environment it
-;; happens to be embedded within (CHrome browser plugin on Electron app)
+;; happens to be embedded within (Chrome browser plugin or Electron app)
 
 (s/def ::msg-id uuid?)
 
@@ -27,13 +27,18 @@
     (send-message name (assoc data ::msg-id msg-id))
     (async/go
       (let [[x _] (async/alts! [res-chan (async/timeout 30000)] :priority true)]
-        (if x
-          x
+        (or x (throw (ex-info "Client request timeout"
+                       {:name    name
+                        :data    data
+                        ::msg-id msg-id})))))))
 
-          (throw (ex-info "Client request timeout"
-                   {:name    name
-                    :data    data
-                    ::msg-id msg-id})))))))
+(defresolver 'settings
+  {::pc/output [:>/SETTINGS]}
+  (fn [env _]
+    (go-catch
+      (let [params (-> env :ast :params)
+            response (async/<! (client-request env :fulcro.inspect.client/settings params))]
+        {:>/SETTINGS response}))))
 
 (defresolver 'oge
   {::pc/output [:>/oge ::pp/profile]}

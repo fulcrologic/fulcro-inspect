@@ -21,6 +21,8 @@
 (defn get-setting [k default] (or (.get settings k) default))
 (defn set-setting! [k v] (.set settings k v))
 
+(def default-port 8237)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Express Boilerplate Plumbing
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -71,6 +73,11 @@
 ;; Real Comms Logic:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defn send-message-to-renderer! [msg]
+  (when @content-atom
+     (.send @content-atom "event"
+       #js {:fulcro-inspect-remote-message (encode/write msg)})))
+
 ;; LANDMARK: ws-client message -> renderer
 (defn forward-client-message-to-renderer! [msg client-id app-uuid]
   (log/debug "Inspect client->renderer msg-type:" (:type msg))
@@ -79,9 +86,9 @@
   (try
     (when @content-atom
       (.send @content-atom "event"
-        #js {"fulcro-inspect-remote-message" (encode/write msg)
-             "app-uuid"                      (encode/write app-uuid)
-             "client-id"                     (encode/write client-id)}))
+        #js {:fulcro-inspect-remote-message (encode/write msg)
+             :app-uuid                      (encode/write app-uuid)
+             :client-id                     (encode/write client-id)}))
     (catch :default e
       (log/error e))))
 
@@ -134,7 +141,7 @@
           #_else
           (log/debug "Unsupported event:" event "from client:" client-id))))
     (recur))
-  (let [port (get-setting "port" 8237)]
+  (let [port (get-setting "port" default-port)]
     (log/info "Fulcro Inspect Listening on port " port)
     (reset! server-atom (start-web-server! port))))
 
@@ -147,7 +154,7 @@
   (start-ws!))
 
 ;; LANDMARK: Hook up of incoming messages from Electron renderer
-(defn forward-renderer-message-to-client! [_ msg]
+(defn forward-renderer-message-to-client! [msg]
   (let [{:keys [send-fn]} @channel-socket-server
         _               (log/trace "renderer->client message:" msg)
         devtool-message (-> msg
@@ -155,25 +162,44 @@
                           (encode/read))]
     (log/debug "renderer->client devtool-message type:" (:type devtool-message))
     (log/trace "renderer->client devtool-message:" devtool-message)
-    (if (= :fulcro.inspect.client/restart-websockets (:type devtool-message))
+    (let [app-uuid (some->>
+                     (gobj/get msg "app-uuid")
+                     (encode/read)
+                     (log/spy :trace "app-uuid:"))]
+      (if-not app-uuid
+        (log/warn "Unable to find app-uuid in message:" (select-keys (js->clj msg) ["app-uuid"]))
+        (let [client-id (some->> app-uuid
+                          (get @app-uuid->client-id)
+                          (log/spy :trace "client-id:"))]
+          (if-not client-id
+            (log/warn "Could not find app-uuid in registered apps:"
+              {:app-uuid app-uuid :app-uuid->client-id @app-uuid->client-id})
+            (send-fn client-id [:fulcro.inspect/event devtool-message])))))))
+
+(defn handle-restart [msg]
+  (let [devtool-message (-> msg
+                          (gobj/get "fulcro-inspect-devtool-message")
+                          (encode/read))]
+    (when (= :fulcro.inspect.client/restart-websockets
+            (:type devtool-message))
       (let [port (-> devtool-message :data :port)]
         (log/warn "Received restart message!")
         (log/trace "restart message:" (js->clj msg))
         (set-setting! "port" port)
-        (restart!))
-      (let [app-uuid (some->>
-                       (gobj/get msg "app-uuid")
-                       (encode/read)
-                       (log/spy :trace "app-uuid:"))]
-        (if-not app-uuid
-          (log/warn "Unable to find app-uuid in message:" (select-keys (js->clj msg) ["app-uuid"]))
-          (let [client-id (some->> app-uuid
-                            (get @app-uuid->client-id)
-                            (log/spy :trace "client-id:"))]
-            (if-not client-id
-              (log/warn "Could not find app-uuid in registered apps:"
-                {:app-uuid app-uuid :app-uuid->client-id @app-uuid->client-id})
-              (send-fn client-id [:fulcro.inspect/event devtool-message]))))))))
+        (restart!)))))
+
+(defn handle-load-settings [msg]
+  (let [devtool-message (-> msg
+                          (gobj/get "fulcro-inspect-devtool-message")
+                          (encode/read))]
+    (when (= :fulcro.inspect.client/settings
+            (:type devtool-message))
+      (let [msg-id   (-> devtool-message :data :fulcro.inspect.ui-parser/msg-id)
+            settings {:setting/websocket-port (get-setting "port" default-port)}
+            response {:type :fulcro.inspect.client/message-response
+                      :data {:fulcro.inspect.ui-parser/msg-id       msg-id
+                             :fulcro.inspect.ui-parser/msg-response settings}}]
+        (send-message-to-renderer! response)))))
 
 (defn start!
   "Called on overall Inspect App startup (once)"
@@ -188,4 +214,9 @@
                  :data {}}]
         (doseq [[client-id _] @client-id->app-uuid]
           (send-fn client-id [:fulcro.inspect/event msg])))))
-  (.on ipcMain "event" forward-renderer-message-to-client!))
+  (.on ipcMain "event"
+    (fn [_ msg]
+      (or
+        (handle-restart msg)
+        (handle-load-settings msg)
+        (forward-renderer-message-to-client! msg)))))
