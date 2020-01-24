@@ -85,14 +85,15 @@
    :css-include   [inspector/Inspector]}
   (dom/div :.container
     (css/style-element this)
-    (if show-settings?
-      (settings/ui-settings settings)
-      (if current-app
-        (inspector/inspector current-app)
-        (dom/div :.no-app
-          (dom/div "No app connected.")
-          (dom/button {:onClick #(fp/transact! this `[(toggle-settings {})])}
-            "Show Settings"))))
+    (let [close-settings! #(fp/transact! this `[(toggle-settings {})])]
+      (if show-settings?
+        (settings/ui-settings (fp/computed settings {:close-settings! close-settings!}))
+        (if current-app
+          (inspector/inspector current-app)
+          (dom/div :.no-app
+            (dom/div "No app connected.")
+            (dom/button {:onClick close-settings!}
+              "Show Settings")))))
     (if (> (count inspectors) 1)
       (dom/div :.selector
         (dom/div :.label "App")
