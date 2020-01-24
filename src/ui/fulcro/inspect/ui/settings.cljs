@@ -30,7 +30,7 @@
           (fp/fragment
             (div :.field.inline
               (dom/label "Websocket Port: ")
-              (input {:value    websocket-port
+              (input {:value    (or websocket-port 0)
                       :type     "number"
                       :onChange #(m/set-integer! this :setting/websocket-port :event %)}))
             (button :.ui.button.primary.positive
