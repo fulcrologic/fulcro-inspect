@@ -89,7 +89,7 @@
                           (assoc ::inspector/id app-uuid)
                           (assoc :fulcro.inspect.core/app-id app-id)
                           (assoc ::inspector/name (dedupe-name app-id))
-                        (assoc-in [::inspector/db-explorer ::db-explorer/id] [app-uuid-key app-uuid])
+                          (assoc-in [::inspector/db-explorer ::db-explorer/id] [app-uuid-key app-uuid])
                           (assoc-in [::inspector/app-state ::data-history/history-id] [app-uuid-key app-uuid])
                           (assoc-in [::inspector/app-state ::data-history/watcher ::data-watcher/id] [app-uuid-key app-uuid])
                           (assoc-in [::inspector/app-state ::data-history/watcher ::data-watcher/watches]
@@ -124,6 +124,10 @@
       (reset! last-disposed-app* nil)
       (fp/transact! (:reconciler inspector) [::multi-inspector/multi-inspector "main"]
         [`(multi-inspector/set-app {::inspector/id ~app-uuid})]))
+
+    (fp/transact! (:reconciler inspector)
+      [::db-explorer/id [app-uuid-key app-uuid]]
+      [`(db-explorer/set-current-state ~initial-state) :current-state])
 
     new-inspector))
 
