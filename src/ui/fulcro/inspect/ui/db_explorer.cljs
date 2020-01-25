@@ -1,15 +1,16 @@
 (ns fulcro.inspect.ui.db-explorer
   (:require
-    [clojure.set :as set]
     [clojure.pprint :refer [pprint]]
+    [clojure.set :as set]
+    [clojure.string :as str]
     [fulcro.client.dom :as dom :refer [div button label input span a]]
     [fulcro.client.mutations :refer [defmutation]]
     [fulcro.client.primitives :as prim :refer [defsc]]
     [fulcro.inspect.helpers :as h]
     [fulcro.inspect.ui.data-watcher :as dw]
+    [fulcro.inspect.ui.settings :as settings]
     [fulcro.util :refer [ident?]]
     [fulcro.client.mutations :as fm]
-    [clojure.string :as str]
     [taoensso.encore :as enc]))
 
 (defmutation set-current-state [new-state]
@@ -22,12 +23,14 @@
     (every? map? (vals v))))
 
 (defn compact [s]
-  (str/join "."
-    (let [segments (str/split s #"\.")]
-      (conj
-        (mapv first
-          (drop-last segments))
-        (last segments)))))
+  (if-not (settings/get-setting :setting/compact-keywords?)
+    s #_else
+    (str/join "."
+      (let [segments (str/split s #"\.")]
+        (conj
+          (mapv first
+            (drop-last segments))
+          (last segments))))))
 
 (defn compact-keyword [kw]
   (if (and (keyword? kw) (namespace kw))

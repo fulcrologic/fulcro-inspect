@@ -34,10 +34,11 @@
 
 (defresolver 'settings
   {::pc/output [:>/SETTINGS]}
-  (fn [env _]
+  (fn [{:keys [query] :as env} _]
     (go-catch
-      (let [params (-> env :ast :params)
-            response (async/<! (client-request env :fulcro.inspect.client/settings params))]
+      (let [params   (-> env :ast :params)
+            response (async/<! (client-request env :fulcro.inspect.client/load-settings
+                                 (assoc params :query query)))]
         {:>/SETTINGS response}))))
 
 (defresolver 'oge
@@ -89,10 +90,10 @@
   (fn [{:keys [send-message]} input]
     (send-message :fulcro.inspect.client/pick-element input)))
 
-(defmutation 'restart-websockets
+(defmutation 'save-settings
   {}
   (fn [{:keys [send-message]} input]
-    (send-message :fulcro.inspect.client/restart-websockets input)))
+    (send-message :fulcro.inspect.client/save-settings input)))
 
 (defmutation 'show-dom-preview
   {}
@@ -109,7 +110,7 @@
   (fn [{:keys [send-message]} input]
     (send-message :fulcro.inspect.client/console-log input)))
 
-(defn ident-passthough [{:keys [ast] :as env}]
+(defn ident-passthrough [{:keys [ast] :as env}]
   (if (p/ident? (:key ast))
     (p/join (atom {}) (assoc env ::parent-params (:params ast)))
     ::p/continue))
@@ -118,7 +119,7 @@
   (p/async-parser {::p/env     {::p/reader             [p/map-reader
                                                         pc/async-reader2
                                                         pc/ident-reader
-                                                        ident-passthough]
+                                                        ident-passthrough]
                                 ::pc/resolver-dispatch resolver-fn
                                 ::pc/mutate-dispatch   mutation-fn
                                 ::pc/indexes           @indexes

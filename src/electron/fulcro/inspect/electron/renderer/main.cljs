@@ -26,6 +26,7 @@
     [fulcro.inspect.ui.multi-inspector :as multi-inspector]
     [fulcro.inspect.ui.multi-oge :as multi-oge]
     [fulcro.inspect.ui.network :as network]
+    [fulcro.inspect.ui.settings :as settings]
     [fulcro.inspect.ui.transactions :as transactions]
     [goog.object :as gobj]
     [taoensso.encore :as enc]
@@ -140,6 +141,12 @@
     (fp/transact! (:reconciler inspector)
       [::db-explorer/id [app-uuid-key app-uuid]]
       [`(db-explorer/set-current-state ~initial-state) :current-state])
+
+    (fp/transact! (:reconciler inspector)
+      [::settings/id :main]
+      (settings/load-settings-mutation
+        [::settings/id :main]
+        (fp/get-query settings/Settings)))
 
     new-inspector))
 

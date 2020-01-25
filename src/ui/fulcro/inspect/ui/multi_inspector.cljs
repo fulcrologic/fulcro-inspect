@@ -1,7 +1,7 @@
 (ns fulcro.inspect.ui.multi-inspector
   (:require
     [cljs.reader :refer [read-string]]
-    [fulcro.client.mutations :as mutations]
+    [fulcro.client.mutations :as m]
     [fulcro.inspect.ui.core :as ui]
     [fulcro.inspect.ui.inspector :as inspector]
     [fulcro.client.localized-dom :as dom]
@@ -12,7 +12,7 @@
     [fulcro.inspect.lib.version :as version]
     [fulcro.inspect.ui.settings :as settings]))
 
-(mutations/defmutation add-inspector [inspector]
+(m/defmutation add-inspector [inspector]
   (action [env]
     (let [{:keys [ref state]} env
           inspector-ref (fp/ident inspector/Inspector inspector)
@@ -21,7 +21,7 @@
       (if (nil? current)
         (swap! state update-in ref assoc ::current-app inspector-ref)))))
 
-(mutations/defmutation remove-inspector [{::inspector/keys [id]}]
+(m/defmutation remove-inspector [{::inspector/keys [id]}]
   (action [{:keys [state ref] :as env}]
     (let [inspector-ref [::inspector/id id]]
       (swap! state db.h/deep-remove-ref inspector-ref)
@@ -33,12 +33,12 @@
         (db.h/swap-entity! env assoc ::current-app
           (first (get-in @state (conj ref ::inspectors))))))))
 
-(mutations/defmutation set-app [{::inspector/keys [id]}]
+(m/defmutation set-app [{::inspector/keys [id]}]
   (action [env]
     (let [{:keys [ref state]} env]
       (swap! state update-in ref assoc ::current-app [::inspector/id id]))))
 
-(mutations/defmutation toggle-settings [_]
+(m/defmutation toggle-settings [_]
   (action [env]
     (db.h/swap-entity! env update ::show-settings? not)))
 
@@ -98,7 +98,7 @@
       (dom/div :.selector
         (dom/div :.label "App")
         (dom/select {:value    (pr-str (::inspector/id current-app))
-                     :onChange #(fp/transact! this `[(set-app {::inspector/id ~(read-string (.. % -target -value))})])}
+                     :onChange #(fp/transact! this `[(set-app {::inspector/id ~(read-string (m/target-value %))})])}
           (for [{::inspector/keys [id name]} (sort-by (comp str ::inspector/name) inspectors)]
             (dom/option {:key   id
                          :value (pr-str id)}
