@@ -82,7 +82,7 @@
                      :align-items "center"
                      :padding     "7px 10px"}]
                    [:body {:margin 0 :padding 0}]]
-   :css-include   [inspector/Inspector]}
+   :css-include   [inspector/Inspector settings/Settings]}
   (dom/div :.container
     (css/style-element this)
     (let [toggle-settings! #(fp/transact! this `[(toggle-settings {})])]

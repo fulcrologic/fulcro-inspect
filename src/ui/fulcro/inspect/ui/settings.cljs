@@ -1,10 +1,11 @@
 (ns fulcro.inspect.ui.settings
   (:require
-    [fulcro.client.dom :as dom :refer [div button input a]]
+    [fulcro.client.data-fetch :as df]
+    [fulcro.client.localized-dom :as dom]
     [fulcro.client.mutations :as m :refer [defmutation]]
     [fulcro.client.primitives :as fp :refer [defsc]]
-    [fulcro.client.data-fetch :as df]
-    [fulcro.inspect.helpers :as h]))
+    [fulcro.inspect.helpers :as h]
+    [fulcro.inspect.ui.core :as ui]))
 
 (def settings (atom {}))
 (defn get-setting [k]
@@ -31,6 +32,7 @@
 (defsc Settings [this {:setting/keys [websocket-port compact-keywords?]} {:keys [close-settings!]}]
   {:query             [::id :setting/websocket-port :setting/compact-keywords?]
    :ident             (fn [] [::id :main])
+   :css               [[:.container {:padding "12px"}]]
    :componentDidMount (fn []
                         (fp/transact! this
                           (load-settings-mutation
@@ -39,30 +41,28 @@
    :initial-state     {::id                       :main
                        :setting/websocket-port    0
                        :setting/compact-keywords? true}}
-  (div :.ui.container {:style {:margin "1rem"}}
+  (dom/div
     (when close-settings!
-      (fp/fragment
-        (button :.ui.button.labeled.icon.basic.negative
-          {:onClick close-settings!}
-          (dom/i :.icon.close)
-          "Close Settings")
-        (div :.ui.divider.horizontal.hidden)))
-    (div :.ui.form.big
-      (when (-> this fp/shared :fulcro.inspect.renderer/electron?)
-        (div :.fields
-          (div :.field.inline
-            (dom/label "Websocket Port: ")
-            (input {:value    (or websocket-port 0)
-                    :type     "number"
-                    :onChange #(m/set-integer! this :setting/websocket-port :event %)}))
-          (button :.ui.button.primary.positive
-            {:onClick #(fp/transact! this `[(save-settings {:setting/websocket-port ~websocket-port})])}
-            (dom/span :.ui.text.large "Restart Websockets"))))
-      (div :.field.inline
-        (dom/label "Compact Keywords in DB Explorer?")
-        (input :.ui.checkbox
-          {:checked  (or compact-keywords? false)
-           :type     "checkbox"
-           :onChange #(fp/transact! this `[(save-settings {:setting/compact-keywords? ~(not compact-keywords?)})])})))))
+      (ui/toolbar {:classes [:.details]}
+        (ui/toolbar-spacer)
+        (ui/toolbar-action {:onClick close-settings!}
+          (ui/icon {:title "Close panel"} :clear))))
+    (dom/div :.container
+      (ui/header {} "Settings")
+      (dom/div :$margin-left-standard
+        (ui/row {:classes [:.align-center]}
+          (ui/label "Compact Keywords in DB Explorer:")
+          (dom/input :.ui.checkbox
+            {:checked  (or compact-keywords? false)
+             :type     "checkbox"
+             :onChange #(fp/transact! this `[(save-settings {:setting/compact-keywords? ~(not compact-keywords?)})])}))
+        (ui/row {:classes [:.align-center]}
+          (ui/label "Websocket Port:")
+          (ui/input {:value    (or websocket-port 0)
+                     :type     "number"
+                     :onChange #(m/set-integer! this :setting/websocket-port :event %)})
+          (ui/button {:onClick #(fp/transact! this `[(save-settings {:setting/websocket-port ~websocket-port})])
+                      :style   {:alignSelf "center"}}
+            "Restart Websockets"))))))
 
 (def ui-settings (fp/factory Settings))
