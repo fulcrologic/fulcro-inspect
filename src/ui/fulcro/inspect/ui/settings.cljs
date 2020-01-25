@@ -24,7 +24,7 @@
 (defn load-settings-mutation [ident query]
   (df/load-mutation
     {:target        ident
-     :query         [{:>/SETTINGS (filterv #(= "setting" (namespace %)) query)}]
+     :query         [{:fulcro.inspect/settings (filterv #(= "setting" (namespace %)) query)}]
      :refresh       [::id]
      :post-mutation `cache-settings}))
 

@@ -33,13 +33,13 @@
                         ::msg-id msg-id})))))))
 
 (defresolver 'settings
-  {::pc/output [:>/SETTINGS]}
+  {::pc/output [:fulcro.inspect/settings]}
   (fn [{:keys [query] :as env} _]
     (go-catch
       (let [params   (-> env :ast :params)
             response (async/<! (client-request env :fulcro.inspect.client/load-settings
                                  (assoc params :query query)))]
-        {:>/SETTINGS response}))))
+        {:fulcro.inspect/settings response}))))
 
 (defresolver 'oge
   {::pc/output [:>/oge ::pp/profile]}
