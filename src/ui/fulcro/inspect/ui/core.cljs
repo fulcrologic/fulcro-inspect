@@ -69,6 +69,17 @@
    :font-size   "12px"
    :white-space "nowrap"})
 
+(def css-input
+  [{:color       color-text-normal
+    :border      "1px solid transparent"
+    :outline     "0"
+    :margin      "0 2px"
+    :font-family label-font-family
+    :font-size   label-font-size
+    :padding     "6px"}
+   [:&:hover {:border "1px solid #e0e0e0"}]
+   [:&:focus {:border "1px solid #1973E7"}]])
+
 ;;; helpers
 
 (defn add-zeros [n x]
@@ -133,10 +144,56 @@
 (def arrow-down "▼")
 
 (fp/defsc Row [this props]
-  {:css [[:.container {:display "flex"}]]}
+  {:css [[:.container {:display "flex"}
+          [:&.align-center {:align-items "center"}]]]}
   (dom/div :.container props (fp/children this)))
 
 (def row (fp/factory Row))
+
+(fp/defsc Button
+  [this props]
+  {:css [[:.button css-info-label
+          {:background    "#fff"
+           :border        "1px solid #ccc"
+           :cursor        "pointer"
+           :margin        "0"
+           :color         "#1873E8"
+           :border-radius "4px"
+           :padding       "6px 12px"
+           :font-size     "12px"}
+          [:&:hover {:background "#f3f3f3"}]]]}
+  (dom/button :.button props (fp/children this)))
+
+(def button (fp/factory Button))
+
+(fp/defsc Input
+  [this props]
+  {:css [`[:.input ~@css-input]]}
+  (dom/input :.input props))
+
+(def input (fp/factory Input))
+
+(fp/defsc Label
+  [this props]
+  {:css [[:.label {:color        "#434C54"
+                   :font-family  label-font-family
+                   :font-weight  "normal"
+                   :font-size    "13px"
+                   :margin-right "10px"}]]}
+  (dom/label :.label props (fp/children this)))
+
+(def label (fp/factory Label))
+
+(fp/defsc Header
+  [this props]
+  {:css [[:.header {:font-family    label-font-family
+                    :font-weight    "normal"
+                    :font-size      "22px"
+                    :padding-bottom "14px"
+                    :border-bottom  "1px solid #eee"}]]}
+  (dom/h2 :.header props (fp/children this)))
+
+(def header (fp/factory Header))
 
 (fp/defsc ToolBar [this _]
   {:css [[:.container {:border-bottom "1px solid #dadada"
@@ -163,12 +220,7 @@
                        :height     "16px"
                        :margin     "0 6px"}]
 
-         [:.input {:color       color-text-normal
-                   :outline     "0"
-                   :margin      "0 2px"
-                   :font-family label-font-family
-                   :font-size   label-font-size
-                   :padding     "2px 4px"}]]}
+         `[:.input ~@css-input]]}
 
   (let [css (css/get-classnames ToolBar)]
     (dom/div (h/props+classes this {:className (:container css)})
@@ -243,6 +295,49 @@
 
 (def inline-editor (h/computed-factory InlineEditor {:keyfn ::editor-id}))
 
+(defn gen-space-classes [prop label value]
+  "Generate spacing classes for a given property/value."
+  (let [vpx (if (string? value) value (str value "px !important"))]
+    [[(keyword (str "$" prop "-" label)) {(keyword (str prop "-top"))    vpx
+                                          (keyword (str prop "-right"))  vpx
+                                          (keyword (str prop "-bottom")) vpx
+                                          (keyword (str prop "-left"))   vpx}]
+     [(keyword (str "$" prop "-h-" label)) {(keyword (str prop "-right")) vpx
+                                            (keyword (str prop "-left"))  vpx}]
+     [(keyword (str "$" prop "-v-" label)) {(keyword (str prop "-top"))    vpx
+                                            (keyword (str prop "-bottom")) vpx}]
+     [(keyword (str "$" prop "-top-" label)) {(keyword (str prop "-top")) vpx}]
+     [(keyword (str "$" prop "-right-" label)) {(keyword (str prop "-right")) vpx}]
+     [(keyword (str "$" prop "-bottom-" label)) {(keyword (str prop "-bottom")) vpx}]
+     [(keyword (str "$" prop "-left-" label)) {(keyword (str prop "-left")) vpx}]]))
+
+(defn gen-all-spaces [values-map]
+  (apply concat
+    (for [[k v]    values-map
+          prop ["margin" "padding"]]
+      (gen-space-classes prop k v))))
+
+(def space-nano "0.5px")
+(def space-micro "4px")
+(def space-small "8px")
+(def space-standard "16px")
+(def space-medium "24px")
+(def space-semi "32px")
+(def space-large "48px")
+(def space-x-large "64px")
+
+(def spaces
+  {"auto"     "auto !important"
+   "none"     0
+   "nano"     space-nano
+   "micro"    space-micro
+   "small"    space-small
+   "standard" space-standard
+   "medium"   space-medium
+   "semi"     space-semi
+   "large"    space-large
+   "x-large"  space-x-large})
+
 (fp/defui ^:once CSS
   static cssp/CSS
   (local-rules [_] [[:.focused-panel {:border-top     "1px solid #a3a3a3"
@@ -267,8 +362,9 @@
                                      :display     "inline-block"
                                      :padding     "4px 8px"
                                      :font-family mono-font-family
-                                     :font-size   "14px"}]])
-  (include-children [_] [ToolBar Row InlineEditor]))
+                                     :font-size   "14px"}]
+                    (gen-all-spaces spaces)])
+  (include-children [_] [ToolBar Row InlineEditor Button Header Input Label]))
 
 (def scss (css/get-classnames CSS))
 
