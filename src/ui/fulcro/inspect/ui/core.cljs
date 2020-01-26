@@ -369,14 +369,14 @@
 (def spaces
   {"auto"     "auto !important"
    "none"     0
-   "nano"     space-nano
-   "micro"    space-micro
-   "small"    space-small
-   "standard" space-standard
-   "medium"   space-medium
-   "semi"     space-semi
-   "large"    space-large
-   "x-large"  space-x-large})
+   "nano"     (str space-nano " !important")
+   "micro"    (str space-micro " !important")
+   "small"    (str space-small " !important")
+   "standard" (str space-standard " !important")
+   "medium"   (str space-medium " !important")
+   "semi"     (str space-semi " !important")
+   "large"    (str space-large " !important")
+   "x-large"  (str space-x-large " !important")})
 
 (fp/defui ^:once CSS
   static cssp/CSS
