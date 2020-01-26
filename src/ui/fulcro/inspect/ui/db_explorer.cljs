@@ -13,8 +13,11 @@
     [fulcro.util :refer [ident?]]
     [taoensso.encore :as enc]))
 
+(defn re-pattern-insensitive [pattern]
+  (re-pattern (str "(?i)" pattern)))
+
 (defn highlight-string [s highlight-subs]
-  (str/replace s (re-pattern (str "(?i)" highlight-subs))
+  (str/replace s (re-pattern-insensitive highlight-subs)
     (fn [x] (str "<span class=\"highlight\">" x "</span>"))))
 
 (defn highlighter [value highlight]
@@ -228,11 +231,11 @@
       (case search-type
         :search/by-value
         (paths-to-values
-          (re-pattern (str "(?i)" (str/lower-case search-query)))
+          (re-pattern-insensitive search-query)
           searchable-state [])
         :search/by-id
         (paths-to-ids
-          (re-pattern (str "(?i)" (str/lower-case search-query)))
+          (re-pattern-insensitive search-query)
           searchable-state)))))
 
 (defmutation search-for [search-params]
@@ -389,8 +392,8 @@
         (div {:style {:marginLeft "0.5rem"}}
           (ui-db-path* this path history)
           (when (= :entity explorer-mode)
-            (button :.ui.tertiary.button
-              {:onClick #(add-data-watch! this (:path path))}
+            (ui/button {:onClick #(add-data-watch! this (:path path))
+                        :classes [:$margin-left-small]}
               "Add to DB Watches"))
           (dom/table :.ui.compact.celled.fluid.table {:style {:marginTop "0"}}
             (dom/tbody
