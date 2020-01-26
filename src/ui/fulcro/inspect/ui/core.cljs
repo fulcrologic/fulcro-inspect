@@ -163,7 +163,7 @@
   {:css [[:.container {:cursor      "pointer"
                        :font-family label-font-family
                        :font-size   "15px"}]]}
-  (dom/a :.container props (fc/children this)))
+  (dom/a :.container (merge {:href "#"} props) (fc/children this)))
 
 (def breadcrumb-item (fc/factory BreadcrumbItem))
 
@@ -237,6 +237,14 @@
   (dom/table :.container props (fc/children this)))
 
 (def table (fc/factory Table))
+
+(fc/defsc Code
+  [this props]
+  {:css [[:.container {:white-space "nowrap"
+                       :font-family mono-font-family}]]}
+  (dom/div :.container props (fc/children this)))
+
+(def code (fc/factory Code))
 
 (fc/defsc Button
   [this props]
@@ -474,6 +482,9 @@
                     [:.focused-container css-flex-column {:overflow "auto"
                                                           :padding  "0 10px"}]
 
+                    [:a {:color           "#4183c4"
+                         :text-decoration "none"}]
+
                     [:.info-group css-info-group
                      [(gs/& gs/first-child) {:border-top "0"}]]
                     [:.info-label css-info-label]
@@ -495,7 +506,7 @@
                     (gen-all-spaces spaces)])
   (include-children [_]
     [ToolBar Row InlineEditor Button Header Input Label Toggler
-     Breadcrumb Table]))
+     Breadcrumb Table Code]))
 
 (def scss (css/get-classnames CSS))
 

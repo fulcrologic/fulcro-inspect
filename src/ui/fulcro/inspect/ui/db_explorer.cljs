@@ -3,7 +3,7 @@
     [clojure.pprint :refer [pprint]]
     [clojure.set :as set]
     [clojure.string :as str]
-    [fulcro.client.dom :as dom :refer [div button label input span a]]
+    [fulcro.client.localized-dom :as dom :refer [div button label input span a]]
     [fulcro.client.mutations :as fm :refer [defmutation]]
     [fulcro.client.primitives :as fc :refer [defsc]]
     [fulcro.inspect.helpers :as h]
@@ -106,7 +106,7 @@
     :else (span {:style {:whiteSpace "nowrap"}} (pr-str x))))
 
 (defn ui-db-value [{::keys [select-map] :as env} v k]
-  (dom/pre {}
+  (ui/code {}
     (cond
       (nil? v)
       "nil"
@@ -184,10 +184,7 @@
       (ui/thead {}
         (ui/tr {}
           (ui/th {:colSpan "2"}
-            (dom/h2 :.ui.header
-              {:style {:marginTop    "0.5rem"
-                       :marginBottom "0.5rem"}}
-              "Tables")))
+            (dom/h2 :$margin-micro "Tables")))
         (ui/tr {}
           (ui/th "Table")
           (ui/th "Entities")))
@@ -203,10 +200,7 @@
       (ui/thead {}
         (ui/tr {}
           (ui/th {:colSpan "2"}
-            (dom/h2 :.ui.header
-              {:style {:marginTop    "0.5rem"
-                       :marginBottom "0.5rem"}}
-              "Top-Level Keys")))
+            (dom/h2 :$margin-micro "Top-Level Keys")))
 
         (ui/tr {}
           (ui/th {} "Key")
@@ -329,7 +323,7 @@
   (let [{:ui/keys [path] :as props} (fc/props this)
         {:keys [path search-query]} path
         env (settings-env this)]
-    (dom/div :.margin-small
+    (dom/div :$margin-small
      (ui/breadcrumb {}
        (ui/breadcrumb-item {:onClick #(set-path! this [])} "Top")
 
@@ -356,7 +350,7 @@
            (ui/breadcrumb-item {:disabled true}
              (str "\"" search-query "\""))))
 
-       (dom/div :.flex)
+       (dom/div :$flex)
 
        (when (= :entity (mode props))
          (ui/button {:onClick #(add-data-watch! this path)
@@ -436,7 +430,7 @@
                    :ui/path           {:path []}
                    :ui/history        []}}
   (try
-    (dom/div :.flex
+    (dom/div :$flex
       (ui-toolbar this)
       (ui-db-path this)
       (ui-current-mode this))
