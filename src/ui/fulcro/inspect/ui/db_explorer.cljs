@@ -367,21 +367,22 @@
         {:keys [search-query]} path
         env (assoc (settings-env this)
               ::select-ident #(set-path! this %))]
-    (dom/table
-      (dom/tr
-        (dom/th "Path")
-        (when (some :value search-results)
-          (dom/th "Value")))
-      ;;TODO: render with folding
-      (map
-        (fn [{:keys [path value]}]
-          (dom/tr {:key (str "search-path-" path)}
-            (dom/td {}
-              (ui-ident env path search-query))
-            (when value
-              (dom/td
-                (pprint-highlighter value search-query)))))
-        (sort-by (comp str :path) search-results)))))
+    (dom/table :.ui.compact.celled.fluid.table
+      (dom/tbody
+        (dom/tr
+          (dom/th "Path")
+          (when (some :value search-results)
+            (dom/th "Value")))
+        ;;TODO: render with folding
+        (map
+          (fn [{:keys [path value]}]
+            (dom/tr {:key (str "search-path-" path)}
+              (dom/td {}
+                (ui-ident env path search-query))
+              (when value
+                (dom/td
+                  (pprint-highlighter value search-query)))))
+          (sort-by (comp str :path) search-results))))))
 
 (defn ui-toolbar [this]
   (let [{:ui/keys [history search-query search-type]} (fc/props this)]
