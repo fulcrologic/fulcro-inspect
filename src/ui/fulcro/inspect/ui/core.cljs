@@ -1,17 +1,17 @@
 (ns fulcro.inspect.ui.core
   (:require ["react-draggable" :refer [DraggableCore]]
             [clojure.string :as str]
-            [fulcro.client.primitives :as fp]
             [fulcro-css.css :as css]
             [fulcro-css.css-protocols :as cssp]
-            [fulcro.ui.icons :as icons]
-            [fulcro.inspect.ui.helpers :as h]
-            [fulcro.client.mutations :as fm]
             [fulcro.client.localized-dom :as dom]
+            [fulcro.client.mutations :as fm]
+            [fulcro.client.primitives :as fc]
+            [fulcro.inspect.ui.debounce-input :as di]
             [fulcro.inspect.ui.events :as events]
+            [fulcro.inspect.ui.helpers :as h]
+            [fulcro.ui.icons :as icons]
             [garden.selectors :as gs]
-            [goog.object :as gobj]
-            [fulcro.inspect.ui.debounce-input :as di]))
+            [goog.object :as gobj]))
 
 (def mono-font-family "monospace")
 
@@ -144,26 +144,26 @@
 (def arrow-right "▶")
 (def arrow-down "▼")
 
-(fp/defsc Row [this props]
+(fc/defsc Row [this props]
   {:css [[:.container {:display "flex"}
           [:&.align-start {:align-items "start"}]
           [:&.align-center {:align-items "center"}]
           [:&.align-baseline {:align-items "baseline"}]
           [:&.align-end {:align-items "end"}]]]}
-  (dom/div :.container props (fp/children this)))
+  (dom/div :.container props (fc/children this)))
 
-(def row (fp/factory Row))
+(def row (fc/factory Row))
 
-(fp/defsc BreadcrumbItem
+(fc/defsc BreadcrumbItem
   [this props]
   {:css [[:.container {:cursor      "pointer"
                        :font-family label-font-family
                        :font-size   "15px"}]]}
-  (dom/a :.container props (fp/children this)))
+  (dom/a :.container props (fc/children this)))
 
-(def breadcrumb-item (fp/factory BreadcrumbItem))
+(def breadcrumb-item (fc/factory BreadcrumbItem))
 
-(fp/defsc Breadcrumb
+(fc/defsc Breadcrumb
   [this props]
   {:css         [[:.container {:display     "flex"
                                :align-items "baseline"}]
@@ -171,14 +171,14 @@
                                :transform  "scale(0.9)"
                                :align-self "end"}]]
    :css-include [BreadcrumbItem]}
-  (dom/div :.container props (fp/children this)))
+  (dom/div :.container props (fc/children this)))
 
-(def breadcrumb (fp/factory Breadcrumb))
+(def breadcrumb (fc/factory Breadcrumb))
 
 (defn breadcrumb-separator []
   (dom/div {:classes [(component-class Breadcrumb :.separator)]} (icon {} :chevron_right)))
 
-(fp/defsc Button
+(fc/defsc Button
   [this props]
   {:css [[:.button css-info-label
           {:background    "#fff"
@@ -200,43 +200,43 @@
            [:&:hover {:background "#3a86e8"}]
            [:&:disabled {:background   "#a7c5f1"
                          :border-color "#a3c2f1"}]]]]}
-  (dom/button :.button props (fp/children this)))
+  (dom/button :.button props (fc/children this)))
 
-(def button (fp/factory Button))
+(def button (fc/factory Button))
 
 (defn primary-button [props & children]
   (apply button (update props :classes conj :.primary) children))
 
-(fp/defsc Input
+(fc/defsc Input
   [this props]
   {:css [`[:.input ~@css-input]]}
   (dom/input :.input props))
 
-(def input (fp/factory Input))
+(def input (fc/factory Input))
 
-(fp/defsc Label
+(fc/defsc Label
   [this props]
   {:css [[:.label {:color        "#434C54"
                    :font-family  label-font-family
                    :font-weight  "normal"
                    :font-size    "13px"
                    :margin-right "10px"}]]}
-  (dom/label :.label props (fp/children this)))
+  (dom/label :.label props (fc/children this)))
 
-(def label (fp/factory Label))
+(def label (fc/factory Label))
 
-(fp/defsc Header
+(fc/defsc Header
   [this props]
   {:css [[:.header {:font-family    label-font-family
                     :font-weight    "normal"
                     :font-size      "22px"
                     :padding-bottom "14px"
                     :border-bottom  "1px solid #eee"}]]}
-  (dom/h2 :.header props (fp/children this)))
+  (dom/h2 :.header props (fc/children this)))
 
-(def header (fp/factory Header))
+(def header (fc/factory Header))
 
-(fp/defsc Toggler
+(fc/defsc Toggler
   [this props]
   {:css [[:.toggler {:border-radius "6px"
                      :cursor        "default"
@@ -253,11 +253,11 @@
           [:&.active {:background  "#aaa"
                       :color       "#fff"
                       :text-shadow "0 1px #1b1b1b"}]]]}
-  (dom/div :.toggler props (fp/children this)))
+  (dom/div :.toggler props (fc/children this)))
 
-(def toggler (fp/factory Toggler))
+(def toggler (fc/factory Toggler))
 
-(fp/defsc ToolBar [this _]
+(fc/defsc ToolBar [this _]
   {:css (fn []
           [[:.container {:border-bottom "1px solid #dadada"
                          :display       "flex"
@@ -291,9 +291,9 @@
 
   (let [css (css/get-classnames ToolBar)]
     (dom/div (h/props+classes this {:className (:container css)})
-      (fp/children this))))
+      (fc/children this))))
 
-(def toolbar (fp/factory ToolBar))
+(def toolbar (fc/factory ToolBar))
 
 (defn toolbar-separator []
   (dom/div #js {:className (:separator (css/get-classnames ToolBar))}))
@@ -314,14 +314,14 @@
   (di/debounce-input (merge {:className (:input (css/get-classnames ToolBar))
                              :type      "text"} props)))
 
-(fp/defsc AutoFocusInput
+(fc/defsc AutoFocusInput
   [this props]
   {:componentDidMount #(.select (dom/node this))}
   (dom/input props))
 
-(def auto-focus-input (fp/factory AutoFocusInput))
+(def auto-focus-input (fc/factory AutoFocusInput))
 
-(fp/defsc InlineEditor
+(fc/defsc InlineEditor
   [this {::keys [editing? editor-value]} {::keys [value on-change] :as computed} css]
   {:initial-state (fn [_]
                     {::editor-id    (random-uuid)
@@ -405,7 +405,7 @@
    "large"    (str space-large " !important")
    "x-large"  (str space-x-large " !important")})
 
-(fp/defui ^:once CSS
+(fc/defui ^:once CSS
   static cssp/CSS
   (local-rules [_] [[:.focused-panel {:border-top     "1px solid #a3a3a3"
                                       :display        "flex"
@@ -468,13 +468,13 @@
     #js {:key     "dragHandler"
          :onStart (fn [e dd]
                     (gobj/set this "start" (gobj/get dd axis))
-                    (gobj/set this "startSize" (or (fp/get-state this attribute) default)))
+                    (gobj/set this "startSize" (or (fc/get-state this attribute) default)))
          :onDrag  (fn [e dd]
                     (let [start    (gobj/get this "start")
                           size     (gobj/get this "startSize")
                           value    (gobj/get dd axis)
                           new-size (+ size (if (= "x" axis) (- value start) (- start value)))]
-                      (fp/set-state! this {attribute new-size})))}
+                      (fc/set-state! this {attribute new-size})))}
     (dom/div (merge {:style {:pointerEvents "all"
                              :cursor        (if (= "x" axis) "ew-resize" "ns-resize")}}
                     props)

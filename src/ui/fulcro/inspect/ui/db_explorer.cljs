@@ -146,7 +146,20 @@
                 (dom/td (ui-db-key env k))
                 (dom/td (ui-db-value env v k))))
             (sort-by (comp str key) entity))
-          (dom/tr (dom/td "DEBUG PR-STR:" (pr-str entity))))))))
+          (dom/tr (dom/td "DEBUG PR-STR:" (pr-str entity))))))
+
+
+    (ui/table {}
+      (ui/table-header {}
+        (ui/table-row {}
+          (ui/table-head {} "Key")
+          (ui/table-head {} "Value")))
+      (if (map? entity)
+        (ui/table-body {}
+          (for [[k v] (sort-by (comp str key) entity)]
+            (ui/table-row {:key (str "entity-key-" k)}
+              (ui/table-cell (ui-db-key env k))
+              (ui/table-cell (ui-db-value env v k)))))))))
 
 (defn ui-table-level [this]
   (let [{:keys [current-state] :ui/keys [path]} (fc/props this)
