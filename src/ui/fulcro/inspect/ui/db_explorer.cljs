@@ -332,35 +332,39 @@
   (let [{:ui/keys [path] :as props} (fc/props this)
         {:keys [path search-query]} path
         env (settings-env this)]
-    (div :.ui.large.breadcrumb
-      (a :.section {:onClick #(set-path! this [])} "Top")
-      (when (seq (drop-last path))
-        (map
-          (fn [sub-path]
-            (fc/fragment {:key (str "db-path-" sub-path)}
-              (dom/i :.right.angle.icon.divider)
-              (a :.section {:onClick #(set-path! this sub-path)
-                            :title   (str (last sub-path))}
-                (str (compact-keyword env (last sub-path))))))
-          (let [[x & xs] (drop-last path)]
-            (reductions conj [x] xs))))
-      (when (last path)
-        (fc/fragment
-          (dom/i :.right.angle.icon.divider)
-          (a :.active.section {:disabled (not search-query)
-                               :title    (str (last path))
-                               :onClick  #(set-path! this path)}
-            (str (compact-keyword env (last path))))))
-      (when search-query
-        (fc/fragment
-          (dom/i :.right.angle.icon.divider)
-          (a :.active.section {:disabled true}
-            (str "\"" search-query "\""))))
+    (dom/div :.margin-small
+     (ui/breadcrumb {}
+       (ui/breadcrumb-item {:onClick #(set-path! this [])} "Top")
 
-      (when (= :entity (mode props))
-        (ui/button {:onClick #(add-data-watch! this (:path path))
-                    :classes [:$margin-left-small]}
-          "Add to DB Watches")))))
+       (when (seq (drop-last path))
+         (map
+           (fn [sub-path]
+             (fc/fragment {:key (str "db-path-" sub-path)}
+               (ui/breadcrumb-separator)
+               (ui/breadcrumb-item {:onClick #(set-path! this sub-path)
+                                    :title   (str (last sub-path))}
+                 (str (compact-keyword env (last sub-path))))))
+           (let [[x & xs] (drop-last path)]
+             (reductions conj [x] xs))))
+       (when (last path)
+         (fc/fragment
+           (ui/breadcrumb-separator)
+           (ui/breadcrumb-item {:disabled (not search-query)
+                                :title    (str (last path))
+                                :onClick  #(set-path! this path)}
+             (str (compact-keyword env (last path))))))
+       (when search-query
+         (fc/fragment
+           (ui/breadcrumb-separator)
+           (ui/breadcrumb-item {:disabled true}
+             (str "\"" search-query "\""))))
+
+       (dom/div :.flex)
+
+       (when (= :entity (mode props))
+         (ui/button {:onClick #(add-data-watch! this path)
+                     :classes [:.primary :$margin-left-small]}
+           "Add to DB Watches"))))))
 
 (defn ui-search-results [this]
   (let [{:ui/keys [search-results path]} (fc/props this)

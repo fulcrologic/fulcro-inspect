@@ -97,7 +97,7 @@
 
 (defn component-class [comp-class css-selector]
   (if-let [class (get (css/get-classnames comp-class) (keyword (subs (name css-selector) 1)))]
-    (str "." class)))
+    (keyword (str "$" class))))
 
 ;;; elements
 
@@ -146,10 +146,37 @@
 
 (fp/defsc Row [this props]
   {:css [[:.container {:display "flex"}
-          [:&.align-center {:align-items "center"}]]]}
+          [:&.align-start {:align-items "start"}]
+          [:&.align-center {:align-items "center"}]
+          [:&.align-baseline {:align-items "baseline"}]
+          [:&.align-end {:align-items "end"}]]]}
   (dom/div :.container props (fp/children this)))
 
 (def row (fp/factory Row))
+
+(fp/defsc BreadcrumbItem
+  [this props]
+  {:css [[:.container {:cursor      "pointer"
+                       :font-family label-font-family
+                       :font-size   "15px"}]]}
+  (dom/a :.container props (fp/children this)))
+
+(def breadcrumb-item (fp/factory BreadcrumbItem))
+
+(fp/defsc Breadcrumb
+  [this props]
+  {:css         [[:.container {:display     "flex"
+                               :align-items "baseline"}]
+                 [:.separator {:fill       "#b8b8b8"
+                               :transform  "scale(0.9)"
+                               :align-self "end"}]]
+   :css-include [BreadcrumbItem]}
+  (dom/div :.container props (fp/children this)))
+
+(def breadcrumb (fp/factory Breadcrumb))
+
+(defn breadcrumb-separator []
+  (dom/div {:classes [(component-class Breadcrumb :.separator)]} (icon {} :chevron_right)))
 
 (fp/defsc Button
   [this props]
@@ -406,7 +433,9 @@
                                      :font-family mono-font-family
                                      :font-size   "14px"}]
                     (gen-all-spaces spaces)])
-  (include-children [_] [ToolBar Row InlineEditor Button Header Input Label Toggler]))
+  (include-children [_]
+    [ToolBar Row InlineEditor Button Header Input Label Toggler
+     Breadcrumb]))
 
 (def scss (css/get-classnames CSS))
 
