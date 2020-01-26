@@ -51,18 +51,18 @@
       (ui/header {} "Settings")
       (dom/div :$margin-left-standard
         (ui/row {:classes [:.align-center]}
-          (ui/label "Compact Keywords in DB Explorer:")
-          (dom/input :.ui.checkbox
-            {:checked  (or compact-keywords? false)
-             :type     "checkbox"
-             :onChange #(fp/transact! this `[(save-settings {:setting/compact-keywords? ~(not compact-keywords?)})])}))
-        (ui/row {:classes [:.align-center]}
           (ui/label "Websocket Port:")
           (ui/input {:value    (or websocket-port 0)
                      :type     "number"
                      :onChange #(m/set-integer! this :setting/websocket-port :event %)})
-          (ui/button {:onClick #(fp/transact! this `[(save-settings {:setting/websocket-port ~websocket-port})])
-                      :style   {:alignSelf "center"}}
-            "Restart Websockets"))))))
+          (ui/primary-button {:onClick #(fp/transact! this `[(save-settings {:setting/websocket-port ~websocket-port})])}
+            "Restart Websockets"))
+        (ui/row {:classes [:.align-center]}
+          (ui/label
+            (dom/input :$margin-right-small
+              {:checked  (or compact-keywords? false)
+               :type     "checkbox"
+               :onChange #(fp/transact! this `[(save-settings {:setting/compact-keywords? ~(not compact-keywords?)})])})
+            "Compact Keywords in DB Explorer?"))))))
 
 (def ui-settings (fp/factory Settings))
