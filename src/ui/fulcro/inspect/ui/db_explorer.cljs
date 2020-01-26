@@ -175,18 +175,21 @@
     (prim/transact! reconciler [::id id]
       `[(append-to-path {:sub-path ~sub-path})])))
 
+(defn re-find-lowercased [re x]
+  (re-find re (str/lower-case x)))
+
 (letfn [(TABLE [re path table-key]
           (fn [matches entity-key entity]
             (cond-> matches
-              (re-find re (str entity))
+              (re-find-lowercased re (str entity))
               (conj {:path  (conj path table-key entity-key)
                      :value (ENTITY re entity)}))))
         (ENTITY [re e] (->> e
-                         (filter (fn [[_ v]] (re-find re (pr-str v))))
+                         (filter (fn [[_ v]] (re-find-lowercased re (pr-str v))))
                          (into (empty e))))
         (VALUE [re path matches k v]
           (cond-> matches
-            (re-find re (pr-str v))
+            (re-find-lowercased re (pr-str v))
             (conj {:path  (conj path k)
                    :value v})))]
   (defn paths-to-values
@@ -203,7 +206,7 @@
                (if (table? table)
                  (reduce-kv (fn [paths id entity]
                               (cond-> paths
-                                (re-find re (pr-str id))
+                                (re-find-lowercased re (pr-str id))
                                 (conj {:path [table-key id]})))
                    paths table)
                  paths))
@@ -218,11 +221,11 @@
       (case search-type
         :search/by-value
         (paths-to-values
-          (re-pattern search-query)
+          (re-pattern (str/lower-case search-query))
           searchable-state [])
         :search/by-id
         (paths-to-ids
-          (re-pattern search-query)
+          (re-pattern (str/lower-case search-query))
           searchable-state)))))
 
 (defmutation search-for [search-params]
