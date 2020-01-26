@@ -162,10 +162,23 @@
            :border-radius "4px"
            :padding       "6px 12px"
            :font-size     "12px"}
-          [:&:hover {:background "#f3f3f3"}]]]}
+          [:&:hover {:background "#f3f3f3"}]
+          [:&:disabled {:cursor "default"
+                        :color  "#adcbf7"}
+           [:&:hover {:background "#fff"}]]
+
+          [:&.primary {:background   "#1973e7"
+                       :border-color "#2b7ce8"
+                       :color        "#fff"}
+           [:&:hover {:background "#3a86e8"}]
+           [:&:disabled {:background   "#a7c5f1"
+                         :border-color "#a3c2f1"}]]]]}
   (dom/button :.button props (fp/children this)))
 
 (def button (fp/factory Button))
+
+(defn primary-button [props & children]
+  (apply button (update props :classes conj :.primary) children))
 
 (fp/defsc Input
   [this props]
@@ -196,32 +209,58 @@
 
 (def header (fp/factory Header))
 
+(fp/defsc Toggler
+  [this props]
+  {:css [[:.toggler {:border-radius "6px"
+                     :cursor        "default"
+                     :font-family   label-font-family
+                     :font-weight   "normal"
+                     :font-size     "13px"
+                     :padding       "1px 4px"}
+          [:&:hover {:background  "#c2c2c2"
+                     :color       "#fff"
+                     :text-shadow "0 1px #1b1b1b"}]
+          [:&:active {:background  "#797979"
+                     :color       "#fff"
+                     :text-shadow "0 1px #1b1b1b"}]
+          [:&.active {:background  "#aaa"
+                      :color       "#fff"
+                      :text-shadow "0 1px #1b1b1b"}]]]}
+  (dom/div :.toggler props (fp/children this)))
+
+(def toggler (fp/factory Toggler))
+
 (fp/defsc ToolBar [this _]
-  {:css [[:.container {:border-bottom "1px solid #dadada"
-                       :display       "flex"
-                       :align-items   "center"}
-          [:$c-icon {:fill      color-icon-normal
-                     :transform "scale(0.7)"}
-           [:&:hover {:fill color-icon-strong}]]
+  {:css (fn []
+          [[:.container {:border-bottom "1px solid #dadada"
+                         :display       "flex"
+                         :align-items   "center"}
+            [:$c-icon {:fill      color-icon-normal
+                       :transform "scale(0.7)"}
+             [:&:hover {:fill color-icon-strong}]]
 
-          [:&.details {:background    "#f3f3f3"
-                       :border-bottom "1px solid #ccc"
-                       :display       "flex"
-                       :align-items   "center"
-                       :height        "28px"}]]
+            [:&.details {:background    "#f3f3f3"
+                         :border-bottom "1px solid #ccc"
+                         :display       "flex"
+                         :align-items   "center"
+                         :height        "28px"}]
 
-         [:.action {:cursor      "pointer"
-                    :display     "flex"
-                    :align-items "center"}
-          [(gs/& (gs/attr "disabled")) {:cursor "not-allowed"}
-           [:$c-icon {:fill color-icon-normal}]]]
+            [(component-class Input :.input) {:padding "3px 6px"}]
 
-         [:.separator {:background "#ccc"
-                       :width      "1px"
-                       :height     "16px"
-                       :margin     "0 6px"}]
+            [(component-class Toggler :.toggler) {:margin "0 2px"}]]
 
-         `[:.input ~@css-input]]}
+           [:.action {:cursor      "pointer"
+                      :display     "flex"
+                      :align-items "center"}
+            [(gs/& (gs/attr "disabled")) {:cursor "not-allowed"}
+             [:$c-icon {:fill color-icon-normal}]]]
+
+           [:.separator {:background "#ccc"
+                         :width      "1px"
+                         :height     "16px"
+                         :margin     "0 6px"}]
+
+           `[:.input ~@css-input]])}
 
   (let [css (css/get-classnames ToolBar)]
     (dom/div (h/props+classes this {:className (:container css)})
@@ -352,6 +391,7 @@
                      [(gs/& gs/first-child) {:border-top "0"}]]
                     [:.info-label css-info-label]
                     [:.flex {:flex "1"}]
+                    [:$flex {:flex "1"}]
                     [:.ident {:padding     "5px 6px"
                               :background  "#f3f3f3"
                               :color       "#424242"
@@ -365,7 +405,7 @@
                                      :font-family mono-font-family
                                      :font-size   "14px"}]
                     (gen-all-spaces spaces)])
-  (include-children [_] [ToolBar Row InlineEditor Button Header Input Label]))
+  (include-children [_] [ToolBar Row InlineEditor Button Header Input Label Toggler]))
 
 (def scss (css/get-classnames CSS))
 
