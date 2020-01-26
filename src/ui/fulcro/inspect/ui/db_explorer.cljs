@@ -4,15 +4,25 @@
     [clojure.set :as set]
     [clojure.string :as str]
     [fulcro.client.dom :as dom :refer [div button label input span a]]
-    [fulcro.client.mutations :refer [defmutation]]
-    [fulcro.client.primitives :as prim :refer [defsc]]
+    [fulcro.client.mutations :as fm :refer [defmutation]]
+    [fulcro.client.primitives :as fc :refer [defsc]]
     [fulcro.inspect.helpers :as h]
+    [fulcro.inspect.ui.core :as ui]
     [fulcro.inspect.ui.data-watcher :as dw]
     [fulcro.inspect.ui.settings :as settings]
     [fulcro.util :refer [ident?]]
-    [fulcro.client.mutations :as fm]
-    [taoensso.encore :as enc]
-    [fulcro.inspect.ui.core :as ui]))
+    [taoensso.encore :as enc]))
+
+(defn highlight-string [s highlight-subs]
+  (str/replace s (re-pattern (str "(?i)" highlight-subs))
+    (fn [x] (str "<span class=\"highlight\">" x "</span>"))))
+
+(defn highlighter [value highlight]
+  (dom/pre {:dangerouslySetInnerHTML
+            #js {:__html (highlight-string (str value) highlight)}}))
+
+(defn pprint-highlighter [value highlight]
+  (highlighter (with-out-str (pprint value)) highlight))
 
 (defmutation set-current-state [new-state]
   (action [env]
@@ -25,7 +35,7 @@
 
 (defn compact [s]
   (if-not (settings/get-setting :setting/compact-keywords?)
-    s #_else
+    s
     (str/join "."
       (let [segments (str/split s #"\.")]
         (conj
@@ -40,28 +50,28 @@
       (name kw))
     kw))
 
-(defn ui-ident [f v]
-  (let [ident    (mapv compact-keyword v)
-        segments (str/split (str ident) #"\s")]
-    (div {:key (str "ident-" v)}
-      (a {:href    "#"
-          :title   (str v)
-          :onClick #(f v)}
-        (map #(span {:key   (str "ident-segment-" v "-" %)
-                     :style {:whiteSpace "nowrap"}}
-                (str " " %))
-          segments)))))
+(defn ui-ident
+  ([f v] (ui-ident f v ""))
+  ([f v hl]
+   (let [ident (mapv compact-keyword v)]
+     (div {:key (str "ident-" v)}
+       (a {:href    "#"
+           :title   (str v)
+           :onClick #(f v)}
+         (highlighter (pr-str ident) hl))))))
 
 (defn ui-db-key [selectIdent x]
   (cond
     (keyword? x)
-    #_=> (span {:style {:whiteSpace "nowrap"}} ":"
-           (when (namespace x)
-             (span {:title (namespace x) :style {:color "grey"}}
-               (str (compact (namespace x)) "/")))
-           (span {:style {:fontWeight "bold"}}
-             (name x)))
+    (span {:style {:whiteSpace "nowrap"}} ":"
+      (when (namespace x)
+        (span {:title (namespace x) :style {:color "grey"}}
+          (str (compact (namespace x)) "/")))
+      (span {:style {:fontWeight "bold"}}
+        (name x)))
+
     (ident? x) (ui-ident selectIdent x)
+
     :else (span {:style {:whiteSpace "nowrap"}} (pr-str x))))
 
 (defn ui-db-value [{:keys [selectIdent selectMap]} v k]
@@ -76,12 +86,12 @@
       (ident? v)
       #_=> (ui-ident selectIdent v)
       (and (vector? v) (every? ident? v))
-      #_=> (prim/fragment (map (partial ui-ident selectIdent) v))
+      #_=> (fc/fragment (map (partial ui-ident selectIdent) v))
       :else (pr-str v))))
 
 (defsc EntityLevel [this {:keys [selectIdent entity] :as params}]
   {}
-  (prim/fragment
+  (fc/fragment
     (dom/tr
       (dom/th "Key")
       (dom/th "Value"))
@@ -94,11 +104,11 @@
         (sort-by (comp str key) entity))
       #_else (dom/tr (dom/td "DEBUG PR-STR:" (pr-str entity))))))
 
-(def ui-entity-level (prim/factory EntityLevel))
+(def ui-entity-level (fc/factory EntityLevel))
 
 (defsc TableLevel [this {:keys [selectIdent entity-ids selectEntity]}]
   {}
-  (prim/fragment
+  (fc/fragment
     (dom/tr
       (dom/th "Entity ID"))
     (map
@@ -109,11 +119,11 @@
               (ui-db-key selectIdent entity-id)))))
       (sort-by str entity-ids))))
 
-(def ui-table-level (prim/factory TableLevel))
+(def ui-table-level (fc/factory TableLevel))
 
 (defsc TopLevel [this {:keys [selectIdent tables root-values selectTopKey] :as params}]
   {}
-  (prim/fragment
+  (fc/fragment
     (dom/tr {:colSpan "2"}
       (dom/th (dom/h2 :.ui.header
                 {:style {:marginTop    "0.5rem"
@@ -147,7 +157,7 @@
       (sort-by (comp str key)
         root-values))))
 
-(def ui-top-level (prim/factory TopLevel))
+(def ui-top-level (fc/factory TopLevel))
 
 (defn set-path!* [env path]
   (h/swap-entity! env assoc :ui/path {:path path})
@@ -158,9 +168,9 @@
     (set-path!* env path)))
 
 (defn set-path! [this path]
-  (let [{::keys [id]} (prim/props this)
-        reconciler (prim/any->reconciler this)]
-    (prim/transact! reconciler [::id id]
+  (let [{::keys [id]} (fc/props this)
+        reconciler (fc/any->reconciler this)]
+    (fc/transact! reconciler [::id id]
       `[(set-path {:path ~path})])))
 
 (defmutation append-to-path [{:keys [sub-path]}]
@@ -170,26 +180,23 @@
       {:path (get-in @state (conj ref :ui/path :path))})))
 
 (defn append-to-path! [this & sub-path]
-  (let [{::keys [id]} (prim/props this)
-        reconciler (prim/any->reconciler this)]
-    (prim/transact! reconciler [::id id]
+  (let [{::keys [id]} (fc/props this)
+        reconciler (fc/any->reconciler this)]
+    (fc/transact! reconciler [::id id]
       `[(append-to-path {:sub-path ~sub-path})])))
-
-(defn re-find-lowercased [re x]
-  (re-find re (str/lower-case x)))
 
 (letfn [(TABLE [re path table-key]
           (fn [matches entity-key entity]
             (cond-> matches
-              (re-find-lowercased re (str entity))
+              (re-find re (str entity))
               (conj {:path  (conj path table-key entity-key)
                      :value (ENTITY re entity)}))))
         (ENTITY [re e] (->> e
-                         (filter (fn [[_ v]] (re-find-lowercased re (pr-str v))))
-                         (into (empty e))))
+                            (filter (fn [[_ v]] (re-find re (pr-str v))))
+                            (into (empty e))))
         (VALUE [re path matches k v]
           (cond-> matches
-            (re-find-lowercased re (pr-str v))
+            (re-find re (pr-str v))
             (conj {:path  (conj path k)
                    :value v})))]
   (defn paths-to-values
@@ -206,7 +213,7 @@
                (if (table? table)
                  (reduce-kv (fn [paths id entity]
                               (cond-> paths
-                                (re-find-lowercased re (pr-str id))
+                                (re-find re (pr-str id))
                                 (conj {:path [table-key id]})))
                    paths table)
                  paths))
@@ -221,11 +228,11 @@
       (case search-type
         :search/by-value
         (paths-to-values
-          (re-pattern (str/lower-case search-query))
+          (re-pattern (str "(?i)" (str/lower-case search-query)))
           searchable-state [])
         :search/by-id
         (paths-to-ids
-          (re-pattern (str/lower-case search-query))
+          (re-pattern (str "(?i)" (str/lower-case search-query)))
           searchable-state)))))
 
 (defmutation search-for [search-params]
@@ -235,11 +242,11 @@
     (search-for!* env search-params)))
 
 (defn search-for! [this search-query [shift-key? search-type]]
-  (let [{::keys [id]} (prim/props this)
-        reconciler         (prim/any->reconciler this)
+  (let [{::keys [id]} (fc/props this)
+        reconciler         (fc/any->reconciler this)
         invert-search-type {:search/by-id    :search/by-value
                             :search/by-value :search/by-id}]
-    (prim/transact! reconciler [::id id]
+    (fc/transact! reconciler [::id id]
       `[(search-for ~{:search-type  (cond-> search-type
                                       shift-key? invert-search-type)
                       :search-query search-query})])))
@@ -259,31 +266,31 @@
         (h/swap-entity! env assoc :ui/search-type search-type)))))
 
 (defn pop-history! [this]
-  (let [{::keys [id]} (prim/props this)
-        reconciler (prim/any->reconciler this)]
-    (prim/transact! reconciler [::id id]
+  (let [{::keys [id]} (fc/props this)
+        reconciler (fc/any->reconciler this)]
+    (fc/transact! reconciler [::id id]
       `[(pop-history {})])))
 
 (defn add-data-watch! [this path]
-  (let [{::keys [id]} (prim/props this)
-        reconciler (prim/any->reconciler this)]
-    (prim/transact! reconciler [::id id]
+  (let [{::keys [id]} (fc/props this)
+        reconciler (fc/any->reconciler this)]
+    (fc/transact! reconciler [::id id]
       `[(dw/add-data-watch ~{:path path})])
     (let [[_ app-uuid] id]
-      (prim/transact! reconciler
+      (fc/transact! reconciler
         [:fulcro.inspect.ui.inspector/id app-uuid]
         `[(fm/set-props
             ~{:fulcro.inspect.ui.inspector/tab
               :fulcro.inspect.ui.inspector/page-db})]))))
 
 (defn ui-db-path* [this {:keys [path search-query]} history]
-  (prim/fragment
+  (fc/fragment
     (div :.ui.large.breadcrumb
       (a :.section {:onClick #(set-path! this [])} "Top")
       (when (seq (drop-last path))
         (map
           (fn [sub-path]
-            (prim/fragment {:key (str "db-path-" sub-path)}
+            (fc/fragment {:key (str "db-path-" sub-path)}
               (dom/i :.right.angle.icon.divider)
               (a :.section {:onClick #(set-path! this sub-path)
                             :title   (str (last sub-path))}
@@ -291,35 +298,38 @@
           (let [[x & xs] (drop-last path)]
             (reductions conj [x] xs))))
       (when (last path)
-        (prim/fragment
+        (fc/fragment
           (dom/i :.right.angle.icon.divider)
           (a :.active.section {:disabled (not search-query)
                                :title    (str (last path))
                                :onClick  #(set-path! this path)}
             (str (compact-keyword (last path))))))
       (when search-query
-        (prim/fragment
+        (fc/fragment
           (dom/i :.right.angle.icon.divider)
           (a :.active.section {:disabled true}
             (str "\"" search-query "\"")))))))
 
+(defn get-search-query [this]
+  (-> this fc/props :ui/path :search-query))
+
 (defn ui-search-results* [this search-results]
-  (prim/fragment
-    (dom/tr
-      (dom/th "Path")
-      (when (some :value search-results)
-        (dom/th "Value")))
-    ;;TODO: highlight matching sections
-    ;;TODO: render with folding
-    (map
-      (fn [{:keys [path value]}]
-        (dom/tr {:key (str "search-path-" path)}
-          (dom/td {}
-            (ui-ident #(set-path! this %) path))
-          (when value (dom/td (dom/pre
-                                (with-out-str
-                                  (pprint value)))))))
-      (sort-by (comp str :path) search-results))))
+  (let [query (get-search-query this)]
+    (fc/fragment
+      (dom/tr
+        (dom/th "Path")
+        (when (some :value search-results)
+          (dom/th "Value")))
+      ;;TODO: render with folding
+      (map
+        (fn [{:keys [path value]}]
+          (dom/tr {:key (str "search-path-" path)}
+            (dom/td {}
+              (ui-ident #(set-path! this %) path query))
+            (when value
+              (dom/td
+                (pprint-highlighter value query)))))
+        (sort-by (comp str :path) search-results)))))
 
 (defn mode [{:as props :keys [current-state]}]
   (let [{:keys [path search-query]} (:ui/path props)]
@@ -409,4 +419,4 @@
       (dom/div (str "Inspect rendering threw an exception. Start a new tab to try again. Report an issue. Exception:"
                  (ex-message e))))))
 
-(def ui-db-explorer (prim/factory DBExplorer))
+(def ui-db-explorer (fc/factory DBExplorer))

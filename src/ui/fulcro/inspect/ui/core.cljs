@@ -392,6 +392,7 @@
                     [:.info-label css-info-label]
                     [:.flex {:flex "1"}]
                     [:$flex {:flex "1"}]
+                    [:$highlight {:background "yellow"}]
                     [:.ident {:padding     "5px 6px"
                               :background  "#f3f3f3"
                               :color       "#424242"
