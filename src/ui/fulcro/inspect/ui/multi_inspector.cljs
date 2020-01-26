@@ -92,8 +92,9 @@
           (inspector/inspector current-app)
           (dom/div :.no-app
             (dom/div "No app connected.")
-            (dom/button {:onClick toggle-settings!}
-              "Show Settings")))))
+            (dom/div :$margin-left-standard
+              (ui/button {:onClick toggle-settings!}
+                "Show Settings"))))))
     (if (> (count inspectors) 1)
       (dom/div :.selector
         (dom/div :.label "App")

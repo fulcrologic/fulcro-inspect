@@ -142,8 +142,6 @@
       [::db-explorer/id [app-uuid-key app-uuid]]
       [`(db-explorer/set-current-state ~initial-state) :current-state])
 
-    (settings/load-settings (:reconciler inspector))
-
     new-inspector))
 
 (defn dispose-app [{:fulcro.inspect.core/keys [app-uuid]}]
@@ -292,7 +290,8 @@
                      :started-callback
                      (fn [app]
                        (event-loop! app responses*)
-                       (post-message :fulcro.inspect.client/check-client-version {}))
+                       (post-message :fulcro.inspect.client/check-client-version {})
+                       (settings/load-settings (:reconciler app)))
 
                      :shared
                      {::db-hash-index                    (atom {})
