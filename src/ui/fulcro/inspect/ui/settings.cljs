@@ -7,6 +7,10 @@
     [fulcro.inspect.helpers :as h]
     [fulcro.inspect.ui.core :as ui]))
 
+(defmutation update-settings [params]
+  (action [{:keys [state] :as env}]
+    (swap! state update :fulcro.inspect/settings merge params)))
+
 (defmutation save-settings [params]
   (remote [env]
     (-> env :ast (assoc :key 'save-settings)))
@@ -43,7 +47,7 @@
             (ui/label "Websocket Port:")
             (ui/input {:value    (or websocket-port 0)
                        :type     "number"
-                       :onChange #(m/set-integer! this :setting/websocket-port :event %)})
+                       :onChange #(fp/transact! this `[(update-settings {:setting/websocket-port ~(js/parseInt (m/target-value %))})])})
             (ui/primary-button {:onClick #(fp/transact! this `[(save-settings {:setting/websocket-port ~websocket-port})])}
               "Restart Websockets"))
           (ui/row {:classes [:.align-center]}
