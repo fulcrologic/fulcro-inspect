@@ -88,8 +88,8 @@
                                  :align-items "center"}
                     [:&:hover [:.action {:visibility "visible"}]]]
                    [:.current {:background "#3c7bd6 !important"}
-                    [(ui/foreign-class ui/InlineEditor :label)
-                     (ui/foreign-class ui/InlineEditor :no-label)
+                    [(ui/component-class ui/InlineEditor :.label)
+                     (ui/component-class ui/InlineEditor :.no-label)
                      {:color "#fff"}]
                     [:.action {:fill "#fff"}]]
                    [:.action {:cursor     "pointer"

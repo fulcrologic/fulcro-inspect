@@ -95,8 +95,9 @@
          (add-zeros (.getSeconds date) 2) ":"
          (add-zeros (.getMilliseconds date) 3))))
 
-(defn foreign-class [comp class]
-  (->> (css/get-classnames comp) class (str "$") keyword))
+(defn component-class [comp-class css-selector]
+  (if-let [class (get (css/get-classnames comp-class) (keyword (subs (name css-selector) 1)))]
+    (str "." class)))
 
 ;;; elements
 
