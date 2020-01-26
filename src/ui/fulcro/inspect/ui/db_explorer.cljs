@@ -9,7 +9,6 @@
     [fulcro.inspect.helpers :as h]
     [fulcro.inspect.ui.core :as ui]
     [fulcro.inspect.ui.data-watcher :as dw]
-    [fulcro.inspect.ui.settings :as settings]
     [fulcro.util :refer [ident?]]
     [taoensso.encore :as enc]))
 
@@ -134,32 +133,18 @@
         env          (assoc (settings-env this)
                        ::select-ident select-ident
                        ::select-map select-map)]
-    (dom/table :.ui.compact.celled.fluid.table
-      (dom/tbody
-        (dom/tr
-          (dom/th "Key")
-          (dom/th "Value"))
-        (if (map? entity)
-          (map
-            (fn [[k v]]
-              (dom/tr {:key (str "entity-key-" k)}
-                (dom/td (ui-db-key env k))
-                (dom/td (ui-db-value env v k))))
-            (sort-by (comp str key) entity))
-          (dom/tr (dom/td "DEBUG PR-STR:" (pr-str entity))))))
-
-
     (ui/table {}
-      (ui/table-header {}
-        (ui/table-row {}
-          (ui/table-head {} "Key")
-          (ui/table-head {} "Value")))
+      (ui/thead {}
+        (ui/tr {}
+          (ui/th {} "Key")
+          (ui/th {} "Value")))
+
       (if (map? entity)
-        (ui/table-body {}
+        (ui/tbody
           (for [[k v] (sort-by (comp str key) entity)]
-            (ui/table-row {:key (str "entity-key-" k)}
-              (ui/table-cell (ui-db-key env k))
-              (ui/table-cell (ui-db-value env v k)))))))))
+            (ui/tr {:react-key (str "entity-key-" k)}
+              (ui/td (ui-db-key env k))
+              (ui/td (ui-db-value env v k)))))))))
 
 (defn ui-table-level [this]
   (let [{:keys [current-state] :ui/keys [path]} (fc/props this)
@@ -167,17 +152,16 @@
         select-ident (fn [ident] (set-path! this ident))
         env          (assoc (settings-env this)
                        ::select-ident select-ident)]
-    (dom/table :.ui.compact.celled.fluid.table
-      (dom/tbody
-        (dom/tr
-          (dom/th "Entity ID"))
-        (map
-          (fn [entity-id]
-            (dom/tr {:key (str "table-key-" entity-id)}
-              (dom/td
-                (a {:href "#" :onClick #(append-to-path! this entity-id)}
-                  (ui-db-key env entity-id)))))
-          (sort-by str entity-ids))))))
+    (ui/table {}
+      (ui/thead {}
+        (ui/tr {}
+          (ui/th {} "Entity ID")))
+      (ui/tbody
+        (for [entity-id (sort-by str entity-ids)]
+          (ui/tr {:react-key (str "table-key-" entity-id)}
+            (ui/td {}
+              (a {:href "#" :onClick #(append-to-path! this entity-id)}
+                (ui-db-key env entity-id)))))))))
 
 (defn ui-top-level [this]
   (let [{:keys [current-state]} (fc/props this)
@@ -196,43 +180,43 @@
         env            (assoc (settings-env this)
                          ::select-ident select-ident
                          ::select-map select-map)]
-    (dom/table :.ui.compact.celled.fluid.table
-      (dom/tbody
-        (dom/tr {:colSpan "2"}
-          (dom/th (dom/h2 :.ui.header
-                    {:style {:marginTop    "0.5rem"
-                             :marginBottom "0.5rem"}}
-                    "Tables")))
+    (ui/table {}
+      (ui/thead {}
+        (ui/tr {}
+          (ui/th {:colSpan "2"}
+            (dom/h2 :.ui.header
+              {:style {:marginTop    "0.5rem"
+                       :marginBottom "0.5rem"}}
+              "Tables")))
+        (ui/tr {}
+          (ui/th "Table")
+          (ui/th "Entities")))
 
-        (dom/tr
-          (dom/th "Table")
-          (dom/th "Entities"))
-        (map
-          (fn [[k v]]
-            (dom/tr {:key (str "top-tables-key-" k)}
-              (dom/td (ui-db-key env k))
-              (dom/td
-                (a {:href "#" :onClick #(select-top-key k)}
-                  (str (count (keys v)) " items")))))
-          (sort-by (comp str key) tables))
+      (ui/tbody {}
+        (for [[k v] (sort-by (comp str key) tables)]
+          (ui/tr {:react-key (str "top-tables-key-" k)}
+            (ui/td {} (ui-db-key env k))
+            (ui/td {}
+              (a {:href "#" :onClick #(select-top-key k)}
+                (str (count (keys v)) " items"))))))
 
-        (dom/tr {:colSpan "2"}
-          (dom/th
+      (ui/thead {}
+        (ui/tr {}
+          (ui/th {:colSpan "2"}
             (dom/h2 :.ui.header
               {:style {:marginTop    "0.5rem"
                        :marginBottom "0.5rem"}}
               "Top-Level Keys")))
 
-        (dom/tr
-          (dom/th "Key")
-          (dom/th "Value"))
-        (map
-          (fn [[k v]]
-            (dom/tr {:key (str "top-values-key-" k)}
-              (dom/td (ui-db-key env k))
-              (dom/td (ui-db-value env v k))))
-          (sort-by (comp str key)
-            root-values))))))
+        (ui/tr {}
+          (ui/th {} "Key")
+          (ui/th {} "Value")))
+
+      (ui/tbody {}
+        (for [[k v] (sort-by (comp str key) root-values)]
+          (ui/tr {:react-key (str "top-values-key-" k)}
+            (ui/td {} (ui-db-key env k))
+            (ui/td {} (ui-db-value env v k))))))))
 
 (letfn [(TABLE [re path table-key]
           (fn [matches entity-key entity]
@@ -384,22 +368,21 @@
         {:keys [search-query]} path
         env (assoc (settings-env this)
               ::select-ident #(set-path! this %))]
-    (dom/table :.ui.compact.celled.fluid.table
-      (dom/tbody
-        (dom/tr
-          (dom/th "Path")
+    (ui/table {}
+      (ui/thead {}
+        (ui/tr {}
+          (ui/th {} "Path")
           (when (some :value search-results)
-            (dom/th "Value")))
+            (ui/th {} "Value"))))
+      (ui/tbody
         ;;TODO: render with folding
-        (map
-          (fn [{:keys [path value]}]
-            (dom/tr {:key (str "search-path-" path)}
-              (dom/td {}
-                (ui-ident env path search-query))
-              (when value
-                (dom/td
-                  (pprint-highlighter value search-query)))))
-          (sort-by (comp str :path) search-results))))))
+        (for [{:keys [path value]} (sort-by (comp str :path) search-results)]
+          (ui/tr {:react-key (str "search-path-" path)}
+            (ui/td {}
+              (ui-ident env path search-query))
+            (when value
+              (ui/td {}
+                (pprint-highlighter value search-query)))))))))
 
 (defn ui-toolbar [this]
   (let [{:ui/keys [history search-query search-type]} (fc/props this)]

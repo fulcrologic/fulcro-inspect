@@ -34,6 +34,10 @@
 
 (def box-shadow "0 6px 6px rgba(0, 0, 0, 0.26), 0 9px 20px rgba(0, 0, 0, 0.19)")
 
+(def css-label-font
+  {:font-family label-font-family
+   :font-size   label-font-size})
+
 (def css-info-group
   {:border-top "1px solid #eee"
    :padding    "7px 0"})
@@ -177,6 +181,62 @@
 
 (defn breadcrumb-separator []
   (dom/div {:classes [(component-class Breadcrumb :.separator)]} (icon {} :chevron_right)))
+
+(fc/defsc TableCell
+  [this props]
+  {:css [[:.container css-label-font
+          {:border  "1px solid #d3d3d3"
+           :padding "3px 5px"}]]}
+  (dom/td :.container props (fc/children this)))
+
+(def td (fc/factory TableCell))
+
+(fc/defsc TableHead
+  [this props]
+  {:css [[:.container css-label-font
+          {:background  "#f3f3f3"
+           :border      "1px solid #d3d3d3"
+           :color       "#000"
+           :font-weight "normal"
+           :padding     "8px 4px"
+           :text-align  "left"}]]}
+  (dom/th :.container props (fc/children this)))
+
+(def th (fc/factory TableHead))
+
+(fc/defsc TableRow
+  [this props]
+  {:css [[:.container {}
+          [(gs/& (gs/nth-child 2))
+           [(component-class TableCell :.container)
+            {:background "#f5f5f5"}]]]]}
+  (dom/tr :.container props (fc/children this)))
+
+(def tr (fc/factory TableRow))
+
+(fc/defsc TableBody
+  [this props]
+  {:css [[:.container {}]]}
+  (dom/tbody :.container props (fc/children this)))
+
+(def tbody (fc/factory TableBody))
+
+(fc/defsc TableHeader
+  [this props]
+  {:css [[:.container {}]]}
+  (dom/thead :.container props (fc/children this)))
+
+(def thead (fc/factory TableHeader))
+
+(fc/defsc Table
+  [this props]
+  {:css         [[:.container {:border          "1px solid #d3d3d3"
+                               :border-collapse "collapse"
+                               :width           "100%"}]]
+   :css-include [TableHeader TableBody TableRow TableHead TableCell]}
+  (dom/table :.container props (fc/children this)))
+
+(def table (fc/factory Table))
 
 (fc/defsc Button
   [this props]
@@ -435,7 +495,7 @@
                     (gen-all-spaces spaces)])
   (include-children [_]
     [ToolBar Row InlineEditor Button Header Input Label Toggler
-     Breadcrumb]))
+     Breadcrumb Table]))
 
 (def scss (css/get-classnames CSS))
 
