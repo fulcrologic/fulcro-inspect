@@ -11,7 +11,8 @@
     [fulcro.inspect.ui.settings :as settings]
     [fulcro.util :refer [ident?]]
     [fulcro.client.mutations :as fm]
-    [taoensso.encore :as enc]))
+    [taoensso.encore :as enc]
+    [fulcro.inspect.ui.core :as ui]))
 
 (defmutation set-current-state [new-state]
   (action [env]
@@ -327,34 +328,33 @@
       :else :entity)))
 
 (defn ui-toolbar* [this {:ui/keys [history search-query search-type]}]
-  (div :.ui.form
-    (div :.inline.fields {:style {:marginBottom "0"}}
-      (div :.ui.buttons
-        (button :.ui.icon.button
-          {:onClick  #(pop-history! this)
-           :disabled (empty? history)}
-          (dom/i :.left.arrow.icon)))
-      (div :.ui.icon.input
-        (input {:value       search-query
-                :placeholder "Search DB for:"
-                :onChange    #(fm/set-string! this :ui/search-query :event %)
-                :onKeyDown   #(when (= 13 (.-keyCode %))
-                                (search-for! this search-query
-                                  [(.-shiftKey %) search-type]))})
-        (dom/i :.search.icon.link
-          {:onClick #(search-for! this search-query
-                       [(.-shiftKey %) search-type])}))
-      (div :.ui.buttons
-        (button :.ui.button.toggle
-          {:className (if (= search-type :search/by-value) "active" "basic")
-           :onClick   #(fm/set-string! this :ui/search-type
-                         :value :search/by-value)}
-          "by Value")
-        (button :.ui.button.toggle
-          {:className (if (= search-type :search/by-id) "active" "basic")
-           :onClick   #(fm/set-string! this :ui/search-type
-                         :value :search/by-id)}
-          "by ID")))))
+  (ui/toolbar {:classes [:.details]}
+    (ui/toolbar-action {:onClick  #(pop-history! this)
+                        :disabled (empty? history)}
+      (ui/icon {:title "Go Back"} :arrow_back))
+    (ui/input {:value       search-query
+               :placeholder "Search DB for:"
+               :onChange    #(fm/set-string! this :ui/search-query :event %)
+               :onKeyDown   #(when (= 13 (.-keyCode %))
+                               (search-for! this search-query
+                                 [(.-shiftKey %) search-type]))
+               :style       {:paddingRight "20px"}})
+    (ui/toolbar-action {:onClick  #(pop-history! this)
+                        :disabled (empty? history)
+                        :style    {:marginLeft  "-29px"
+                                   :marginRight "7px"
+                                   :position    "relative"}}
+      (ui/icon {:title "Go Back"} :search))
+    (ui/toggler
+      {:classes [(if (= search-type :search/by-value) :.active)]
+       :onClick #(fm/set-string! this :ui/search-type
+                   :value :search/by-value)}
+      "by Value")
+    (ui/toggler
+      {:classes [(if (= search-type :search/by-id) :.active)]
+       :onClick #(fm/set-string! this :ui/search-type
+                   :value :search/by-id)}
+      "by ID")))
 
 (defsc DBExplorer [this {:as      props :keys [current-state]
                          :ui/keys [path history search-results]}]
@@ -369,11 +369,11 @@
                    :ui/history        []}}
   (try
     (let [explorer-mode (mode props)]
-      (div
+      (div :.flex
         (ui-toolbar* this props)
         ;(div (pr-str history)
         ;(div (pr-str search-results))
-        (div :.ui.container {:style {:marginLeft "0.5rem"}}
+        (div {:style {:marginLeft "0.5rem"}}
           (ui-db-path* this path history)
           (when (= :entity explorer-mode)
             (button :.ui.tertiary.button
