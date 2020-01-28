@@ -37,7 +37,7 @@
       ::oge                  (fp/get-initial-state oge/OgeView {})
       ::transactions         (fp/get-initial-state transactions/TransactionList [])
       ::db-explorer          (fp/get-initial-state db-explorer/DBExplorer {})
-      ;::settings             (fp/get-initial-state settings/Settings {})
+      ::settings             (fp/get-initial-state settings/Settings {})
       :ui/more-open?         false})
 
    :ident
@@ -54,7 +54,7 @@
     {::transactions (fp/get-query transactions/TransactionList)}
     {::index-explorer (fp/get-query fiex/IndexExplorer)}
     {::oge (fp/get-query oge/OgeView)}
-    #_{::settings (fp/get-query settings/Settings)}]
+    {::settings (fp/get-query settings/Settings)}]
 
    :css
    [[:.container {:display        "flex"
@@ -111,7 +111,7 @@
 
    :css-include
    [data-history/DataHistory network/NetworkHistory transactions/TransactionList
-    element/Panel i18n/TranslationsViewer oge/OgeView fiex/IndexExplorer]}
+    element/Panel i18n/TranslationsViewer oge/OgeView fiex/IndexExplorer db-explorer/DBExplorer]}
 
   (let [tab-item (fn [{:keys [title html-title disabled? page]}]
                    (dom/div #js {:className (cond-> (:tab css)
@@ -131,7 +131,7 @@
         (tab-item {:title "Query" :page ::page-oge})
         (tab-item {:title "Index Explorer" :page ::page-index-explorer})
         #_(tab-item {:title "i18n" :page ::page-i18n})
-        #_(tab-item {:title "Settings" :page ::page-settings})
+        (tab-item {:title "Settings" :page ::page-settings})
         (dom/div :.flex)
         #_(dom/div #js {:className (:more css)
                         :onClick   (fn [e]
@@ -168,7 +168,7 @@
           ::page-i18n
           (i18n/translations-viewer i18n)
 
-          #_#_::page-settings
+          ::page-settings
           (settings/ui-settings settings)
 
           (dom/div

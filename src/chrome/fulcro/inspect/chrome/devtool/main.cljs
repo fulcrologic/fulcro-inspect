@@ -17,6 +17,7 @@
             [fulcro.inspect.ui-parser :as ui-parser]
             [fulcro.inspect.ui.data-history :as data-history]
             [fulcro.inspect.ui.data-watcher :as data-watcher]
+            [fulcro.inspect.ui.db-explorer :as db-explorer]
             [fulcro.inspect.ui.element :as element]
             [fulcro.inspect.ui.i18n :as i18n]
             [fulcro.inspect.ui.index-explorer :as fiex]
@@ -24,17 +25,19 @@
             [fulcro.inspect.ui.multi-inspector :as multi-inspector]
             [fulcro.inspect.ui.multi-oge :as multi-oge]
             [fulcro.inspect.ui.network :as network]
+            [fulcro.inspect.ui.settings :as settings]
             [fulcro.inspect.ui.transactions :as transactions]
             [goog.object :as gobj]
-            [fulcro.inspect.ui.db-explorer :as db-explorer]))
+            [taoensso.timbre :as log]))
 
 (fp/defsc GlobalRoot [this {:keys [ui/root]}]
-  {:initial-state (fn [params] {:ui/root (fp/get-initial-state multi-inspector/MultiInspector params)})
+  {:initial-state (fn [params] {:ui/root
+                                (-> (fp/get-initial-state multi-inspector/MultiInspector params)
+                                    (assoc-in [::multi-inspector/settings :ui/hide-websocket?] true))})
    :query         [{:ui/root (fp/get-query multi-inspector/MultiInspector)}]
    :css           [[:html {:overflow "hidden"}]
                    [:body {:margin "0" :padding "0" :box-sizing "border-box"}]]
    :css-include   [multi-inspector/MultiInspector]}
-
   (dom/div
     (cssi/style-element {:component this})
     (multi-inspector/multi-inspector root)))
@@ -89,7 +92,8 @@
                           (assoc ::inspector/id app-uuid)
                           (assoc :fulcro.inspect.core/app-id app-id)
                           (assoc ::inspector/name (dedupe-name app-id))
-                        (assoc-in [::inspector/db-explorer ::db-explorer/id] [app-uuid-key app-uuid])
+                          (assoc-in [::inspector/settings :ui/hide-websocket?] true)
+                          (assoc-in [::inspector/db-explorer ::db-explorer/id] [app-uuid-key app-uuid])
                           (assoc-in [::inspector/app-state ::data-history/history-id] [app-uuid-key app-uuid])
                           (assoc-in [::inspector/app-state ::data-history/watcher ::data-watcher/id] [app-uuid-key app-uuid])
                           (assoc-in [::inspector/app-state ::data-history/watcher ::data-watcher/watches]
@@ -125,6 +129,10 @@
       (fp/transact! (:reconciler inspector) [::multi-inspector/multi-inspector "main"]
         [`(multi-inspector/set-app {::inspector/id ~app-uuid})]))
 
+    (fp/transact! (:reconciler inspector)
+      [::db-explorer/id [app-uuid-key app-uuid]]
+      [`(db-explorer/set-current-state ~initial-state) :current-state])
+
     new-inspector))
 
 (defn dispose-app [{:fulcro.inspect.core/keys [app-uuid]}]
@@ -135,11 +143,11 @@
         {::keys [db-hash-index]} (-> inspector :reconciler :config :shared)]
 
     (if (= (get-in @state [::multi-inspector/multi-inspector "main" ::multi-inspector/current-app])
-           inspector-ref)
+          inspector-ref)
       (reset! last-disposed-app* app-id)
       (reset! last-disposed-app* nil))
 
-    (swap! db-hash-index dissoc app-uuid) ; clear state history
+    (swap! db-hash-index dissoc app-uuid)                   ; clear state history
 
     (fp/transact! reconciler [::multi-inspector/multi-inspector "main"]
       [`(multi-inspector/remove-inspector {::inspector/id ~app-uuid})])))
@@ -159,7 +167,7 @@
         new-state (if state-delta
                     (if-let [old-state (get-in @db-hash-index [app-uuid prev-state-hash])]
                       (diff/patch old-state state-delta)
-                      (js/console.error "Error patching state, no previous state available." state-hash))
+                      (log/error "Error patching state, no previous state available." state-hash))
                     state)]
 
     (swap! db-hash-index db-index-add app-uuid new-state state-hash)
@@ -231,16 +239,18 @@
           (if (= -1 (version/compare client-version version/last-inspect-version))
             (notify-stale-app)))
 
-        (js/console.log "Unknown message" type)))))
+        (log/debug "Unknown message" type)))))
 
 (defonce message-handler-ch (async/chan (async/dropping-buffer 1024)))
 
 (defn event-loop [app responses*]
   (let [port (js/chrome.runtime.connect #js {:name "fulcro-inspect-devtool"})]
-    (.addListener (.-onMessage port) #(put! message-handler-ch {:port       port
-                                                                :event      %
-                                                                :responses* responses*}))
-
+    (.addListener (.-onMessage port)
+      (fn [msg]
+        (put! message-handler-ch
+          {:port       port
+           :event      msg
+           :responses* responses*})))
     (go
       (loop []
         (when-let [msg (<! message-handler-ch)]
@@ -252,13 +262,39 @@
 
     port))
 
+(defn respond-locally! [responses* type data]
+  (if-let [res-chan (get @responses* (::ui-parser/msg-id data))]
+    (put! res-chan (::ui-parser/msg-response data))
+    (log/error "Failed to respond locally to message:" type "with data:" data)))
+
+(defn ?handle-local-message [responses* type data]
+  (case type
+    :fulcro.inspect.client/load-settings
+    (let [settings (into {}
+                     (remove (comp #{::not-found} second))
+                     (for [k (:query data)]
+                       [k (storage/get k ::not-found)]))]
+      (respond-locally! responses* type
+        {::ui-parser/msg-response settings
+         ::ui-parser/msg-id       (::ui-parser/msg-id data)})
+      :ok)
+    :fulcro.inspect.client/save-settings
+    (do
+      (doseq [[k v] data]
+        (log/trace "Saving setting:" k "=>" v)
+        (storage/set! k v))
+      :ok)
+    #_else nil))
+
 (defn make-network [port* parser responses*]
   (pfn/fn-network
     (fn [this edn ok error]
       (go
         (try
           (ok (<! (parser {:send-message (fn [type data]
-                                           (post-message @port* type data))
+                                           (or
+                                             (?handle-local-message responses* type data)
+                                             (post-message @port* type data)))
                            :responses*   responses*} edn)))
           (catch :default e
             (error e)))))
@@ -271,7 +307,8 @@
                      :started-callback
                      (fn [app]
                        (reset! port* (event-loop app responses*))
-                       (post-message @port* :fulcro.inspect.client/check-client-version {}))
+                       (post-message @port* :fulcro.inspect.client/check-client-version {})
+                       (settings/load-settings (:reconciler app)))
 
                      :shared
                      {::db-hash-index (atom {})}
@@ -286,6 +323,6 @@
   ([] @global-inspector*)
   ([options]
    (or @global-inspector*
-       (reset! global-inspector* (start-global-inspector options)))))
+     (reset! global-inspector* (start-global-inspector options)))))
 
 (global-inspector {})

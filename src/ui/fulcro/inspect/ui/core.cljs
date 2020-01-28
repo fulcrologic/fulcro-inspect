@@ -1,17 +1,17 @@
 (ns fulcro.inspect.ui.core
   (:require ["react-draggable" :refer [DraggableCore]]
             [clojure.string :as str]
-            [fulcro.client.primitives :as fp]
             [fulcro-css.css :as css]
             [fulcro-css.css-protocols :as cssp]
-            [fulcro.ui.icons :as icons]
-            [fulcro.inspect.ui.helpers :as h]
-            [fulcro.client.mutations :as fm]
             [fulcro.client.localized-dom :as dom]
+            [fulcro.client.mutations :as fm]
+            [fulcro.client.primitives :as fc]
+            [fulcro.inspect.ui.debounce-input :as di]
             [fulcro.inspect.ui.events :as events]
+            [fulcro.inspect.ui.helpers :as h]
+            [fulcro.ui.icons :as icons]
             [garden.selectors :as gs]
-            [goog.object :as gobj]
-            [fulcro.inspect.ui.debounce-input :as di]))
+            [goog.object :as gobj]))
 
 (def mono-font-family "monospace")
 
@@ -33,6 +33,10 @@
 (def color-row-selected "#e6e6e6")
 
 (def box-shadow "0 6px 6px rgba(0, 0, 0, 0.26), 0 9px 20px rgba(0, 0, 0, 0.19)")
+
+(def css-label-font
+  {:font-family label-font-family
+   :font-size   label-font-size})
 
 (def css-info-group
   {:border-top "1px solid #eee"
@@ -69,6 +73,17 @@
    :font-size   "12px"
    :white-space "nowrap"})
 
+(def css-input
+  [{:color       color-text-normal
+    :border      "1px solid transparent"
+    :outline     "0"
+    :margin      "0 2px"
+    :font-family label-font-family
+    :font-size   label-font-size
+    :padding     "6px"}
+   [:&:hover {:border "1px solid #e0e0e0"}]
+   [:&:focus {:border "1px solid #1973E7"}]])
+
 ;;; helpers
 
 (defn add-zeros [n x]
@@ -84,8 +99,9 @@
          (add-zeros (.getSeconds date) 2) ":"
          (add-zeros (.getMilliseconds date) 3))))
 
-(defn foreign-class [comp class]
-  (->> (css/get-classnames comp) class (str "$") keyword))
+(defn component-class [comp-class css-selector]
+  (if-let [class (get (css/get-classnames comp-class) (keyword (subs (name css-selector) 1)))]
+    (keyword (str "$" class))))
 
 ;;; elements
 
@@ -132,49 +148,225 @@
 (def arrow-right "▶")
 (def arrow-down "▼")
 
-(fp/defsc Row [this props]
-  {:css [[:.container {:display "flex"}]]}
-  (dom/div :.container props (fp/children this)))
+(fc/defsc Row [this props]
+  {:css [[:.container {:display "flex"}
+          [:&.align-start {:align-items "start"}]
+          [:&.align-center {:align-items "center"}]
+          [:&.align-baseline {:align-items "baseline"}]
+          [:&.align-end {:align-items "end"}]]]}
+  (dom/div :.container props (fc/children this)))
 
-(def row (fp/factory Row))
+(def row (fc/factory Row))
 
-(fp/defsc ToolBar [this _]
-  {:css [[:.container {:border-bottom "1px solid #dadada"
-                       :display       "flex"
-                       :align-items   "center"}
-          [:$c-icon {:fill      color-icon-normal
-                     :transform "scale(0.7)"}
-           [:&:hover {:fill color-icon-strong}]]
+(fc/defsc BreadcrumbItem
+  [this props]
+  {:css [[:.container {:cursor      "pointer"
+                       :font-family label-font-family
+                       :font-size   "15px"}]]}
+  (dom/a :.container (merge {:href "#"} props) (fc/children this)))
 
-          [:&.details {:background    "#f3f3f3"
-                       :border-bottom "1px solid #ccc"
-                       :display       "flex"
-                       :align-items   "center"
-                       :height        "28px"}]]
+(def breadcrumb-item (fc/factory BreadcrumbItem))
 
-         [:.action {:cursor      "pointer"
-                    :display     "flex"
-                    :align-items "center"}
-          [(gs/& (gs/attr "disabled")) {:cursor "not-allowed"}
-           [:$c-icon {:fill color-icon-normal}]]]
+(fc/defsc Breadcrumb
+  [this props]
+  {:css         [[:.container {:display     "flex"
+                               :align-items "baseline"
+                               :flex-wrap   "wrap"}]
+                 [:.separator {:color       "#b8b8b8"
+                               :font-size   "24px"
+                               :font-family "inherit"
+                               :margin      "0 8px"
+                               :font-weight "bold"
+                               :position    "relative"
+                               :top         "2px"}]]
+   :css-include [BreadcrumbItem]}
+  (dom/div :.container props (fc/children this)))
 
-         [:.separator {:background "#ccc"
-                       :width      "1px"
-                       :height     "16px"
-                       :margin     "0 6px"}]
+(def breadcrumb (fc/factory Breadcrumb))
 
-         [:.input {:color       color-text-normal
-                   :outline     "0"
-                   :margin      "0 2px"
-                   :font-family label-font-family
-                   :font-size   label-font-size
-                   :padding     "2px 4px"}]]}
+(defn breadcrumb-separator []
+  (dom/div {:classes [(component-class Breadcrumb :.separator)]} "›"))
+
+(fc/defsc TableCell
+  [this props]
+  {:css [[:.container css-label-font
+          {:border  "1px solid #d3d3d3"
+           :padding "3px 5px"}]]}
+  (dom/td :.container props (fc/children this)))
+
+(def td (fc/factory TableCell))
+
+(fc/defsc TableHead
+  [this props]
+  {:css [[:.container css-label-font
+          {:background  "#f3f3f3"
+           :border      "1px solid #d3d3d3"
+           :color       "#000"
+           :font-weight "normal"
+           :padding     "8px 4px"
+           :text-align  "left"}]]}
+  (dom/th :.container props (fc/children this)))
+
+(def th (fc/factory TableHead))
+
+(fc/defsc TableRow
+  [this props]
+  {:css [[:.container {}
+          [(gs/& (gs/nth-child 2))
+           [(component-class TableCell :.container)
+            {:background "#f5f5f5"}]]]]}
+  (dom/tr :.container props (fc/children this)))
+
+(def tr (fc/factory TableRow))
+
+(fc/defsc TableBody
+  [this props]
+  {:css [[:.container {}]]}
+  (dom/tbody :.container props (fc/children this)))
+
+(def tbody (fc/factory TableBody))
+
+(fc/defsc TableHeader
+  [this props]
+  {:css [[:.container {}]]}
+  (dom/thead :.container props (fc/children this)))
+
+(def thead (fc/factory TableHeader))
+
+(fc/defsc Table
+  [this props]
+  {:css         [[:.container {:border          "1px solid #d3d3d3"
+                               :border-collapse "collapse"
+                               :width           "100%"}]]
+   :css-include [TableHeader TableBody TableRow TableHead TableCell]}
+  (dom/table :.container props (fc/children this)))
+
+(def table (fc/factory Table))
+
+(fc/defsc Code
+  [this props]
+  {:css [[:.container {:white-space "nowrap"
+                       :font-family mono-font-family}]]}
+  (dom/div :.container props (fc/children this)))
+
+(def code (fc/factory Code))
+
+(fc/defsc Button
+  [this props]
+  {:css [[:.button css-info-label
+          {:background    "#fff"
+           :border        "1px solid #ccc"
+           :cursor        "pointer"
+           :margin        "0"
+           :color         "#1873E8"
+           :border-radius "4px"
+           :padding       "6px 12px"
+           :font-size     "12px"}
+          [:&:hover {:background "#f3f3f3"}]
+          [:&:disabled {:cursor "default"
+                        :color  "#adcbf7"}
+           [:&:hover {:background "#fff"}]]
+
+          [:&.primary {:background   "#1973e7"
+                       :border-color "#2b7ce8"
+                       :color        "#fff"}
+           [:&:hover {:background "#3a86e8"}]
+           [:&:disabled {:background   "#a7c5f1"
+                         :border-color "#a3c2f1"}]]]]}
+  (dom/button :.button props (fc/children this)))
+
+(def button (fc/factory Button))
+
+(defn primary-button [props & children]
+  (apply button (update props :classes conj :.primary) children))
+
+(fc/defsc Input
+  [this props]
+  {:css [`[:.input ~@css-input]]}
+  (dom/input :.input props))
+
+(def input (fc/factory Input))
+
+(fc/defsc Label
+  [this props]
+  {:css [[:.label {:color        "#434C54"
+                   :font-family  label-font-family
+                   :font-weight  "normal"
+                   :font-size    "13px"
+                   :margin-right "10px"}]]}
+  (dom/label :.label props (fc/children this)))
+
+(def label (fc/factory Label))
+
+(fc/defsc Header
+  [this props]
+  {:css [[:.header {:font-family    label-font-family
+                    :font-weight    "normal"
+                    :font-size      "22px"
+                    :padding-bottom "14px"
+                    :border-bottom  "1px solid #eee"}]]}
+  (dom/h2 :.header props (fc/children this)))
+
+(def header (fc/factory Header))
+
+(fc/defsc Toggler
+  [this props]
+  {:css [[:.toggler {:border-radius "6px"
+                     :cursor        "default"
+                     :font-family   label-font-family
+                     :font-weight   "normal"
+                     :font-size     "13px"
+                     :padding       "1px 4px"}
+          [:&:hover {:background  "#c2c2c2"
+                     :color       "#fff"
+                     :text-shadow "0 1px #1b1b1b"}]
+          [:&:active {:background  "#797979"
+                     :color       "#fff"
+                     :text-shadow "0 1px #1b1b1b"}]
+          [:&.active {:background  "#aaa"
+                      :color       "#fff"
+                      :text-shadow "0 1px #1b1b1b"}]]]}
+  (dom/div :.toggler props (fc/children this)))
+
+(def toggler (fc/factory Toggler))
+
+(fc/defsc ToolBar [this _]
+  {:css (fn []
+          [[:.container {:border-bottom "1px solid #dadada"
+                         :display       "flex"
+                         :align-items   "center"}
+            [:$c-icon {:fill      color-icon-normal
+                       :transform "scale(0.7)"}
+             [:&:hover {:fill color-icon-strong}]]
+
+            [:&.details {:background    "#f3f3f3"
+                         :border-bottom "1px solid #ccc"
+                         :display       "flex"
+                         :align-items   "center"
+                         :height        "28px"}]
+
+            [(component-class Input :.input) {:padding "3px 6px"}]
+
+            [(component-class Toggler :.toggler) {:margin "0 2px"}]]
+
+           [:.action {:cursor      "pointer"
+                      :display     "flex"
+                      :align-items "center"}
+            [(gs/& (gs/attr "disabled")) {:cursor "not-allowed"}
+             [:$c-icon {:fill color-icon-normal}]]]
+
+           [:.separator {:background "#ccc"
+                         :width      "1px"
+                         :height     "16px"
+                         :margin     "0 6px"}]
+
+           `[:.input ~@css-input]])}
 
   (let [css (css/get-classnames ToolBar)]
     (dom/div (h/props+classes this {:className (:container css)})
-      (fp/children this))))
+      (fc/children this))))
 
-(def toolbar (fp/factory ToolBar))
+(def toolbar (fc/factory ToolBar))
 
 (defn toolbar-separator []
   (dom/div #js {:className (:separator (css/get-classnames ToolBar))}))
@@ -195,14 +387,14 @@
   (di/debounce-input (merge {:className (:input (css/get-classnames ToolBar))
                              :type      "text"} props)))
 
-(fp/defsc AutoFocusInput
+(fc/defsc AutoFocusInput
   [this props]
   {:componentDidMount #(.select (dom/node this))}
   (dom/input props))
 
-(def auto-focus-input (fp/factory AutoFocusInput))
+(def auto-focus-input (fc/factory AutoFocusInput))
 
-(fp/defsc InlineEditor
+(fc/defsc InlineEditor
   [this {::keys [editing? editor-value]} {::keys [value on-change] :as computed} css]
   {:initial-state (fn [_]
                     {::editor-id    (random-uuid)
@@ -243,7 +435,50 @@
 
 (def inline-editor (h/computed-factory InlineEditor {:keyfn ::editor-id}))
 
-(fp/defui ^:once CSS
+(defn gen-space-classes [prop label value]
+  "Generate spacing classes for a given property/value."
+  (let [vpx (if (string? value) value (str value "px !important"))]
+    [[(keyword (str "$" prop "-" label)) {(keyword (str prop "-top"))    vpx
+                                          (keyword (str prop "-right"))  vpx
+                                          (keyword (str prop "-bottom")) vpx
+                                          (keyword (str prop "-left"))   vpx}]
+     [(keyword (str "$" prop "-h-" label)) {(keyword (str prop "-right")) vpx
+                                            (keyword (str prop "-left"))  vpx}]
+     [(keyword (str "$" prop "-v-" label)) {(keyword (str prop "-top"))    vpx
+                                            (keyword (str prop "-bottom")) vpx}]
+     [(keyword (str "$" prop "-top-" label)) {(keyword (str prop "-top")) vpx}]
+     [(keyword (str "$" prop "-right-" label)) {(keyword (str prop "-right")) vpx}]
+     [(keyword (str "$" prop "-bottom-" label)) {(keyword (str prop "-bottom")) vpx}]
+     [(keyword (str "$" prop "-left-" label)) {(keyword (str prop "-left")) vpx}]]))
+
+(defn gen-all-spaces [values-map]
+  (apply concat
+    (for [[k v]    values-map
+          prop ["margin" "padding"]]
+      (gen-space-classes prop k v))))
+
+(def space-nano "0.5px")
+(def space-micro "4px")
+(def space-small "8px")
+(def space-standard "16px")
+(def space-medium "24px")
+(def space-semi "32px")
+(def space-large "48px")
+(def space-x-large "64px")
+
+(def spaces
+  {"auto"     "auto !important"
+   "none"     0
+   "nano"     (str space-nano " !important")
+   "micro"    (str space-micro " !important")
+   "small"    (str space-small " !important")
+   "standard" (str space-standard " !important")
+   "medium"   (str space-medium " !important")
+   "semi"     (str space-semi " !important")
+   "large"    (str space-large " !important")
+   "x-large"  (str space-x-large " !important")})
+
+(fc/defui ^:once CSS
   static cssp/CSS
   (local-rules [_] [[:.focused-panel {:border-top     "1px solid #a3a3a3"
                                       :display        "flex"
@@ -252,10 +487,16 @@
                     [:.focused-container css-flex-column {:overflow "auto"
                                                           :padding  "0 10px"}]
 
+                    [:a {:color           "#4183c4"
+                         :text-decoration "none"}]
+
                     [:.info-group css-info-group
                      [(gs/& gs/first-child) {:border-top "0"}]]
                     [:.info-label css-info-label]
                     [:.flex {:flex "1"}]
+                    [:$flex {:flex "1"}]
+                    [:$flex-100 {:flex "1" :max-width "100%"}]
+                    [:$highlight {:background "yellow"}]
                     [:.ident {:padding     "5px 6px"
                               :background  "#f3f3f3"
                               :color       "#424242"
@@ -267,8 +508,11 @@
                                      :display     "inline-block"
                                      :padding     "4px 8px"
                                      :font-family mono-font-family
-                                     :font-size   "14px"}]])
-  (include-children [_] [ToolBar Row InlineEditor]))
+                                     :font-size   "14px"}]
+                    (gen-all-spaces spaces)])
+  (include-children [_]
+    [ToolBar Row InlineEditor Button Header Input Label Toggler
+     Breadcrumb Table Code]))
 
 (def scss (css/get-classnames CSS))
 
@@ -301,13 +545,13 @@
     #js {:key     "dragHandler"
          :onStart (fn [e dd]
                     (gobj/set this "start" (gobj/get dd axis))
-                    (gobj/set this "startSize" (or (fp/get-state this attribute) default)))
+                    (gobj/set this "startSize" (or (fc/get-state this attribute) default)))
          :onDrag  (fn [e dd]
                     (let [start    (gobj/get this "start")
                           size     (gobj/get this "startSize")
                           value    (gobj/get dd axis)
                           new-size (+ size (if (= "x" axis) (- value start) (- start value)))]
-                      (fp/set-state! this {attribute new-size})))}
+                      (fc/set-state! this {attribute new-size})))}
     (dom/div (merge {:style {:pointerEvents "all"
                              :cursor        (if (= "x" axis) "ew-resize" "ns-resize")}}
                     props)

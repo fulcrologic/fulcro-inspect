@@ -152,30 +152,27 @@
                        [:.request {:overflow "auto"
                                    :max-height "250px"}]
 
-                       [:.timestamp ui/css-timestamp]]))
+                       [:.timestamp ui/css-timestamp
+                        {:margin "0 4px 0 2px"}]]))
    :css-include   [data-viewer/DataViewer]}
   (dom/div (cond-> {:className (cond-> (:row css)
                                  error (str " " (:error css))
                                  selected? (str " " (:selected css)))}
              on-select (assoc :onClick #(on-select (h/query-component this)))
              true clj->js)
-    (dom/div {:className (:table-cell css)
-              :style     {:width    (:started columns)
-                          :position "relative"}}
-      (dom/span {:style     {:position  "absolute"
-                             :transform "translate(-50%, -50%)"
-                             :left      "50%"
-                             :top       "50%"}
-                 :className (:timestamp css)} (ui/print-timestamp request-started-at)))
+    (dom/div :.table-cell {:style {:width    (:started columns)
+                                   :position "relative"}}
+      (dom/span :.timestamp {:style {:position "absolute" :transform "translate(-50%, -50%)"
+                                     :left     "50%"
+                                     :top      "50%"}}
+        (ui/print-timestamp request-started-at)))
     (dom/div :.table-cell.flex.request {}
       (let [{::data-viewer/keys [content]} request-edn-row-view]
         (transactions/tx-printer {::transactions/content content})))
     (if show-remote?
-      (dom/div {:className (:table-cell css)
-                :style     {:width (:remote columns)}}
+      (dom/div :.table-cell {:style {:width (:remote columns)}}
         (str remote)))
-    (dom/div {:className (:table-cell css)
-              :style     {:width (:status columns)}}
+    (dom/div :.table-cell {:style {:width (:status columns)}}
       (cond
         response-edn
         "Success"
@@ -184,13 +181,11 @@
         "Error"
 
         :else
-        (dom/span {:className (:pending css)} "(pending...)")))
-    (dom/div {:className (:table-cell css)
-              :style     {:width (:time columns)}}
+        (dom/span :.pending {} "(pending...)")))
+    (dom/div :.table-cell {:style {:width (:time columns)}}
       (if (and request-started-at request-finished-at)
         (str (- (.getTime request-finished-at) (.getTime request-started-at)) " ms")
-        (dom/span {:className (:pending css)} "(pending...)")))))
-
+        (dom/span :.pending {} "(pending...)")))))
 (def request (fp/computed-factory Request {:keyfn ::request-id}))
 
 (fp/defsc NetworkHistory
@@ -239,22 +234,22 @@
                       :remote  80
                       :status  90
                       :time    70}]
-    (dom/div {:className (:container css)}
+    (dom/div :.container
       (ui/toolbar {}
         (ui/toolbar-action {:title   "Clear requests"
                             :onClick #(fp/transact! this [`(clear-requests {})])}
           (ui/icon :do_not_disturb)))
 
-      (dom/div {:className (:table css)}
-        (dom/div {:className (:table-header css)}
+      (dom/div :.table
+        (dom/div :.table-header
           (dom/div {:style {:width (:started columns)}} "Started")
-          (dom/div {:className (:flex css)} "Request")
+          (dom/div :.flex "Request")
           (if show-remote?
             (dom/div {:style {:width (:remote columns)}} "Remote"))
           (dom/div {:style {:width (:status columns)}} "Status")
           (dom/div {:style {:width (:time columns)}} "Time"))
 
-        (dom/div {:className (:table-body css)}
+        (dom/div :.table-body
           (if (seq requests)
             (->> requests
                  rseq

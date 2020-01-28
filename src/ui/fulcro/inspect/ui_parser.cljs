@@ -8,7 +8,7 @@
             [com.wsscode.pathom.viz.index-explorer :as iex]))
 
 ;; LANDMARK: This is the general code that abstract communication between the Fulcro UI and whatever environment it
-;; happens to be embedded within (CHrome browser plugin on Electron app)
+;; happens to be embedded within (Chrome browser plugin or Electron app)
 
 (s/def ::msg-id uuid?)
 
@@ -27,13 +27,19 @@
     (send-message name (assoc data ::msg-id msg-id))
     (async/go
       (let [[x _] (async/alts! [res-chan (async/timeout 30000)] :priority true)]
-        (if x
-          x
+        (or x (throw (ex-info "Client request timeout"
+                       {:name    name
+                        :data    data
+                        ::msg-id msg-id})))))))
 
-          (throw (ex-info "Client request timeout"
-                   {:name    name
-                    :data    data
-                    ::msg-id msg-id})))))))
+(defresolver 'settings
+  {::pc/output [:fulcro.inspect/settings]}
+  (fn [{:keys [query] :as env} _]
+    (go-catch
+      (let [params   (-> env :ast :params)
+            response (async/<! (client-request env :fulcro.inspect.client/load-settings
+                                 (assoc params :query query)))]
+        {:fulcro.inspect/settings response}))))
 
 (defresolver 'oge
   {::pc/output [:>/oge ::pp/profile]}
@@ -84,10 +90,10 @@
   (fn [{:keys [send-message]} input]
     (send-message :fulcro.inspect.client/pick-element input)))
 
-(defmutation 'restart-websockets
+(defmutation 'save-settings
   {}
   (fn [{:keys [send-message]} input]
-    (send-message :fulcro.inspect.client/show-dom-preview input)))
+    (send-message :fulcro.inspect.client/save-settings input)))
 
 (defmutation 'show-dom-preview
   {}
@@ -104,7 +110,7 @@
   (fn [{:keys [send-message]} input]
     (send-message :fulcro.inspect.client/console-log input)))
 
-(defn ident-passthough [{:keys [ast] :as env}]
+(defn ident-passthrough [{:keys [ast] :as env}]
   (if (p/ident? (:key ast))
     (p/join (atom {}) (assoc env ::parent-params (:params ast)))
     ::p/continue))
@@ -113,7 +119,7 @@
   (p/async-parser {::p/env     {::p/reader             [p/map-reader
                                                         pc/async-reader2
                                                         pc/ident-reader
-                                                        ident-passthough]
+                                                        ident-passthrough]
                                 ::pc/resolver-dispatch resolver-fn
                                 ::pc/mutate-dispatch   mutation-fn
                                 ::pc/indexes           @indexes

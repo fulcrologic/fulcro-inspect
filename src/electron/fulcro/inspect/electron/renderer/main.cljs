@@ -26,6 +26,7 @@
     [fulcro.inspect.ui.multi-inspector :as multi-inspector]
     [fulcro.inspect.ui.multi-oge :as multi-oge]
     [fulcro.inspect.ui.network :as network]
+    [fulcro.inspect.ui.settings :as settings]
     [fulcro.inspect.ui.transactions :as transactions]
     [goog.object :as gobj]
     [taoensso.encore :as enc]
@@ -51,7 +52,7 @@
 (def current-tab-id 42)
 
 ;; LANDMARK: This is how we talk back to the node server, which can send the websocket message
-(defn post-message [port type data]
+(defn post-message [type data]
   (.send ipcRenderer "event"
     #js {:fulcro-inspect-devtool-message (encode/write {:type type :data data :timestamp (js/Date.)})
          :client-connection-id           (encode/write (:fulcro.inspect.core/client-connection-id data))
@@ -137,6 +138,10 @@
       (fp/transact! (:reconciler inspector) [::multi-inspector/multi-inspector "main"]
         [`(multi-inspector/set-app {::inspector/id ~app-uuid})]))
 
+    (fp/transact! (:reconciler inspector)
+      [::db-explorer/id [app-uuid-key app-uuid]]
+      [`(db-explorer/set-current-state ~initial-state) :current-state])
+
     new-inspector))
 
 (defn dispose-app [{:fulcro.inspect.core/keys [app-uuid]}]
@@ -171,7 +176,9 @@
         new-state (if state-delta
                     (if-let [old-state (get-in @db-hash-index [app-uuid prev-state-hash])]
                       (diff/patch old-state state-delta)
-                      (js/console.error "Error patching state, no previous state available." state-hash))
+                      (do (js/console.warn "Error patching state, no previous state available." state-hash)
+                          (post-message :fulcro.inspect.client/request-page-apps
+                            {:fulcro.inspect.core/app-uuid app-uuid})))
                     state)]
 
     (swap! db-hash-index db-index-add app-uuid new-state state-hash)
@@ -211,10 +218,10 @@
     (fp/transact! (:reconciler inspector) [::multi-inspector/multi-inspector "main"]
       [`(fm/set-props {::multi-inspector/client-stale? true})])))
 
-(defn handle-remote-message [{:keys [port event responses*]}]
+(defn handle-remote-message [{:keys [responses*]} event]
   (enc/when-let [{:keys [type data]} (event-data event)
                  client-id (client-connection-id event)]
-    (let [data (assoc data ::port port :fulcro.inspect.core/client-connection-id client-id)]
+    (let [data (assoc data :fulcro.inspect.core/client-connection-id client-id)]
       (case type
         :fulcro.inspect.client/init-app
         (start-app data)
@@ -237,50 +244,61 @@
         :fulcro.inspect.client/set-active-app
         (set-active-app data)
 
-        :fulcro.inspect.client/message-response
-        (if-let [res-chan (get @responses* (::ui-parser/msg-id data))]
-          (put! res-chan (::ui-parser/msg-response data)))
-
         :fulcro.inspect.client/client-version
         (let [client-version (:version data)]
           (if (= -1 (version/compare client-version version/last-inspect-version))
             (notify-stale-app)))
 
-        (js/console.log "Unknown message" type)))))
+        (js/console.log "Unknown remote message:" type)))))
 
-(defonce message-handler-ch (async/chan (async/dropping-buffer 1024)))
+(defn handle-local-message [{:keys [responses*]} event]
+  (when-let [{:keys [type data]} (event-data event)]
+    (case type
+      :fulcro.inspect.client/message-response
+      (when-let [res-chan (get @responses* (::ui-parser/msg-id data))]
+        (put! res-chan (::ui-parser/msg-response data)))
 
-(defn event-loop [app responses*]
-  (.on ipcRenderer "event" (fn [_ msg]
-                             (handle-remote-message {:event      msg
-                                                     :responses* responses*}))))
+      :fulcro.inspect.client/toggle-settings
+      (fp/transact! (:reconciler @global-inspector*)
+        [::multi-inspector/multi-inspector "main"]
+        `[(multi-inspector/toggle-settings ~data)])
 
-(defn make-network [port* parser responses*]
-  (pfn/fn-network
-    (fn [this edn ok error]
-      (go
-        (try
-          (ok (<! (parser {:send-message (fn [type data]
-                                           (post-message @port* type data))
-                           :responses*   responses*} edn)))
-          (catch :default e
-            (error e)))))
-    false))
+      (js/console.warn "Unknown local message:" type))))
+
+(defn event-loop! [app responses*]
+  (.on ipcRenderer "event"
+    (fn [_ event]
+      (or
+        (handle-remote-message {:responses* responses*} event)
+        (handle-local-message {:responses* responses*} event)))))
+
+(defn make-network [parser responses*]
+  (let [parser-env {:send-message post-message
+                    :responses* responses*}]
+    (pfn/fn-network
+      (fn [this edn ok error]
+        (go
+          (try
+            (ok (<! (parser parser-env edn)))
+            (catch :default e
+              (error e)))))
+      false)))
 
 (defn start-global-inspector [options]
-  (let [port*      (atom nil)
-        responses* (atom {})
+  (let [responses* (atom {})
         app        (fulcro/new-fulcro-client
                      :started-callback
                      (fn [app]
-                       (reset! port* (event-loop app responses*))
-                       (post-message @port* :fulcro.inspect.client/check-client-version {}))
+                       (event-loop! app responses*)
+                       (post-message :fulcro.inspect.client/check-client-version {})
+                       (settings/load-settings (:reconciler app)))
 
                      :shared
-                     {::db-hash-index (atom {})}
+                     {::db-hash-index                    (atom {})
+                      :fulcro.inspect.renderer/electron? true}
 
                      :networking
-                     (make-network port* (ui-parser/parser) responses*))
+                     (make-network (ui-parser/parser) responses*))
         node       (js/document.createElement "div")]
     (js/document.body.appendChild node)
     (reset! global-inspector* (fulcro/mount app GlobalRoot node))

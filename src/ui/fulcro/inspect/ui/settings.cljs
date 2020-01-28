@@ -1,33 +1,64 @@
 (ns fulcro.inspect.ui.settings
   (:require
-    [fulcro.client.dom :as dom :refer [div button input a]]
+    [fulcro.client.data-fetch :as df]
+    [fulcro.client.localized-dom :as dom]
     [fulcro.client.mutations :as m :refer [defmutation]]
     [fulcro.client.primitives :as fp :refer [defsc]]
-    [fulcro.inspect.helpers :as db.h]))
+    [fulcro.inspect.helpers :as h]
+    [fulcro.inspect.ui.core :as ui]))
 
-(defmutation restart-websockets [_]
+(defmutation update-settings [params]
+  (action [{:keys [state] :as env}]
+    (swap! state update :fulcro.inspect/settings merge params)))
+
+(defmutation save-settings [params]
   (remote [env]
-    (db.h/remote-mutation env 'restart-websockets)))
+    (-> env :ast (assoc :key 'save-settings)))
+  (action [{:keys [state] :as env}]
+    (swap! state update :fulcro.inspect/settings merge params)))
 
-;; FIXME: This needs to be usable before apps connect, since the apps might be using a diff port, and this sets it.
-(defsc Settings [this {:ui/keys [websocket-port]}]
-  {:query             [::id :ui/websocket-port]
-   :ident             [::id ::id]
-   :componentDidMount (fn []
-                        ;; TODO: Load the port that was previously saved
-                        )
-   :initial-state     (fn [_] {:ui/websocket-port 8237})}
-  (div :.ui.container {:style {:margin "1rem"}}
-    ;; FIXME: There is NO websocket port in chrome.
-    (div :.ui.form.big
-      (div :.fields
-        (div :.field.inline
-          (dom/label "Websocket Port: ")
-          (input {:value    websocket-port
-                  :type     "number"
-                  :onChange #(m/set-integer! this :ui/websocket-port :event %)}))
-        (button :.ui.button.primary.red
-          {:onClick (fn [] (fp/transact! this `[(restart-websockets {:port ~websocket-port})]))}
-          (dom/span :.ui.text.large "Restart Websockets"))))))
+(defsc SettingsQuery [_ _]
+  {:query [:setting/websocket-port :setting/compact-keywords?]})
+
+(defn load-settings [app]
+  (df/load app :fulcro.inspect/settings SettingsQuery))
+
+(defsc Settings
+  [this
+   {:keys    [fulcro.inspect/settings]
+    :ui/keys [hide-websocket?]}
+   {:keys [close-settings!]}]
+  {:ident             (fn [] [::id :main])
+   :query             [::id :ui/hide-websocket?
+                       {[:fulcro.inspect/settings '_]
+                        [:setting/websocket-port :setting/compact-keywords?]}]
+   :componentDidMount (fn [] (load-settings this))
+   :initial-state     {::id :main}
+   :css               [[:.container {:padding "12px"}]]}
+  (let [{:setting/keys [websocket-port compact-keywords?]} settings]
+    (dom/div
+      (when close-settings!
+        (ui/toolbar {:classes [:.details]}
+          (ui/toolbar-spacer)
+          (ui/toolbar-action {:onClick close-settings!}
+            (ui/icon {:title "Close panel"} :clear))))
+      (dom/div :.container
+        (ui/header {} "Settings")
+        (dom/div :$margin-left-standard
+          (if-not hide-websocket?
+            (ui/row {:classes [:.align-center]}
+              (ui/label "Websocket Port:")
+              (ui/input {:value    (or websocket-port 0)
+                         :type     "number"
+                         :onChange #(fp/transact! this `[(update-settings {:setting/websocket-port ~(js/parseInt (m/target-value %))})])})
+              (ui/primary-button {:onClick #(fp/transact! this `[(save-settings {:setting/websocket-port ~websocket-port})])}
+                "Restart Websockets")))
+          (ui/row {:classes [:.align-center]}
+            (ui/label
+              (dom/input :$margin-right-small
+                {:checked  (or compact-keywords? false)
+                 :type     "checkbox"
+                 :onChange #(fp/transact! this `[(save-settings {:setting/compact-keywords? ~(not compact-keywords?)})])})
+              "Compact Keywords in DB Explorer?")))))))
 
 (def ui-settings (fp/factory Settings))

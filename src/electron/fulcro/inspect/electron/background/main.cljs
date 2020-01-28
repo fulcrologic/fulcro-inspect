@@ -14,7 +14,9 @@
   (mapv (fn [[k v]] (set-setting! (str "BrowserWindow/" k) v))
     (js->clj (.getBounds window))))
 
-(defn debounce [ms f] (g.fns/debounce f ms))
+(defn toggle-settings-window! []
+  (server/send-message-to-renderer!
+    {:type :fulcro.inspect.client/toggle-settings :data {}}))
 
 (defn create-window []
   (let [win (electron/BrowserWindow.
@@ -26,11 +28,44 @@
     (.loadURL win (url/format #js {:pathname (path/join js/__dirname ".." ".." "index.html")
                                    :protocol "file:"
                                    :slashes  "true"}))
-    (.. win -webContents openDevTools)
-    (doto win
-      (.on "resize" (debounce 500 #(save-state! win)))
-      (.on "move" (debounce 500 #(save-state! win)))
-      (.on "close" (debounce 500 #(save-state! win))))
+    (when (get-setting "BrowserWindow/OpenDevTools?" false)
+      (.. win -webContents openDevTools))
+    (.on (.-webContents win) "devtools-opened" #(set-setting! "BrowserWindow/OpenDevTools?" true))
+    (.on (.-webContents win) "devtools-closed" #(set-setting! "BrowserWindow/OpenDevTools?" false))
+    (let [save-window-state! (g.fns/debounce #(save-state! win) 500)]
+      (doto win
+        (.on "resize" save-window-state!)
+        (.on "move" save-window-state!)
+        (.on "close" save-window-state!)))
+    (.setApplicationMenu electron/Menu
+      (.buildFromTemplate electron/Menu
+        ;;FIXME: cmd only if is osx
+        (clj->js [{:label   (.-name electron/app)
+                   :submenu [{:role "about"}
+                             {:type "separator"}
+                             {:label       "Settings"
+                              :accelerator "cmd+,"
+                              :click       #(toggle-settings-window!)}
+                             {:type "separator"}
+                             {:role "quit"}]}
+                  {:label   "Edit"
+                   :submenu [{:label "Undo" :accelerator "CmdOrCtrl+Z" :selector "undo:"}
+                             {:label "Redo" :accelerator "Shift+CmdOrCtrl+Z" :selector "redo:"}
+                             {:type "separator"}
+                             {:label "Cut" :accelerator "CmdOrCtrl+X" :selector "cut:"}
+                             {:label "Copy" :accelerator "CmdOrCtrl+C" :selector "copy:"}
+                             {:label "Paste" :accelerator "CmdOrCtrl+V" :selector "paste:"}
+                             {:label "Select All" :accelerator "CmdOrCtrl+A" :selector "selectAll:"}]}
+                  {:label   "View"
+                   :submenu [{:role "reload"}
+                             {:role "forcereload"}
+                             {:role "toggledevtools"}
+                             {:type "separator"}
+                             {:role "resetzoom"}
+                             {:role "zoomin" :accelerator "cmd+="}
+                             {:role "zoomout"}
+                             {:type "separator"}
+                             {:role "togglefullscreen"}]}])))
     (server/start! (.-webContents win))))
 
 (defn init []
