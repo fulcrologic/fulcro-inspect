@@ -490,6 +490,7 @@
                     [:.info-label css-info-label]
                     [:.flex {:flex "1"}]
                     [:$flex {:flex "1"}]
+                    [:$flex-100 {:flex "1" :max-width "100%"}]
                     [:$highlight {:background "yellow"}]
                     [:.ident {:padding     "5px 6px"
                               :background  "#f3f3f3"

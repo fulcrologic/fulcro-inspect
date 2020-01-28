@@ -430,7 +430,7 @@
                    :ui/path           {:path []}
                    :ui/history        []}}
   (try
-    (dom/div :$flex
+    (dom/div :$flex-100
       (ui-toolbar this)
       (ui-db-path this)
       (ui-current-mode this))
