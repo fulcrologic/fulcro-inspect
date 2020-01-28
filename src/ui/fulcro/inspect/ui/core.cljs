@@ -170,17 +170,22 @@
 (fc/defsc Breadcrumb
   [this props]
   {:css         [[:.container {:display     "flex"
-                               :align-items "baseline"}]
-                 [:.separator {:fill       "#b8b8b8"
-                               :transform  "scale(0.9)"
-                               :align-self "end"}]]
+                               :align-items "baseline"
+                               :flex-wrap   "wrap"}]
+                 [:.separator {:color       "#b8b8b8"
+                               :font-size   "24px"
+                               :font-family "inherit"
+                               :margin      "0 8px"
+                               :font-weight "bold"
+                               :position    "relative"
+                               :top         "2px"}]]
    :css-include [BreadcrumbItem]}
   (dom/div :.container props (fc/children this)))
 
 (def breadcrumb (fc/factory Breadcrumb))
 
 (defn breadcrumb-separator []
-  (dom/div {:classes [(component-class Breadcrumb :.separator)]} (icon {} :chevron_right)))
+  (dom/div {:classes [(component-class Breadcrumb :.separator)]} "›"))
 
 (fc/defsc TableCell
   [this props]
