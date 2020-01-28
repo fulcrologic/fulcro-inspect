@@ -31,7 +31,9 @@
             [taoensso.timbre :as log]))
 
 (fp/defsc GlobalRoot [this {:keys [ui/root]}]
-  {:initial-state (fn [params] {:ui/root (fp/get-initial-state multi-inspector/MultiInspector params)})
+  {:initial-state (fn [params] {:ui/root
+                                (-> (fp/get-initial-state multi-inspector/MultiInspector params)
+                                    (assoc-in [::multi-inspector/settings :ui/hide-websocket?] true))})
    :query         [{:ui/root (fp/get-query multi-inspector/MultiInspector)}]
    :css           [[:html {:overflow "hidden"}]
                    [:body {:margin "0" :padding "0" :box-sizing "border-box"}]]
@@ -90,6 +92,7 @@
                           (assoc ::inspector/id app-uuid)
                           (assoc :fulcro.inspect.core/app-id app-id)
                           (assoc ::inspector/name (dedupe-name app-id))
+                          (assoc-in [::inspector/settings :ui/hide-websocket?] true)
                           (assoc-in [::inspector/db-explorer ::db-explorer/id] [app-uuid-key app-uuid])
                           (assoc-in [::inspector/app-state ::data-history/history-id] [app-uuid-key app-uuid])
                           (assoc-in [::inspector/app-state ::data-history/watcher ::data-watcher/id] [app-uuid-key app-uuid])

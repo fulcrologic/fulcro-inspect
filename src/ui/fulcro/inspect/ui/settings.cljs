@@ -25,14 +25,16 @@
 
 (defsc Settings
   [this
-   {:keys [fulcro.inspect/settings]}
+   {:keys    [fulcro.inspect/settings]
+    :ui/keys [hide-websocket?]}
    {:keys [close-settings!]}]
-  {:query         [::id
-                   {[:fulcro.inspect/settings '_]
-                    [:setting/websocket-port :setting/compact-keywords?]}]
-   :ident         (fn [] [::id :main])
-   :css           [[:.container {:padding "12px"}]]
-   :initial-state {::id :main}}
+  {:ident             (fn [] [::id :main])
+   :query             [::id :ui/hide-websocket?
+                       {[:fulcro.inspect/settings '_]
+                        [:setting/websocket-port :setting/compact-keywords?]}]
+   :componentDidMount (fn [] (load-settings this))
+   :initial-state     {::id :main}
+   :css               [[:.container {:padding "12px"}]]}
   (let [{:setting/keys [websocket-port compact-keywords?]} settings]
     (dom/div
       (when close-settings!
@@ -43,13 +45,14 @@
       (dom/div :.container
         (ui/header {} "Settings")
         (dom/div :$margin-left-standard
-          (ui/row {:classes [:.align-center]}
-            (ui/label "Websocket Port:")
-            (ui/input {:value    (or websocket-port 0)
-                       :type     "number"
-                       :onChange #(fp/transact! this `[(update-settings {:setting/websocket-port ~(js/parseInt (m/target-value %))})])})
-            (ui/primary-button {:onClick #(fp/transact! this `[(save-settings {:setting/websocket-port ~websocket-port})])}
-              "Restart Websockets"))
+          (if-not hide-websocket?
+            (ui/row {:classes [:.align-center]}
+              (ui/label "Websocket Port:")
+              (ui/input {:value    (or websocket-port 0)
+                         :type     "number"
+                         :onChange #(fp/transact! this `[(update-settings {:setting/websocket-port ~(js/parseInt (m/target-value %))})])})
+              (ui/primary-button {:onClick #(fp/transact! this `[(save-settings {:setting/websocket-port ~websocket-port})])}
+                "Restart Websockets")))
           (ui/row {:classes [:.align-center]}
             (ui/label
               (dom/input :$margin-right-small
