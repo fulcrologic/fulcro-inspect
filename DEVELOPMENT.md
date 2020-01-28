@@ -25,3 +25,15 @@ $ ls dist
 
 and the resulting files will be in `dist`.
 
+# Chrome
+
+First, make sure to update the version number in `shells/chrome/manifest.edn`.
+
+Then build the zip file that can be uploaded to the Chrome store:
+
+```
+npm install
+script/release-chrome
+```
+
+The result will be in a zip file in `releases`.
