@@ -78,7 +78,7 @@ To use the electron inspect make sure you add this preload to your preloads:
 or call the function `com.fulcrologic.fulcro.inspect.inspect-client/install-ws` somewhere in your 
 development startup.
 
-### Choosing the Websocket Port (work in progress)
+### Choosing the Websocket Port
 
 The Electron app includes an input field at the top of the UI for the websocket
 port to use (default 8237). Pressing `Restart Websockets` will cause it to
@@ -130,6 +130,20 @@ Use `cmd`/`meta` key + click to expand/collapse the whole sub-tree:
 To copy contents from maps or sequences, expand it and them click on the copy button:
 
 ![Copy data](https://raw.githubusercontent.com/fulcrologic/fulcro-inspect/master/doc/db-copy.gif)
+
+## Building Chrome Extension
+
+If you want to build the extension yourself and run from it, first run the release builder:
+
+```
+./script/release-chrome
+```
+
+The extension release version will be ready at `releases/chrome`.
+
+Now, in the chrome extensions page (`chrome://extensions/`), first make sure you have
+`Developer mode` turned on, then look for a button saying `Load Unpacked`, click on it
+and navigate to the `releases/chrome` diretory to load the extension from there.
 
 ## Contributing
 
