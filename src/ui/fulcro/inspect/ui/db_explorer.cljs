@@ -428,12 +428,20 @@
                    :ui/search-results []
                    :ui/search-type    :search/by-value
                    :ui/path           {:path []}
-                   :ui/history        []}}
+                   :ui/history        []}
+   :css           [[:.container {:display        "flex"
+                                 :flex           "1"
+                                 :flex-direction "column"
+                                 :max-width      "100%"}]
+                   [:.content-container {:max-width "100%"
+                                         :flex      "1"
+                                         :overflow  "auto"}]]}
   (try
-    (dom/div :$flex-100
+    (dom/div :.container
       (ui-toolbar this)
       (ui-db-path this)
-      (ui-current-mode this))
+      (dom/div :.content-container
+        (ui-current-mode this)))
     (catch :default e
       (dom/div (str "Inspect rendering threw an exception. Start a new tab to try again. Report an issue. Exception:"
                  (ex-message e))))))

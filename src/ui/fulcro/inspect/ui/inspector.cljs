@@ -111,7 +111,7 @@
 
    :css-include
    [data-history/DataHistory network/NetworkHistory transactions/TransactionList
-    element/Panel i18n/TranslationsViewer oge/OgeView fiex/IndexExplorer]}
+    element/Panel i18n/TranslationsViewer oge/OgeView fiex/IndexExplorer db-explorer/DBExplorer]}
 
   (let [tab-item (fn [{:keys [title html-title disabled? page]}]
                    (dom/div #js {:className (cond-> (:tab css)
