@@ -9,7 +9,7 @@ $ yarn
 $ cd ../..
 $ shadow-cljs release electron-main electron-renderer
 $ cd shells/electron
-$ electron-builder build
+$ electron-builder build -m
 ```
 
 Building the Windows and Linux releases requires that you have Docker
@@ -18,6 +18,7 @@ via:
 
 ```
 $ ./build-linux.sh
+root@234987:/project# yarn
 root@234987:/project# eletron-builder build -wl
 root@234987:/project# exit
 $ ls dist
