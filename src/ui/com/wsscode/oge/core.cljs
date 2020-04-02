@@ -1,5 +1,6 @@
 (ns com.wsscode.oge.core
   (:require [cljs.reader :refer [read-string]]
+            [cognitect.transit :as transit]
             [com.wsscode.oge.ui.codemirror :as codemirror]
             [com.wsscode.oge.ui.common :as ui]
             [com.wsscode.oge.ui.flame-graph :as ui.flame]
@@ -13,7 +14,8 @@
             [fulcro.client.primitives :as fp]
             [fulcro.inspect.helpers :as db.h]
             [fulcro.inspect.ui.core :as cui]
-            [fulcro.inspect.ui.helpers :as h]))
+            [fulcro.inspect.ui.helpers :as h]
+            [fulcro.tempid :as tempid]))
 
 (mutations/defmutation clear-errors [_]
   (action [{:keys [state]}]
@@ -29,6 +31,10 @@
       (swap! state update-in ref merge {:oge/result  result
                                         :oge/profile profile}))))
 
+(def inspect-readers
+  {'transit/bigdec transit/bigdec
+   'fulcro/tempid  tempid/tempid})
+
 (defn oge-query [this query]
   (let [{:oge/keys [remote] :as props} (fp/props this)
         {:fulcro.inspect.core/keys [app-uuid]} (fp/get-computed props)
@@ -38,7 +44,7 @@
                           (list 'fulcro/load {:target        (conj ident :oge/result')
                                               :query         [{(list :>/oge {:fulcro.inspect.core/app-uuid app-uuid
                                                                              :fulcro.inspect.client/remote remote})
-                                                               (read-string query)}]
+                                                               (read-string {:readers inspect-readers} query)}]
                                               :refresh       [:oge/result]
                                               :marker        (keyword "oge-query" (p/ident-value* ident))
                                               :post-mutation `normalize-result})])
