@@ -1,8 +1,12 @@
 (ns fulcro.inspect.helpers
-  (:require [cljs.pprint]
-            [fulcro.client.primitives :as fp]
-            [fulcro.client.mutations :as mutations]
-            [fulcro.inspect.lib.local-storage :as storage]))
+  (:require
+    [cljs.pprint]
+    [com.cognitect.transit.types :as transit.types]
+    [fulcro.client.primitives :as fp]
+    [fulcro.client.mutations :as mutations]
+    [fulcro.inspect.lib.local-storage :as storage]
+    [cognitect.transit :as transit]
+    [fulcro.tempid :as tempid]))
 
 (defn- om-ident? [x]
   (and (vector? x)
@@ -233,7 +237,28 @@
 (defn remote-mutation [{:keys [state ast ref]} key]
   (-> (assoc ast :key key)
     (assoc-in [:params :fulcro.inspect.core/client-connection-id] (ref-client-connection-id @state ref))
-      (assoc-in [:params :fulcro.inspect.core/app-uuid] (ref-app-uuid ref))))
+    (assoc-in [:params :fulcro.inspect.core/app-uuid] (ref-app-uuid ref))))
+
+(defn pr-str-with-reader [x]
+  (cond
+    (transit/bigdec? x)
+    #_=> (str "#transit/bigdec " \" (.-rep x) \")
+    (tempid/tempid? x)
+    #_=> (str "#fulcro/tempid " \" (.-id x) \")
+    :else (pr-str x)))
+
+(extend-protocol IPrintWithWriter
+  transit.types/TaggedValue
+  (-pr-writer [x writer _]
+    (write-all writer (pr-str-with-reader x)))
+  tempid/TempId
+  (-pr-writer [x writer _]
+    (write-all writer (pr-str-with-reader x))))
+
+(defn pprint-default-handler [x]
+  (-write *out* (pr-str-with-reader x)))
+
+(-add-method cljs.pprint/simple-dispatch :default pprint-default-handler)
 
 (defn pprint [x]
   (with-out-str (cljs.pprint/pprint x)))
