@@ -239,7 +239,7 @@
     (assoc-in [:params :fulcro.inspect.core/client-connection-id] (ref-client-connection-id @state ref))
     (assoc-in [:params :fulcro.inspect.core/app-uuid] (ref-app-uuid ref))))
 
-(defn custom-pr-str [x]
+(defn pr-str-with-reader [x]
   (cond
     (transit/bigdec? x)
     #_=> (str "#transit/bigdec " \" (.-rep x) \")
@@ -250,10 +250,13 @@
 (extend-protocol IPrintWithWriter
   transit.types/TaggedValue
   (-pr-writer [x writer _]
-    (write-all writer (custom-pr-str x))))
+    (write-all writer (pr-str-with-reader x)))
+  tempid/TempId
+  (-pr-writer [x writer _]
+    (write-all writer (pr-str-with-reader x))))
 
 (defn pprint-default-handler [x]
-  (-write *out* (custom-pr-str x)))
+  (-write *out* (pr-str-with-reader x)))
 
 (-add-method cljs.pprint/simple-dispatch :default pprint-default-handler)
 
