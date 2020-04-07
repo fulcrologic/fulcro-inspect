@@ -249,6 +249,15 @@
           (if (= -1 (version/compare client-version version/last-inspect-version))
             (notify-stale-app)))
 
+        :fulcro.inspect.client/console-log
+        (let [{:keys [log log-js warn error]} data]
+          (cond
+            log (js/console.log log)
+            log-js (js/console.log (clj->js log-js))
+            warn (js/console.warn warn)
+            error (js/console.error error))
+          true)
+
         (js/console.log "Unknown remote message:" type)))))
 
 (defn handle-local-message [{:keys [responses*]} event]
