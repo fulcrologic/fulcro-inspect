@@ -9,9 +9,11 @@
   (rep [this v] [(ex-message v) (ex-data v)])
   (stringRep [this v] (ex-message v)))
 
+(def unknown-tag "unknown")
+
 (deftype DefaultHandler []
   Object
-  (tag [this v] "unknown")
+  (tag [this v] unknown-tag)
   (rep [this v] (pr-str v)))
 
 (def write-handlers
@@ -19,7 +21,8 @@
    "default"               (DefaultHandler.)})
 
 (def read-handlers
-  {"js-error" (fn [[msg data]] (ex-info msg data))})
+  {"js-error" (fn [[msg data]] (ex-info msg data))
+   unknown-tag (fn [v] (str "UnknownTransitType: " v))})
 
 (defn read [str]
   (let [reader (ft/reader {:handlers read-handlers})]
