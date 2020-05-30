@@ -10,8 +10,8 @@
 
 (defn- om-ident? [x]
   (and (vector? x)
-       (= 2 (count x))
-       (keyword? (first x))))
+    (= 2 (count x))
+    (keyword? (first x))))
 
 (defn query-component
   ([this]
@@ -26,7 +26,7 @@
          state     (-> this fp/get-reconciler fp/app-state deref)
          query     (fp/focus-query (fp/get-query component) focus-path)]
      (-> (fp/db->tree query (get-in state ref) state)
-         (get-in focus-path)))))
+       (get-in focus-path)))))
 
 (defn swap-entity! [{:keys [state ref]} & args]
   (apply swap! state update-in ref args))
@@ -103,7 +103,7 @@
                            fp/IQuery
                            (query [_] [{::root (fp/get-query x)}]))
                          {::root data} true)
-                       (dissoc ::root ::fp/tables))
+                     (dissoc ::root ::fp/tables))
         root-ident (fp/ident x data)
         state      (merge-with (partial merge-with merge) state idents)]
     (if (seq named-parameters)
@@ -112,13 +112,13 @@
 
 (defn named-params-with-ref [ref named-parameters]
   (->> (partition 2 named-parameters)
-       (map (fn [[op path]] [op (conj ref path)]))
-       (apply concat)))
+    (map (fn [[op path]] [op (conj ref path)]))
+    (apply concat)))
 
 (defn create-entity! [{:keys [state ref]} x data & named-parameters]
   (let [named-parameters (->> (partition 2 named-parameters)
-                              (map (fn [[op path]] [op (conj ref path)]))
-                              (apply concat))
+                           (map (fn [[op path]] [op (conj ref path)]))
+                           (apply concat))
         data'            (if (-> data meta ::initialized)
                            data
                            (fp/get-initial-state x data))]
@@ -138,16 +138,16 @@
   "Remove a ref and all linked refs from it."
   (let [item   (get-in state ref)
         idents (into []
-                     (comp (keep (fn [v]
-                                   (cond
-                                     (om-ident? v)
-                                     [v]
+                 (comp (keep (fn [v]
+                               (cond
+                                 (om-ident? v)
+                                 [v]
 
-                                     (and (vector? v)
-                                          (every? om-ident? v))
-                                     v)))
-                           cat)
-                     (vals item))]
+                                 (and (vector? v)
+                                   (every? om-ident? v))
+                                 v)))
+                   cat)
+                 (vals item))]
     (reduce
       (fn [s i] (deep-remove-ref s i))
       (dissoc-in state ref)
@@ -158,17 +158,17 @@
     (cond
       (om-ident? children)
       (swap! state (comp #(update-in % ref dissoc field)
-                         #(deep-remove-ref % children)))
+                     #(deep-remove-ref % children)))
 
       (seq children)
       (swap! state (comp #(assoc-in % (conj ref field) [])
-                         #(reduce deep-remove-ref % children))))))
+                     #(reduce deep-remove-ref % children))))))
 
 (defn vec-remove-index [i v]
   "Remove an item from a vector via index."
   (->> (concat (subvec v 0 i)
-               (subvec v (inc i) (count v)))
-       (vec)))
+         (subvec v (inc i) (count v)))
+    (vec)))
 
 (mutations/defmutation persistent-set-props [{::keys [local-key storage-key value]}]
   (action [env]
@@ -192,7 +192,7 @@
   "Extracts the app uuid from a ident."
   [ref]
   (assert (and (vector? ref)
-               (vector? (second ref)))
+            (vector? (second ref)))
     "Ref with app it must be in the format: [:id-key [::app-id app-id]]")
   (let [[_ [_ app-id]] ref]
     app-id))
@@ -223,8 +223,8 @@
 
 (defn matching-apps [state app-id]
   (->> (all-apps state)
-       (filterv #(= app-id (:fulcro.inspect.core/app-id (get-in state %))))
-       (mapv second)))
+    (filterv #(= app-id (:fulcro.inspect.core/app-id (get-in state %))))
+    (mapv second)))
 
 (defn update-matching-apps [state app-id f]
   (let [apps (matching-apps state app-id)]
@@ -245,7 +245,10 @@
     #_=> (str "#transit/bigdec " \" (.-rep x) \")
     (tempid/tempid? x)
     #_=> (str "#fulcro/tempid " \" (.-id x) \")
-    :else (pr-str x)))
+    :else (try
+            (pr-str x)
+            (catch :default e
+              "UNSUPPORTED VALUE"))))
 
 (extend-protocol IPrintWithWriter
   transit.types/TaggedValue
