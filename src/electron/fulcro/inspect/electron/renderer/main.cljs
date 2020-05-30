@@ -5,6 +5,7 @@
     [com.wsscode.pathom.core :as p]
     [com.wsscode.pathom.fulcro.network :as pfn]
     [fulcro-css.css :as css]
+    [fulcro-css.css-injection :as cssi]
     [fulcro.client :as fulcro]
     [fulcro.client.localized-dom :as dom]
     [fulcro.client.mutations :as fm]
@@ -41,7 +42,7 @@
    :css           [[:body {:margin "0" :padding "0" :box-sizing "border-box"}]]
    :css-include   [multi-inspector/MultiInspector]}
   (dom/div
-    (css/style-element this)
+    (cssi/style-element {:component this})
     (multi-inspector/multi-inspector root)))
 
 (defonce ^:private global-inspector* (atom nil))
@@ -283,7 +284,7 @@
 
 (defn make-network [parser responses*]
   (let [parser-env {:send-message post-message
-                    :responses* responses*}]
+                    :responses*   responses*}]
     (pfn/fn-network
       (fn [this edn ok error]
         (go
