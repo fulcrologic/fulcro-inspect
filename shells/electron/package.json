@@ -1,6 +1,6 @@
 {
   "name": "fulcro-inspect-electron",
-  "version": "2.3.3",
+  "version": "2.3.4",
   "description": "Electron Version of Fulcro Inspect",
   "homepage": "https://github.com/fulcrologic/fulcro-inspect",
   "main": "js/background/main.js",
