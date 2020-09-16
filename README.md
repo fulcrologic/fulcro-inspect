@@ -42,6 +42,12 @@ and add the following preload to your shadow-cljs config:
 
 That preload is actually part of Fulcro 3.x itself.
 
+In case you are having trouble to run the extension on Chrome, try to unblock third part cookies:
+
+1. Go to chrome://settings/content/cookies
+2. Uncheck Block third-party cookies
+3. Restart browser
+
 ## Using the Fulcro 3.x Electron App
 
 Fulcro Inspect now has a standalone electron app. This only works with 
