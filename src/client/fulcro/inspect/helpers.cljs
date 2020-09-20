@@ -265,3 +265,11 @@
 
 (defn pprint [x]
   (with-out-str (cljs.pprint/pprint x)))
+
+(defn current-app-uuid [state-map]
+  (some-> state-map
+    :fulcro.inspect.ui.multi-inspector/multi-inspector
+    (get "main")
+    :fulcro.inspect.ui.multi-inspector/current-app
+    second))
+

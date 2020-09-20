@@ -26,9 +26,9 @@
 (defn pprint-highlighter [value highlight]
   (highlighter (with-out-str (pprint value)) highlight))
 
-(defmutation set-current-state [new-state]
+(defmutation set-current-state [history-step]
   (action [env]
-    (h/swap-entity! env assoc :current-state new-state)))
+    (h/swap-entity! env assoc :current-state history-step)))
 
 (defn set-path!* [env path]
   (h/swap-entity! env assoc :ui/path {:path path})
@@ -219,8 +219,8 @@
               (conj {:path  (conj path table-key entity-key)
                      :value (ENTITY re entity)}))))
         (ENTITY [re e] (->> e
-                            (filter (fn [[_ v]] (re-find re (pr-str v))))
-                            (into (empty e))))
+                         (filter (fn [[_ v]] (re-find re (pr-str v))))
+                         (into (empty e))))
         (VALUE [re path matches k v]
           (cond-> matches
             (re-find re (pr-str v))
@@ -316,7 +316,7 @@
       search-query :search
       (empty? path) :top
       (and (= 1 (count path))
-           (table? (get-in current-state path))) :table
+        (table? (get-in current-state path))) :table
       :else :entity)))
 
 (defn ui-db-path [this]
@@ -324,38 +324,38 @@
         {:keys [path search-query]} path
         env (settings-env this)]
     (dom/div :$margin-small
-     (ui/breadcrumb {}
-       (ui/breadcrumb-item {:onClick #(set-path! this [])} "Top")
+      (ui/breadcrumb {}
+        (ui/breadcrumb-item {:onClick #(set-path! this [])} "Top")
 
-       (when (seq (drop-last path))
-         (map
-           (fn [sub-path]
-             (fc/fragment {:key (str "db-path-" sub-path)}
-               (ui/breadcrumb-separator)
-               (ui/breadcrumb-item {:onClick #(set-path! this sub-path)
-                                    :title   (str (last sub-path))}
-                 (str (compact-keyword env (last sub-path))))))
-           (let [[x & xs] (drop-last path)]
-             (reductions conj [x] xs))))
-       (when (last path)
-         (fc/fragment
-           (ui/breadcrumb-separator)
-           (ui/breadcrumb-item {:disabled (not search-query)
-                                :title    (str (last path))
-                                :onClick  #(set-path! this path)}
-             (str (compact-keyword env (last path))))))
-       (when search-query
-         (fc/fragment
-           (ui/breadcrumb-separator)
-           (ui/breadcrumb-item {:disabled true}
-             (str "\"" search-query "\""))))
+        (when (seq (drop-last path))
+          (map
+            (fn [sub-path]
+              (fc/fragment {:key (str "db-path-" sub-path)}
+                (ui/breadcrumb-separator)
+                (ui/breadcrumb-item {:onClick #(set-path! this sub-path)
+                                     :title   (str (last sub-path))}
+                  (str (compact-keyword env (last sub-path))))))
+            (let [[x & xs] (drop-last path)]
+              (reductions conj [x] xs))))
+        (when (last path)
+          (fc/fragment
+            (ui/breadcrumb-separator)
+            (ui/breadcrumb-item {:disabled (not search-query)
+                                 :title    (str (last path))
+                                 :onClick  #(set-path! this path)}
+              (str (compact-keyword env (last path))))))
+        (when search-query
+          (fc/fragment
+            (ui/breadcrumb-separator)
+            (ui/breadcrumb-item {:disabled true}
+              (str "\"" search-query "\""))))
 
-       (dom/div :$flex)
+        (dom/div :$flex)
 
-       (when (= :entity (mode props))
-         (ui/button {:onClick #(add-data-watch! this path)
-                     :classes [:.primary :$margin-left-small]}
-           "Add to DB Watches"))))))
+        (when (= :entity (mode props))
+          (ui/button {:onClick #(add-data-watch! this path)
+                      :classes [:.primary :$margin-left-small]}
+            "Add to DB Watches"))))))
 
 (defn ui-search-results [this]
   (let [{:ui/keys [search-results path]} (fc/props this)

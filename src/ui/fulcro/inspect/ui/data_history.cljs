@@ -14,15 +14,13 @@
             [fulcro.inspect.helpers :as db.h]
             [fulcro.client.mutations :as m]))
 
-(def ^:dynamic *max-history* 100)
+(def ^:dynamic *max-history* 80)
 
-(defn new-state [content]
-  (let [hash (get content :fulcro.inspect.client/state-hash)]
-    {::state                           (dissoc content :fulcro.inspect.client/state-hash)
-     ::timestamp                       (js/Date.)
-     :fulcro.inspect.client/state-hash hash}))
+(defn new-state [id]
+  {::state-id  id
+   ::timestamp (js/Date.)})
 
-(fm/defmutation set-content [content]
+(fm/defmutation set-content [{:keys [id] :as history-step}]
   (action [env]
     (let [{:keys [state ref]} env
           {::keys [watcher current-index history]} (get-in @state ref)]
@@ -31,12 +29,12 @@
         (do
           (if-not (= current-index (dec *max-history*))
             (h/swap-entity! env update ::current-index inc))
-          (watcher/update-state* (assoc env :ref watcher) (dissoc content :fulcro.inspect.client/state-hash)))
+          (watcher/update-state* (assoc env :ref watcher) history-step))
 
         (if (= *max-history* (count history))
           (h/swap-entity! env update ::current-index dec)))
 
-      (h/swap-entity! env update ::history #(->> (conj % (new-state content))
+      (h/swap-entity! env update ::history #(->> (conj % (new-state id))
                                               (take-last *max-history*)
                                               (vec))))))
 
@@ -44,9 +42,9 @@
   (action [{:keys [state ref] :as env}]
     (let [history (get-in @state ref)]
       (when (not= current-index (::current-index history))
-        (let [content (get-in history [::history current-index ::state])]
+        (let [state-id (get-in history [::history current-index ::state-id])]
           (h/swap-entity! env assoc ::current-index current-index)
-          (watcher/update-state* (assoc env :ref (::watcher history)) content)))))
+          (watcher/update-state* (assoc env :ref (::watcher history)) {:id state-id})))))
   (refresh [env] [:ui/historical-dom-view])
   (remote [{:keys [ref state] :as env}]
     (let [history (get-in @state ref)]

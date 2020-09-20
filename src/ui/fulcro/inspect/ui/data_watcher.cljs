@@ -11,24 +11,24 @@
 
 (declare WatchPin)
 
-(defn update-watchers [state new-state watches]
+(defn update-watchers [state history-step watches]
   (reduce
     (fn [s watcher-ref]
       (let [{::keys [data-viewer watch-path]} (get-in state watcher-ref)]
         (assoc-in s (conj data-viewer ::f.data-viewer/content)
-          (get-in new-state watch-path))))
+          (assoc history-step :path watch-path))))
     state
     watches))
 
 (declare update-state)
 
-(defn update-state* [env new-state]
+(defn update-state* [env history-step]
   (let [{:keys [ref state]} env
         watches     (get-in @state (conj ref ::watches))
         content-ref (-> (get-in @state (conj ref ::root-data))
-                        (conj ::f.data-viewer/content))]
-    (swap! state (comp #(assoc-in % content-ref new-state)
-                       #(update-watchers % new-state watches)))))
+                      (conj ::f.data-viewer/content))]
+    (swap! state (comp #(assoc-in % content-ref history-step)
+                   #(update-watchers % history-step watches)))))
 
 (defmutation update-state [new-state]
   (action [env]
@@ -86,12 +86,12 @@
                                   :margin-bottom "10px"}]
                    [:.toggle-button ui/css-triangle]
                    [:.path (merge ui/css-code-font
-                                  {:background "#fafafa"
-                                   :border     "1px solid #efeef1"
-                                   :margin     "0 5px"
-                                   :padding    "3px 3px 1px"
-                                   :color      "#222"
-                                   :cursor     "pointer"})
+                             {:background "#fafafa"
+                              :border     "1px solid #efeef1"
+                              :margin     "0 5px"
+                              :padding    "3px 3px 1px"
+                              :color      "#222"
+                              :cursor     "pointer"})
                     [:&:hover {:text-decoration "line-through"}]]]
    :css-include   [f.data-viewer/DataViewer]}
   (let [css (css/get-classnames WatchPin)]
@@ -105,7 +105,8 @@
           (pr-str watch-path)))
       (if expanded?
         (f.data-viewer/data-viewer data-viewer
-          {::f.data-viewer/path-action      path-action
+          {::f.data-viewer/path             watch-path
+           ::f.data-viewer/path-action      path-action
            ::f.data-viewer/on-expand-change on-expand-change})))))
 
 (def watch-pin (fp/factory WatchPin {:keyfn ::watch-id}))
@@ -123,26 +124,26 @@
   (let [content (::f.data-viewer/content root-data)]
     (dom/div (h/props->html props)
       (mapv (comp watch-pin
-                  (fn [[x i]]
-                    (-> (assoc x ::content content)
-                        (fp/computed {::delete-item
-                                      (fn [_]
-                                        (fp/transact! this [`(remove-data-watch {:path  ~(::watch-path x)
-                                                                                 :index ~i})]))
+              (fn [[x i]]
+                (-> (assoc x ::content content)
+                  (fp/computed {::delete-item
+                                (fn [_]
+                                  (fp/transact! this [`(remove-data-watch {:path  ~(::watch-path x)
+                                                                           :index ~i})]))
 
-                                      ::f.data-viewer/on-expand-change
-                                      (fn [path expanded]
-                                        (fp/transact! this [`(update-watcher-expanded {:path     ~(::watch-path x)
-                                                                                       :expanded ~expanded})]))
+                                ::f.data-viewer/on-expand-change
+                                (fn [path expanded]
+                                  (fp/transact! this [`(update-watcher-expanded {:path     ~(::watch-path x)
+                                                                                 :expanded ~expanded})]))
 
-                                      ::f.data-viewer/path-action
-                                      #(fp/transact! this [`(add-data-watch {:path ~(vec (concat (::watch-path x) %))})])})))
-                  vector)
+                                ::f.data-viewer/path-action
+                                #(fp/transact! this [`(add-data-watch {:path ~(vec (concat (::watch-path x) %))})])})))
+              vector)
         watches
         (range))
       (f.data-viewer/data-viewer root-data
         {::f.data-viewer/search search
          ::f.data-viewer/path-action
-         #(fp/transact! this [`(add-data-watch {:path ~%})])}))))
+                                #(fp/transact! this [`(add-data-watch {:path ~%})])}))))
 
 (def data-watcher (fp/factory DataWatcher))

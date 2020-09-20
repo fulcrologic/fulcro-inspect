@@ -5,7 +5,8 @@
             [com.wsscode.pathom.connect :as pc]
             [com.wsscode.pathom.core :as p]
             [com.wsscode.pathom.profile :as pp]
-            [com.wsscode.pathom.viz.index-explorer :as iex]))
+            [com.wsscode.pathom.viz.index-explorer :as iex]
+            [taoensso.timbre :as log]))
 
 ;; LANDMARK: This is the general code that abstract communication between the Fulcro UI and whatever environment it
 ;; happens to be embedded within (Chrome browser plugin or Electron app)
@@ -89,6 +90,12 @@
   {}
   (fn [{:keys [send-message]} input]
     (send-message :fulcro.inspect.client/pick-element input)))
+
+(defmutation 'fetch-history-step
+  {}
+  (fn [{:keys [send-message]} input]
+    (log/info "Running pathom mutation to post fetch message" input)
+    (send-message :fulcro.inspect.client/fetch-history-step input)))
 
 (defmutation 'save-settings
   {}
