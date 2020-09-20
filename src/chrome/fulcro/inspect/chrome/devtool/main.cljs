@@ -161,6 +161,10 @@
   (let [step {:id state-id}]
     (hist/record-history-step! @global-inspector* app-uuid step)
 
+    ;; TASK: Some kind of core.async loop to fill missing history entries, with a timeout? Always fetch the most recent
+    ;; if it isn't fetched, then look for entries that are marked as :needed, which the history slider will side-effect
+    ;; into history if the user slides over that step.
+
     #_(if-let [current-locale (-> new-state ::fulcro-i18n/current-locale p/ident-value*)]
         (fp/transact! (:reconciler @global-inspector*)
           [::i18n/id [app-uuid-key app-uuid]]
@@ -201,8 +205,6 @@
    our copy of the history with the new value"
   [{:fulcro.inspect.core/keys   [app-uuid state-id]
     :fulcro.inspect.client/keys [diff based-on state]}]
-  (log/debug "Updating local history. Diff? " (boolean diff))
-  (log/debug (with-out-str (pprint state)))
   (let [inspector @global-inspector*
         state     (if state
                     state
