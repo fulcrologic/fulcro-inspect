@@ -11,6 +11,7 @@
     [fulcro.client.mutations :as fm]
     [fulcro.client.primitives :as fp]
     [fulcro.i18n :as fulcro-i18n]
+    [fulcro.inspect.helpers :as h]
     [fulcro.inspect.lib.diff :as diff]
     [fulcro.inspect.lib.history :as hist]
     [fulcro.inspect.lib.local-storage :as storage]
@@ -31,7 +32,9 @@
     [fulcro.inspect.ui.settings :as settings]
     [fulcro.inspect.ui.transactions :as transactions]
     [goog.object :as gobj]
-    [taoensso.timbre :as log]))
+    [goog.functions :refer [debounce]]
+    [taoensso.timbre :as log]
+    [taoensso.encore :as enc]))
 
 (fp/defsc GlobalRoot [this {:keys [ui/root]}]
   {:initial-state (fn [params] {:ui/root
@@ -156,14 +159,27 @@
 (defn reset-inspector []
   (-> @global-inspector* :reconciler fp/app-state (reset! (fp/tree->db GlobalRoot (fp/get-initial-state GlobalRoot {}) true))))
 
+(defn- -fill-last-entry!
+  []
+  (enc/if-let [inspector @global-inspector*
+               reconciler (fp/get-reconciler inspector)
+               state-map @(fp/app-state inspector)
+               app-uuid  (h/current-app-uuid state-map)
+               state-id  (hist/latest-state-id inspector app-uuid)]
+    (fp/transact! reconciler `[(hist/remote-fetch-history-step ~{:id state-id})])
+    (log/error "Something was nil")))
+
+(def fill-last-entry!
+  "Request the full state for the currently-selected application"
+  (debounce -fill-last-entry! 100))
+
+
 (defn update-client-db [{:fulcro.inspect.core/keys   [app-uuid]
                          :fulcro.inspect.client/keys [state-id]}]
   (let [step {:id state-id}]
     (hist/record-history-step! @global-inspector* app-uuid step)
 
-    ;; TASK: Some kind of core.async loop to fill missing history entries, with a timeout? Always fetch the most recent
-    ;; if it isn't fetched, then look for entries that are marked as :needed, which the history slider will side-effect
-    ;; into history if the user slides over that step.
+    (fill-last-entry!)
 
     #_(if-let [current-locale (-> new-state ::fulcro-i18n/current-locale p/ident-value*)]
         (fp/transact! (:reconciler @global-inspector*)
@@ -213,6 +229,7 @@
     (hist/record-history-step! inspector app-uuid {:id state-id :value state})
     (fp/force-root-render! inspector)))
 
+;; LANDMARK: This is where incoming messages from the app are handled
 (defn handle-remote-message [{:keys [port event responses*] :as message}]
   (log/debug "Chrome plugin Received message" message)
   (when-let [{:keys [type data]} (event-data event)]

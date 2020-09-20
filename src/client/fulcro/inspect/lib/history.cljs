@@ -17,6 +17,9 @@
         {::keys [db-hash-index]} (get-in reconciler [:config :shared])]
     (some-> db-hash-index deref (get app-uuid))))
 
+(defn latest-state-id [app-ish app-uuid]
+  (-> (history-by-state-id app-ish app-uuid) keys last))
+
 (defn db-index-add
   [db app-uuid {:keys [id value] :as history-step}]
   (let [history        (get db app-uuid (sorted-map))
@@ -72,7 +75,8 @@
           history  (when app-uuid (history-by-state-id reconciler app-uuid))
           base     (when history (best-populated-base history id))
           fake-ref [:ignored [:ignored app-uuid]]
+          ;; TASK: acceptable diff logic
           env      (cond-> (assoc env :ref fake-ref)
-                     #_#_base (assoc-in [:ast :params :based-on] base))]
+                     base (assoc-in [:ast :params :based-on] base))]
       (when (not= base id)
         (h/remote-mutation env 'fetch-history-step)))))

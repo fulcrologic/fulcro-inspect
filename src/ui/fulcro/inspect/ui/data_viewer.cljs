@@ -370,12 +370,7 @@
                       :path        []
                       :path-action path-action}
           data))
-      (dom/div :.container
-        "DB Not Fetched"
-        (dom/pre (str (fp/get-ident this)))
-        (dom/button
-          {:onClick (fn [] (fp/transact! this `[(hist/remote-fetch-history-step ~{:id id})]))}
-          "Fetch now")))))
+      (dom/div :.container "DB loading..."))))
 
 (defn all-subvecs [v]
   (:result
