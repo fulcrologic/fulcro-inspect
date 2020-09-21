@@ -231,7 +231,8 @@
                     (let [base-state (hist/state-map-for-id inspector app-uuid based-on)]
                       (diff/patch base-state diff)))]
     (hist/record-history-step! inspector app-uuid {:id state-id :value state})
-    (fp/force-root-render! inspector)))
+    (fp/force-root-render! inspector)
+    true))
 
 ;; LANDMARK: incoming electron app messages
 (defn handle-remote-message [{:keys [responses*]} event]
@@ -322,7 +323,7 @@
                        (settings/load-settings (:reconciler app)))
 
                      :shared
-                     {::db-hash-index                    (atom {})
+                     {::hist/db-hash-index               (atom {})
                       :fulcro.inspect.renderer/electron? true}
 
                      :networking

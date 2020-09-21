@@ -94,7 +94,6 @@
 (defmutation 'fetch-history-step
   {}
   (fn [{:keys [send-message]} input]
-    (log/info "Running pathom mutation to post fetch message" input)
     (send-message :fulcro.inspect.client/fetch-history-step input)))
 
 (defmutation 'save-settings
