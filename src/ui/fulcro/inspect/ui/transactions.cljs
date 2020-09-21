@@ -90,6 +90,7 @@
    :query         [::tx-id
                    :fulcro.history/client-time :fulcro.history/tx
                    :fulcro.history/db-before :fulcro.history/db-after
+                   :fulcro.history/diff
                    :fulcro.history/network-sends :ident-ref :component
                    :ui/compress-count]
    :css           [[:.tx-data {:font-size "9pt"
@@ -146,10 +147,9 @@
                                old-state-view new-state-view
                                diff-add-view diff-rem-view]}]
   {:initial-state
-   (fn [{:fulcro.history/keys [tx network-sends db-before db-after]
+   (fn [{:fulcro.history/keys [tx network-sends db-before db-after diff]
          :as                  transaction}]
-     (log/spy :info transaction)
-     (let [[add rem] (data/diff db-after db-before)]
+     (let [[add rem] diff]
        (merge {::tx-id (random-uuid)}
          transaction
          {:ui/tx-view        (-> (fp/get-initial-state data-viewer/DataViewer tx)
@@ -186,6 +186,7 @@
    [::tx-id ::timestamp
     :fulcro.history/client-time :fulcro.history/tx
     :fulcro.history/db-before :fulcro.history/db-after
+    :fulcro.history/diff
     :fulcro.history/network-sends :ident-ref :component
     :ui/full-computed?
     {:ui/tx-view (fp/get-query data-viewer/DataViewer)}
@@ -206,17 +207,18 @@
         (ui/ident {} ident-ref))
 
       (ui/info {::ui/title "Transaction"}
-        (data-viewer/data-viewer tx-view))
+        (dom/pre {:style {:fontSize "10pt"}}
+          (with-out-str (pprint (::data-viewer/content tx-view)))))
 
       (if (seq network-sends)
         (ui/info {::ui/title "Sends"}
           (data-viewer/data-viewer sends-view)))
 
       (ui/info {::ui/title "Diff added"}
-        (data-viewer/data-viewer diff-add-view))
+        (data-viewer/data-viewer diff-add-view {:raw? true}))
 
       (ui/info {::ui/title "Diff removed"}
-        (data-viewer/data-viewer diff-rem-view))
+        (data-viewer/data-viewer diff-rem-view {:raw? true}))
 
       (if component
         (ui/info {::ui/title "Component"}
@@ -255,8 +257,7 @@
           (if (= last-tx-ref (-> @state (get-in ref) ::active-tx))
             (do
               (h/create-entity! env TransactionRow tx :append ::tx-list :replace ::active-tx)
-              (swap! state h/merge-entity Transaction
-                (fp/get-initial-state Transaction tx)))
+              (swap! state h/merge-entity Transaction (fp/get-initial-state Transaction tx)))
             (h/create-entity! env TransactionRow tx :append ::tx-list)))
         (do
           (h/create-entity! env TransactionRow tx :append ::tx-list)

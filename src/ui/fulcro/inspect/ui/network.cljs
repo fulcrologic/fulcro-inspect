@@ -1,17 +1,18 @@
 (ns fulcro.inspect.ui.network
-  (:require [com.wsscode.oge.ui.flame-graph :as ui.flame]
-            [com.wsscode.pathom.profile :as pp]
-            [com.wsscode.pathom.viz.trace :as trace]
-            [fulcro-css.css :as css]
-            [fulcro-css.css-protocols :as cssp]
-            [fulcro.client.localized-dom :as dom]
-            [fulcro.client.mutations :as fm :refer-macros [defmutation]]
-            [fulcro.client.primitives :as fp]
-            [fulcro.inspect.helpers :as h]
-            [fulcro.inspect.ui.core :as ui]
-            [fulcro.inspect.ui.data-viewer :as data-viewer]
-            [garden.selectors :as gs]
-            [fulcro.inspect.ui.transactions :as transactions]))
+  (:require
+    [com.wsscode.oge.ui.flame-graph :as ui.flame]
+    [com.wsscode.pathom.profile :as pp]
+    [com.wsscode.pathom.viz.trace :as trace]
+    [fulcro-css.css :as css]
+    [fulcro-css.css-protocols :as cssp]
+    [fulcro.client.localized-dom :as dom]
+    [fulcro.client.mutations :as fm :refer-macros [defmutation]]
+    [fulcro.client.primitives :as fp]
+    [fulcro.inspect.helpers :as h]
+    [fulcro.inspect.ui.core :as ui]
+    [fulcro.inspect.ui.data-viewer :as data-viewer]
+    [garden.selectors :as gs]
+    [fulcro.inspect.ui.transactions :as transactions]))
 
 (declare Request)
 
@@ -94,15 +95,18 @@
                            "Request"
                            (dom/button :.send-query {:onClick #(send-to-query this app-uuid (::data-viewer/content request-edn-view))}
                              "Send to query"))}
-      (data-viewer/data-viewer request-edn-view))
+      (dom/pre {:style {:fontSize "10pt"}}
+        (h/pprint (::data-viewer/content request-edn-view))))
 
     (if response-edn-view
       (ui/info {::ui/title "Response"}
-        (data-viewer/data-viewer response-edn-view)))
+        (dom/pre {:style {:fontSize "10pt"}}
+          (h/pprint (::data-viewer/content response-edn-view)))))
 
     (if error-view
       (ui/info {::ui/title "Error"}
-        (data-viewer/data-viewer error-view)))
+        (dom/pre {:style {:fontSize "10pt"}}
+          (h/pprint (::data-viewer/content error-view)))))
 
     (if-let [profile (-> response-edn-view ::data-viewer/content ::pp/profile)]
       (ui/info {::ui/title "Profile"}
@@ -149,7 +153,7 @@
                         [:&.flex {:flex 1}]
                         [(gs/& gs/last-child) {:border-right "0"}]]
 
-                       [:.request {:overflow "auto"
+                       [:.request {:overflow   "auto"
                                    :max-height "250px"}]
 
                        [:.timestamp ui/css-timestamp
@@ -252,20 +256,20 @@
         (dom/div :.table-body
           (if (seq requests)
             (->> requests
-                 rseq
-                 (mapv (comp request
-                             #(fp/computed %
-                                {::show-remote?
-                                 show-remote?
+              rseq
+              (mapv (comp request
+                      #(fp/computed %
+                         {::show-remote?
+                          show-remote?
 
-                                 ::columns
-                                 columns
+                          ::columns
+                          columns
 
-                                 ::selected?
-                                 (= (::request-id active-request) (::request-id %))
+                          ::selected?
+                          (= (::request-id active-request) (::request-id %))
 
-                                 ::on-select
-                                 (fn [r] (fp/transact! this `[(select-request ~r)]))})))))))
+                          ::on-select
+                          (fn [r] (fp/transact! this `[(select-request ~r)]))})))))))
 
       (if active-request
         (ui/focus-panel {:style {:height (str (or (fp/get-state this :detail-height) 400) "px")}}

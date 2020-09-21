@@ -161,11 +161,11 @@
 
 (defn- -fill-last-entry!
   []
-  (enc/if-let [inspector @global-inspector*
+  (enc/if-let [inspector  @global-inspector*
                reconciler (fp/get-reconciler inspector)
-               state-map @(fp/app-state inspector)
-               app-uuid  (h/current-app-uuid state-map)
-               state-id  (hist/latest-state-id inspector app-uuid)]
+               state-map  @(fp/app-state inspector)
+               app-uuid   (h/current-app-uuid state-map)
+               state-id   (hist/latest-state-id inspector app-uuid)]
     (fp/transact! reconciler `[(hist/remote-fetch-history-step ~{:id state-id})])
     (log/error "Something was nil")))
 
@@ -195,8 +195,8 @@
 (defn new-client-tx [{:fulcro.inspect.core/keys   [app-uuid]
                       :fulcro.inspect.client/keys [tx]}]
 
-  (let [{:fulcro.history/keys [:fulcro.history/db-before-id
-                               :fulcro.history/db-after-id]} tx
+  (let [{:fulcro.history/keys [db-before-id
+                               db-after-id]} tx
         inspector @global-inspector*
         tx        (assoc tx
                     :fulcro.history/db-before (hist/history-step inspector app-uuid db-before-id)
@@ -230,7 +230,6 @@
 
 ;; LANDMARK: This is where incoming messages from the app are handled
 (defn handle-remote-message [{:keys [port event responses*] :as message}]
-  (log/debug "Chrome plugin Received message" message)
   (when-let [{:keys [type data]} (event-data event)]
     (let [data (assoc data ::port port)]
       (case type

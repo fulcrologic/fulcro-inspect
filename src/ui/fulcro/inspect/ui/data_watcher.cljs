@@ -40,8 +40,7 @@
       (doseq [app-uuid (db.h/matching-apps @state app-id)
               :let [ref     [::id [:fulcro.inspect.core/app-uuid app-uuid]]
                     content (as-> (get-in @state (conj ref ::root-data)) <>
-                              (get-in @state (conj <> ::f.data-viewer/content))
-                              (get-in <> path))]]
+                              (get-in @state (conj <> ::f.data-viewer/content)))]]
         (db.h/create-entity! (assoc env :ref [::id [:fulcro.inspect.core/app-uuid app-uuid]])
           WatchPin {:path path :content content}
           :prepend ::watches))

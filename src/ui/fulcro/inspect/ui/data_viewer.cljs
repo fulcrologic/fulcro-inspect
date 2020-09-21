@@ -280,7 +280,7 @@
 (fp/defsc DataViewer
   [this
    {::keys [content expanded elide-one? static?] :as props}
-   {:keys  [allow-stale?]
+   {:keys  [allow-stale? raw?]
     ::keys [path-action search on-expand-change path]}
    css]
   {:initial-state (fn [content] {::id       (random-uuid)
@@ -355,17 +355,17 @@
         data      (cond-> (hist/state-map-for-id this app-uuid id)
                     (vector? path) (get-in path))
         stale?    (not= (:id last-step) id)]
-    (log/info "render")
     (dom/div :.container
-      (when-not path
+      (when-not (or path raw?)
         (dom/h4 {:style {:marginTop    "2px"
                          :marginBottom "2px"}}
           (cond
             (not stale?) (str "Revision " id)
-            (and stale? (not allow-stale?)) (str "Revision " id " not (yet) available.")
+            (and stale? (not allow-stale?)) (str "Revision " id " has not been fetched from the application.")
             :else (str "Stale Revision " (:id last-step)))))
-      (if (and stale? (not allow-stale?))
-        (dom/button {:onClick #(fp/transact! this `[(hist/remote-fetch-history-step ~{:id id})])} "Try to fetch")
+      (if (and stale? (not allow-stale?) (not raw?))
+        (when-not path
+          (dom/button {:onClick #(fp/transact! this `[(hist/remote-fetch-history-step ~{:id id})])} "Fetch Now"))
         (render-data {:expanded    expanded
                       :static?     static?
                       :search      search
@@ -381,7 +381,10 @@
                       :css         css
                       :path        []
                       :path-action path-action}
-          (if data data (:value last-step)))))))
+          (cond
+            data data
+            raw? content
+            :else (:value last-step)))))))
 
 (defn all-subvecs [v]
   (:result
