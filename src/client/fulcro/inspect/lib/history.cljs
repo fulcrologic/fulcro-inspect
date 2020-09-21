@@ -68,6 +68,18 @@
         best-id     (last (take-while #(<= % id) fetched-ids))]
     best-id))
 
+(defn closest-populated-history-step
+  [this id]
+  (let [reconciler (fp/get-reconciler this)
+        state      (fp/app-state reconciler)
+        app-uuid   (h/current-app-uuid @state)
+        history    (when app-uuid (history-by-state-id reconciler app-uuid))
+        base       (when history (best-populated-base history id))
+        value      (state-map-for-id this app-uuid base)]
+    (when value
+      {:id    base
+       :value value})))
+
 (fm/defmutation remote-fetch-history-step [{:keys [id]}]
   (refresh [_env] [:fulcro.inspect.ui.data-viewer/content])
   (remote [{:keys [state reconciler] :as env}]

@@ -171,8 +171,7 @@
 
 (def fill-last-entry!
   "Request the full state for the currently-selected application"
-  (debounce -fill-last-entry! 100))
-
+  (debounce -fill-last-entry! 500))
 
 (defn update-client-db [{:fulcro.inspect.core/keys   [app-uuid]
                          :fulcro.inspect.client/keys [state-id]}]
@@ -201,7 +200,7 @@
         inspector @global-inspector*
         tx        (assoc tx
                     :fulcro.history/db-before (hist/history-step inspector app-uuid db-before-id)
-                    :fulcro.history/db-after (hist/history-step inspector app-uuid db-before-id))]
+                    :fulcro.history/db-after (hist/history-step inspector app-uuid db-after-id))]
     (fp/transact! (:reconciler @global-inspector*)
       [:fulcro.inspect.ui.transactions/tx-list-id [app-uuid-key app-uuid]]
       [`(fulcro.inspect.ui.transactions/add-tx ~tx) :fulcro.inspect.ui.transactions/tx-list])))

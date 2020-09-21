@@ -9,9 +9,11 @@
     [fulcro.client.primitives :as fp]
     [fulcro.inspect.helpers :as db.h]
     [fulcro.inspect.helpers :as h]
+    [fulcro.inspect.lib.history :as hist]
     [fulcro.inspect.ui.core :as ui]
     [fulcro.inspect.ui.data-viewer :as data-viewer]
-    [fulcro.ui.html-entities :as ent]))
+    [fulcro.ui.html-entities :as ent]
+    [taoensso.timbre :as log]))
 
 (def tx-options :com.fulcrologic.fulcro.algorithms.tx-processing/options)
 
@@ -146,11 +148,12 @@
   {:initial-state
    (fn [{:fulcro.history/keys [tx network-sends db-before db-after]
          :as                  transaction}]
+     (log/spy :info transaction)
      (let [[add rem] (data/diff db-after db-before)]
        (merge {::tx-id (random-uuid)}
          transaction
          {:ui/tx-view        (-> (fp/get-initial-state data-viewer/DataViewer tx)
-                                 (assoc ::data-viewer/expanded {[] true}))
+                               (assoc ::data-viewer/expanded {[] true}))
           :ui/sends-view     (fp/get-initial-state data-viewer/DataViewer network-sends)
           :ui/old-state-view (fp/get-initial-state data-viewer/DataViewer db-before)
           :ui/new-state-view (fp/get-initial-state data-viewer/DataViewer db-after)
@@ -221,10 +224,10 @@
             (str component))))
 
       (ui/info {::ui/title "State before"}
-        (data-viewer/data-viewer old-state-view))
+        (data-viewer/data-viewer old-state-view {:allow-stale? false}))
 
       (ui/info {::ui/title "State after"}
-        (data-viewer/data-viewer new-state-view)))))
+        (data-viewer/data-viewer new-state-view {:allow-stale? false})))))
 
 (def transaction (fp/factory Transaction {:keyfn ::tx-id}))
 
@@ -233,11 +236,11 @@
 
 (defn compress-transactions? [tx1 tx2]
   (and (compressible? tx1)
-       (compressible? tx2)
-       (= (some-> tx1 :fulcro.history/tx first)
-          (some-> tx2 :fulcro.history/tx first))
-       (= (some-> tx1 :ident-ref)
-          (some-> tx2 :ident-ref))))
+    (compressible? tx2)
+    (= (some-> tx1 :fulcro.history/tx first)
+      (some-> tx2 :fulcro.history/tx first))
+    (= (some-> tx1 :ident-ref)
+      (some-> tx2 :ident-ref))))
 
 (defmutation add-tx [tx]
   (action [{:keys [state ref] :as env}]
@@ -295,15 +298,15 @@
                        current-normalized data-tree))
    :ident          [::tx-list-id ::tx-list-id]
    :query          [::tx-list-id ::tx-filter
-                   {::active-tx (fp/get-query Transaction)}
-                   {::tx-list (fp/get-query TransactionRow)}]
-   :css            [[:.container {:display       "flex"
-                                 :width          "100%"
-                                 :flex           "1"
-                                 :flex-direction "column"}]
+                    {::active-tx (fp/get-query Transaction)}
+                    {::tx-list (fp/get-query TransactionRow)}]
+   :css            [[:.container {:display        "flex"
+                                  :width          "100%"
+                                  :flex           "1"
+                                  :flex-direction "column"}]
 
-                   [:.transactions {:flex     "1"
-                                    :overflow "auto"}]]
+                    [:.transactions {:flex     "1"
+                                     :overflow "auto"}]]
    :css-include    [Transaction TransactionRow ui/CSS]
    :initLocalState (fn []
                      {:select-tx (fn [tx]

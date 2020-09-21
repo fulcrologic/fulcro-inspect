@@ -6,11 +6,13 @@
     [fulcro.client.localized-dom :as dom :refer [div button label input span a]]
     [fulcro.client.mutations :as fm :refer [defmutation]]
     [fulcro.client.primitives :as fc :refer [defsc]]
+    [fulcro.inspect.lib.history :as hist]
     [fulcro.inspect.helpers :as h]
     [fulcro.inspect.ui.core :as ui]
     [fulcro.inspect.ui.data-watcher :as dw]
     [fulcro.util :refer [ident?]]
-    [taoensso.encore :as enc]))
+    [taoensso.encore :as enc]
+    [taoensso.timbre :as log]))
 
 (defn re-pattern-insensitive [pattern]
   (re-pattern (str "(?i)" pattern)))
@@ -127,6 +129,7 @@
 
 (defn ui-entity-level [this]
   (let [{:keys [current-state] :ui/keys [path]} (fc/props this)
+        {current-state :value} (hist/closest-populated-history-step this (log/spy :info (:id current-state)))
         entity       (get-in current-state (:path path))
         select-map   (fn [k] (append-to-path! this k))
         select-ident (fn [ident] (set-path! this ident))
@@ -148,6 +151,7 @@
 
 (defn ui-table-level [this]
   (let [{:keys [current-state] :ui/keys [path]} (fc/props this)
+        {current-state :value} (hist/closest-populated-history-step this (log/spy :info (:id current-state)))
         entity-ids   (keys (get-in current-state (:path path)))
         select-ident (fn [ident] (set-path! this ident))
         env          (assoc (settings-env this)
@@ -165,6 +169,7 @@
 
 (defn ui-top-level [this]
   (let [{:keys [current-state]} (fc/props this)
+        {current-state :value} (hist/closest-populated-history-step this (log/spy :info (:id current-state)))
         top-keys       (set (keys current-state))
         tables         (filter
                          (fn [k]
@@ -246,9 +251,10 @@
                  paths))
     [] state))
 
-(defn search-for!* [{:as env :keys [state ref]} {:keys [search-query search-type]}]
+(defn search-for!* [{:as env :keys [reconciler state ref]} {:keys [search-query search-type]}]
   (let [props                  (get-in @state ref)
         current-state          (:current-state props)
+        {current-state :value} (hist/closest-populated-history-step reconciler (log/spy :info (:id current-state)))
         internal-fulcro-tables #{:com.fulcrologic.fulcro.components/queries}
         searchable-state       (reduce dissoc current-state internal-fulcro-tables)]
     (h/swap-entity! env assoc :ui/search-results

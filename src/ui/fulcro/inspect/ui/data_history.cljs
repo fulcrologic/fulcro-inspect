@@ -1,18 +1,21 @@
 (ns fulcro.inspect.ui.data-history
-  (:require [fulcro.client.primitives :as fp]
-            [fulcro.client.localized-dom :as dom]
-            [fulcro.client.mutations :as fm]
-            [garden.selectors :as gs]
-            [fulcro.inspect.ui.events :as events]
-            [fulcro.inspect.lib.local-storage :as storage]
-            [fulcro.inspect.ui.data-viewer :as data-viewer]
-            [fulcro.inspect.ui.data-watcher :as watcher]
-            [fulcro.inspect.ui.core :as ui]
-            [fulcro.inspect.ui.dom-history-viewer :as domv]
-            [fulcro.inspect.helpers :as h]
-            [fulcro.inspect.ui.helpers :as ui.h]
-            [fulcro.inspect.helpers :as db.h]
-            [fulcro.client.mutations :as m]))
+  (:require
+    [fulcro.client.primitives :as fp]
+    [fulcro.client.localized-dom :as dom]
+    [fulcro.client.mutations :as fm]
+    [garden.selectors :as gs]
+    [fulcro.inspect.ui.events :as events]
+    [fulcro.inspect.lib.local-storage :as storage]
+    [fulcro.inspect.lib.history :as hist]
+    [fulcro.inspect.ui.data-viewer :as data-viewer]
+    [fulcro.inspect.ui.data-watcher :as watcher]
+    [fulcro.inspect.ui.core :as ui]
+    [fulcro.inspect.ui.dom-history-viewer :as domv]
+    [fulcro.inspect.helpers :as h]
+    [fulcro.inspect.ui.helpers :as ui.h]
+    [fulcro.inspect.helpers :as db.h]
+    [fulcro.client.mutations :as m]
+    [taoensso.timbre :as log]))
 
 (def ^:dynamic *max-history* 80)
 
@@ -47,11 +50,11 @@
           (watcher/update-state* (assoc env :ref (::watcher history)) {:id state-id})))))
   (refresh [env] [:ui/historical-dom-view])
   (remote [{:keys [ref state] :as env}]
-    (let [history (get-in @state ref)]
+    (let [history  (get-in @state ref)
+          state-id (get-in history [::history current-index ::state-id])]
       (if (::show-dom-preview? history)
         (-> (db.h/remote-mutation env 'show-dom-preview)
-          (assoc-in [:params :fulcro.inspect.client/state-hash]
-            (get-in history [::history current-index :fulcro.inspect.client/state-hash])))
+          (assoc-in [:params :fulcro.inspect.client/state-id] state-id))
         false))))
 
 (fm/defmutation hide-dom-preview [_]
@@ -219,9 +222,12 @@
                               #(fp/transact! this `[(reset-app ~{:target-state app-state})]))}
           (ui/icon {:title (if at-end? "Force app re-render" "Reset App To This State")} :settings_backup_restore))
 
-        (ui/toolbar-action {:onClick #(let [content (-> this fp/get-reconciler fp/app-state deref
-                                                      (h/get-in-path [::watcher/id (::watcher/id watcher) ::watcher/root-data ::data-viewer/content]))]
-                                        (fp/transact! this [`(save-snapshot {::snapshot-db ~content})]))}
+        (ui/toolbar-action {:onClick #(let [{:keys [id] :as content} (-> this fp/get-reconciler fp/app-state deref
+                                                                       (h/get-in-path [::watcher/id (::watcher/id watcher)
+                                                                                       ::watcher/root-data ::data-viewer/content]))
+                                            state-map (hist/state-map-for-id this (h/comp-app-uuid this) id)]
+                                        (log/info "Saving" id state-map)
+                                        (fp/transact! this [`(save-snapshot {::snapshot-db ~state-map})]))}
           (ui/icon {:title "Save snapshot of current state"} :add_a_photo))
         (ui/toolbar-debounced-text-field
           {:placeholder "Search (press return to expand tree)"
