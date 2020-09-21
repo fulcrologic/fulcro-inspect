@@ -31,7 +31,9 @@
     [fulcro.inspect.ui.transactions :as transactions]
     [goog.object :as gobj]
     [taoensso.encore :as enc]
-    [fulcro.client.mutations :as m]))
+    [goog.functions :refer [debounce]]
+    [fulcro.inspect.lib.history :as hist]
+    [fulcro.inspect.helpers :as h]))
 
 (defonce electron (js/require "electron"))
 (def ipcRenderer (gobj/get electron "ipcRenderer"))
@@ -85,19 +87,12 @@
         (recur (inc-id new-name))
         new-name))))
 
-(def DB_HISTORY_BUFFER_SIZE 100)
-
-(defn db-index-add
-  ([db app-uuid state] (db-index-add db app-uuid state (hash state)))
-  ([db app-uuid state state-hash]
-   (update db app-uuid #(misc/fixed-size-assoc DB_HISTORY_BUFFER_SIZE % state-hash state))))
-
 (defonce last-disposed-app* (atom nil))
 
 (defn start-app [{:fulcro.inspect.core/keys   [app-id app-uuid client-connection-id]
-                  :fulcro.inspect.client/keys [initial-state state-hash remotes] :as data}]
+                  :fulcro.inspect.client/keys [initial-history-step remotes]}]
   (let [inspector     @global-inspector*
-        initial-state (assoc initial-state :fulcro.inspect.client/state-hash state-hash)
+        {initial-state :value} initial-history-step
         new-inspector (-> (fp/get-initial-state inspector/Inspector initial-state)
                         (assoc ::inspector/id app-uuid)
                         (assoc :fulcro.inspect.core/client-connection-id client-connection-id)
@@ -128,8 +123,7 @@
                                                                  {:app-uuid app-uuid
                                                                   :remotes  remotes})))]
 
-    (let [{::keys [db-hash-index]} (-> inspector :reconciler :config :shared)]
-      (swap! db-hash-index db-index-add app-uuid (dissoc initial-state :fulcro.inspect.client/state-hash) state-hash))
+    (hist/record-history-step! inspector app-uuid initial-history-step)
 
     (fp/transact! (:reconciler inspector) [::multi-inspector/multi-inspector "main"]
       [`(multi-inspector/add-inspector ~new-inspector)])
@@ -141,7 +135,7 @@
 
     (fp/transact! (:reconciler inspector)
       [::db-explorer/id [app-uuid-key app-uuid]]
-      [`(db-explorer/set-current-state ~initial-state) :current-state])
+      [`(db-explorer/set-current-state ~initial-history-step) :current-state])
 
     new-inspector))
 
@@ -157,7 +151,7 @@
       (reset! last-disposed-app* app-id)
       (reset! last-disposed-app* nil))
 
-    (swap! db-hash-index dissoc app-uuid)                   ; clear state history
+    (hist/clear-history! inspector app-uuid)
 
     (fp/transact! reconciler [::multi-inspector/multi-inspector "main"]
       [`(multi-inspector/remove-inspector {::inspector/id ~app-uuid})])))
@@ -171,40 +165,47 @@
 (defn reset-inspector []
   (-> @global-inspector* :reconciler fp/app-state (reset! (fp/tree->db GlobalRoot (fp/get-initial-state GlobalRoot {}) true))))
 
+(defn- -fill-last-entry!
+  []
+  (enc/if-let [inspector  @global-inspector*
+               reconciler (fp/get-reconciler inspector)
+               state-map  @(fp/app-state inspector)
+               app-uuid   (h/current-app-uuid state-map)
+               state-id   (hist/latest-state-id inspector app-uuid)]
+    (fp/transact! reconciler `[(hist/remote-fetch-history-step ~{:id state-id})])
+    (js/console.error "Something was nil")))
+
+(def fill-last-entry!
+  "Request the full state for the currently-selected application"
+  (debounce -fill-last-entry! 500))
+
 (defn update-client-db [{:fulcro.inspect.core/keys   [app-uuid]
-                         :fulcro.inspect.client/keys [prev-state-hash state-delta state state-hash]}]
-  (let [{::keys [db-hash-index]} (-> @global-inspector* :reconciler :config :shared)
-        new-state (if state-delta
-                    (if-let [old-state (get-in @db-hash-index [app-uuid prev-state-hash])]
-                      (diff/patch old-state state-delta)
-                      (do (js/console.warn "Error patching state, no previous state available." state-hash)
-                          (post-message :fulcro.inspect.client/request-page-apps
-                            {:fulcro.inspect.core/app-uuid app-uuid})))
-                    state)]
+                         :fulcro.inspect.client/keys [state-id]}]
+  (let [step {:id state-id}]
+    (hist/record-history-step! @global-inspector* app-uuid step)
 
-    (swap! db-hash-index db-index-add app-uuid new-state state-hash)
+    (fill-last-entry!)
 
-    (if-let [current-locale (-> new-state ::fulcro-i18n/current-locale p/ident-value*)]
-      (fp/transact! (:reconciler @global-inspector*)
-        [::i18n/id [app-uuid-key app-uuid]]
-        [`(fm/set-props ~{::i18n/current-locale current-locale})]))
+    #_(if-let [current-locale (-> new-state ::fulcro-i18n/current-locale p/ident-value*)]
+        (fp/transact! (:reconciler @global-inspector*)
+          [::i18n/id [app-uuid-key app-uuid]]
+          [`(fm/set-props ~{::i18n/current-locale current-locale})]))
 
-    (let [state (assoc new-state :fulcro.inspect.client/state-hash state-hash)]
-      (fp/transact! (:reconciler @global-inspector*)
-        [::db-explorer/id [app-uuid-key app-uuid]]
-        [`(db-explorer/set-current-state ~state) :current-state])
-      (fp/transact! (:reconciler @global-inspector*)
-        [::data-history/history-id [app-uuid-key app-uuid]]
-        [`(data-history/set-content ~state)
-         :current-state
-         ::data-history/history]))))
+    (fp/transact! (:reconciler @global-inspector*)
+      [::db-explorer/id [app-uuid-key app-uuid]]
+      [`(db-explorer/set-current-state ~step) :current-state])
+    (fp/transact! (:reconciler @global-inspector*)
+      [::data-history/history-id [app-uuid-key app-uuid]]
+      [`(data-history/set-content ~step) ::data-history/history])))
 
 (defn new-client-tx [{:fulcro.inspect.core/keys   [app-uuid]
                       :fulcro.inspect.client/keys [tx]}]
-  (let [{::keys [db-hash-index]} (-> @global-inspector* :reconciler :config :shared)
-        tx (assoc tx
-             :fulcro.history/db-before (get-in @db-hash-index [app-uuid (:fulcro.history/db-before-hash tx)])
-             :fulcro.history/db-after (get-in @db-hash-index [app-uuid (:fulcro.history/db-after-hash tx)]))]
+  (let [{:fulcro.history/keys [db-before-id
+                               db-after-id]} tx
+        inspector @global-inspector*
+        tx        (assoc tx
+                    :fulcro.history/db-before (hist/history-step inspector app-uuid db-before-id)
+                    :fulcro.history/db-after (hist/history-step inspector app-uuid db-after-id))]
     (fp/transact! (:reconciler @global-inspector*)
       [:fulcro.inspect.ui.transactions/tx-list-id [app-uuid-key app-uuid]]
       [`(fulcro.inspect.ui.transactions/add-tx ~tx) :fulcro.inspect.ui.transactions/tx-list])))
@@ -219,6 +220,20 @@
     (fp/transact! (:reconciler inspector) [::multi-inspector/multi-inspector "main"]
       [`(fm/set-props {::multi-inspector/client-stale? true})])))
 
+(defn fill-history-entry
+  "Called in response to the client sending us the real state for a given state id, at which time we update
+   our copy of the history with the new value"
+  [{:fulcro.inspect.core/keys   [app-uuid state-id]
+    :fulcro.inspect.client/keys [diff based-on state]}]
+  (let [inspector @global-inspector*
+        state     (if state
+                    state
+                    (let [base-state (hist/state-map-for-id inspector app-uuid based-on)]
+                      (diff/patch base-state diff)))]
+    (hist/record-history-step! inspector app-uuid {:id state-id :value state})
+    (fp/force-root-render! inspector)))
+
+;; LANDMARK: incoming electron app messages
 (defn handle-remote-message [{:keys [responses*]} event]
   (enc/when-let [{:keys [type data]} (event-data event)
                  client-id (client-connection-id event)]
@@ -227,11 +242,14 @@
         :fulcro.inspect.client/init-app
         (start-app data)
 
-        :fulcro.inspect.client/db-update
+        :fulcro.inspect.client/db-changed!
         (update-client-db data)
 
         :fulcro.inspect.client/new-client-transaction
         (new-client-tx data)
+
+        :fulcro.inspect.client/history-entry
+        (fill-history-entry data)
 
         :fulcro.inspect.client/transact-inspector
         (tx-run data)

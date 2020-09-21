@@ -194,7 +194,6 @@
 
 (defn new-client-tx [{:fulcro.inspect.core/keys   [app-uuid]
                       :fulcro.inspect.client/keys [tx]}]
-
   (let [{:fulcro.history/keys [db-before-id
                                db-after-id]} tx
         inspector @global-inspector*
