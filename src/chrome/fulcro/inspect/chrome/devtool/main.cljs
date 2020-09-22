@@ -36,6 +36,8 @@
     [taoensso.timbre :as log]
     [taoensso.encore :as enc]))
 
+(declare fill-last-entry!)
+
 (fp/defsc GlobalRoot [this {:keys [ui/root]}]
   {:initial-state (fn [params] {:ui/root
                                 (-> (fp/get-initial-state multi-inspector/MultiInspector params)
@@ -85,7 +87,7 @@
 
 (defn start-app [{:fulcro.inspect.core/keys   [app-id app-uuid]
                   :fulcro.inspect.client/keys [initial-history-step remotes]}]
-  (let [inspector     @global-inspector*
+  (let [{:keys [reconciler] :as inspector} @global-inspector*
         {initial-state :value} initial-history-step
         new-inspector (-> (fp/get-initial-state inspector/Inspector initial-state)
                         (assoc ::inspector/id app-uuid)
@@ -118,18 +120,22 @@
                                                                   :remotes  remotes})))]
 
     (hist/record-history-step! inspector app-uuid initial-history-step)
+    (fill-last-entry!)
 
-    (fp/transact! (:reconciler inspector) [::multi-inspector/multi-inspector "main"]
+    (fp/transact! reconciler [::multi-inspector/multi-inspector "main"]
       [`(multi-inspector/add-inspector ~new-inspector)])
 
     (when (= app-id @last-disposed-app*)
       (reset! last-disposed-app* nil)
-      (fp/transact! (:reconciler inspector) [::multi-inspector/multi-inspector "main"]
+      (fp/transact! reconciler [::multi-inspector/multi-inspector "main"]
         [`(multi-inspector/set-app {::inspector/id ~app-uuid})]))
 
-    (fp/transact! (:reconciler inspector)
+    (fp/transact! reconciler
       [::db-explorer/id [app-uuid-key app-uuid]]
       [`(db-explorer/set-current-state ~initial-history-step) :current-state])
+    (fp/transact! reconciler
+      [::data-history/history-id [app-uuid-key app-uuid]]
+      [`(data-history/set-content ~initial-history-step) ::data-history/history])
 
     new-inspector))
 

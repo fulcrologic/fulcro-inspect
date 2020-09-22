@@ -87,11 +87,12 @@
   (log/trace "Inspect client->renderer message:" msg)
   (log/trace "Inspect client->renderer:" {:client-id client-id :app-uuid app-uuid})
   (try
-    (when @content-atom
+    (if @content-atom
       (.send @content-atom "event"
         #js {:fulcro-inspect-remote-message (encode/write msg)
              :app-uuid                      (encode/write app-uuid)
-             :client-id                     (encode/write client-id)}))
+             :client-id                     (encode/write client-id)})
+      (log/warn "Message ignored. Content atom not ready."))
     (catch :default e
       (log/error e))))
 

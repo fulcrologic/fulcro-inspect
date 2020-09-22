@@ -93,8 +93,19 @@
                                                   (mutations/set-value! this :ui/picking? true)
                                                   (fp/transact! this [`(remote-pick-element {})]))}
                                picking? (assoc :className (:icon-active css)))
-            (ui/icon :gps_fixed)))
+            (ui/icon :gps_fixed) "Pick Element"))
         (if (::details props)
-          (details (::details props)))))))
+          (details (::details props))
+          (dom/div {:style {:margin "20pt"}}
+            (dom/h2 "Click on the Pick Element button, then click in your application's UI to inspect.")
+            (dom/h4 "Note")
+            (dom/p
+              "The element picker requires a UI plugin for the target client application (which could
+               be native, web, etc.).  If you are inspecting a web client, then you can simply add:")
+            (dom/p {:style {:fontFamily "Courier"}}
+              (dom/pre {}
+                ":devtools {:preloads [;  your websocket or normal preload here, then:\n"
+                "                      com.fulcrologic.fulcro.inspect.element-picker]}"))
+            (dom/p "in your shadow-cljs.edn build to install the necessary support.")))))))
 
 (def panel (fp/factory Panel))

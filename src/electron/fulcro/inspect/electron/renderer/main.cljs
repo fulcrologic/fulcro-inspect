@@ -1,25 +1,24 @@
 (ns fulcro.inspect.electron.renderer.main
   (:require
-    [cljs.core.async :as async :refer [go <! put!]]
+    [cljs.core.async :refer [go <! put!]]
     [com.wsscode.common.async-cljs :refer [<?maybe]]
-    [com.wsscode.pathom.core :as p]
     [com.wsscode.pathom.fulcro.network :as pfn]
-    [fulcro-css.css :as css]
     [fulcro-css.css-injection :as cssi]
     [fulcro.client :as fulcro]
     [fulcro.client.localized-dom :as dom]
     [fulcro.client.mutations :as fm]
     [fulcro.client.primitives :as fp]
     [fulcro.i18n :as fulcro-i18n]
+    [fulcro.inspect.helpers :as h]
     [fulcro.inspect.lib.diff :as diff]
+    [fulcro.inspect.lib.history :as hist]
     [fulcro.inspect.lib.local-storage :as storage]
-    [fulcro.inspect.lib.misc :as misc]
     [fulcro.inspect.lib.version :as version]
     [fulcro.inspect.remote.transit :as encode]
     [fulcro.inspect.ui-parser :as ui-parser]
     [fulcro.inspect.ui.data-history :as data-history]
-    [fulcro.inspect.ui.db-explorer :as db-explorer]
     [fulcro.inspect.ui.data-watcher :as data-watcher]
+    [fulcro.inspect.ui.db-explorer :as db-explorer]
     [fulcro.inspect.ui.element :as element]
     [fulcro.inspect.ui.i18n :as i18n]
     [fulcro.inspect.ui.index-explorer :as fiex]
@@ -29,11 +28,11 @@
     [fulcro.inspect.ui.network :as network]
     [fulcro.inspect.ui.settings :as settings]
     [fulcro.inspect.ui.transactions :as transactions]
-    [goog.object :as gobj]
-    [taoensso.encore :as enc]
     [goog.functions :refer [debounce]]
-    [fulcro.inspect.lib.history :as hist]
-    [fulcro.inspect.helpers :as h]))
+    [goog.object :as gobj]
+    [taoensso.encore :as enc]))
+
+(declare fill-last-entry!)
 
 (defonce electron (js/require "electron"))
 (def ipcRenderer (gobj/get electron "ipcRenderer"))
@@ -92,6 +91,7 @@
 (defn start-app [{:fulcro.inspect.core/keys   [app-id app-uuid client-connection-id]
                   :fulcro.inspect.client/keys [initial-history-step remotes]}]
   (let [inspector     @global-inspector*
+        reconciler    (:reconciler inspector)
         {initial-state :value} initial-history-step
         new-inspector (-> (fp/get-initial-state inspector/Inspector initial-state)
                         (assoc ::inspector/id app-uuid)
@@ -125,17 +125,20 @@
 
     (hist/record-history-step! inspector app-uuid initial-history-step)
 
-    (fp/transact! (:reconciler inspector) [::multi-inspector/multi-inspector "main"]
+    (fp/transact! reconciler [::multi-inspector/multi-inspector "main"]
       [`(multi-inspector/add-inspector ~new-inspector)])
 
     (when (= app-id @last-disposed-app*)
       (reset! last-disposed-app* nil)
-      (fp/transact! (:reconciler inspector) [::multi-inspector/multi-inspector "main"]
+      (fp/transact! reconciler [::multi-inspector/multi-inspector "main"]
         [`(multi-inspector/set-app {::inspector/id ~app-uuid})]))
 
-    (fp/transact! (:reconciler inspector)
+    (fp/transact! reconciler
       [::db-explorer/id [app-uuid-key app-uuid]]
       [`(db-explorer/set-current-state ~initial-history-step) :current-state])
+    (fp/transact! reconciler
+      [::data-history/history-id [app-uuid-key app-uuid]]
+      [`(data-history/set-content ~initial-history-step) ::data-history/history])
 
     new-inspector))
 
@@ -143,8 +146,7 @@
   (let [{:keys [reconciler] :as inspector} @global-inspector*
         state         (fp/app-state reconciler)
         inspector-ref [::inspector/id app-uuid]
-        app-id        (get (get-in @state inspector-ref) :fulcro.inspect.core/app-id)
-        {::keys [db-hash-index]} (-> inspector :reconciler :config :shared)]
+        app-id        (get (get-in @state inspector-ref) :fulcro.inspect.core/app-id)]
 
     (if (= (get-in @state [::multi-inspector/multi-inspector "main" ::multi-inspector/current-app])
           inspector-ref)
@@ -235,7 +237,7 @@
     true))
 
 ;; LANDMARK: incoming electron app messages
-(defn handle-remote-message [{:keys [responses*]} event]
+(defn handle-remote-message [_ event]
   (enc/when-let [{:keys [type data]} (event-data event)
                  client-id (client-connection-id event)]
     (let [data (assoc data :fulcro.inspect.core/client-connection-id client-id)]
@@ -294,7 +296,7 @@
 
       (js/console.warn "Unknown local message:" type))))
 
-(defn event-loop! [app responses*]
+(defn event-loop! [_app responses*]
   (.on ipcRenderer "event"
     (fn [_ event]
       (or
@@ -305,7 +307,7 @@
   (let [parser-env {:send-message post-message
                     :responses*   responses*}]
     (pfn/fn-network
-      (fn [this edn ok error]
+      (fn [_this edn ok error]
         (go
           (try
             (ok (<! (parser parser-env edn)))
@@ -313,13 +315,12 @@
               (error e)))))
       false)))
 
-(defn start-global-inspector [options]
+(defn start-global-inspector [_options]
   (let [responses* (atom {})
         app        (fulcro/new-fulcro-client
                      :started-callback
                      (fn [app]
                        (event-loop! app responses*)
-                       (post-message :fulcro.inspect.client/check-client-version {})
                        (settings/load-settings (:reconciler app)))
 
                      :shared
