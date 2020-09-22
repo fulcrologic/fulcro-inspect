@@ -11,11 +11,12 @@
 
 (fp/defui ^:once Details
   static fp/InitialAppState
-  (initial-state [_ {::keys [props query] :as params}]
+  (initial-state [_ {::keys [props static-query query] :as params}]
     (merge
-      {::detail-id  (random-uuid)
-       ::props-view (fp/get-initial-state data-viewer/DataViewer props)
-       ::query-view (fp/get-initial-state data-viewer/DataViewer query)}
+      {::detail-id         (random-uuid)
+       ::props-view        (fp/get-initial-state data-viewer/DataViewer props)
+       ::static-query-view (fp/get-initial-state data-viewer/DataViewer static-query)
+       ::query-view        (fp/get-initial-state data-viewer/DataViewer query)}
       params))
 
   static fp/Ident
@@ -24,6 +25,7 @@
   static fp/IQuery
   (query [_] [::detail-id ::display-name ::ident
               {::props-view (fp/get-query data-viewer/DataViewer)}
+              {::static-query-view (fp/get-query data-viewer/DataViewer)}
               {::query-view (fp/get-query data-viewer/DataViewer)}])
 
   static cssp/CSS
@@ -34,7 +36,7 @@
 
   Object
   (render [this]
-    (let [{::keys [display-name ident props-view query-view]} (fp/props this)
+    (let [{::keys [display-name ident props-view static-query-view query-view]} (fp/props this)
           css (css/get-classnames Details)]
       (dom/div #js {:className (:container css)}
         (ui/info {::ui/title "Display Name"}
@@ -42,9 +44,11 @@
         (ui/info {::ui/title "Ident"}
           (ui/ident {} ident))
         (ui/info {::ui/title "Props"}
-          (data-viewer/data-viewer props-view))
-        (ui/info {::ui/title "Query"}
-          (data-viewer/data-viewer query-view))))))
+          (data-viewer/data-viewer props-view {:raw? true}))
+        (ui/info {::ui/title "Static (startup) Query"}
+          (data-viewer/data-viewer static-query-view {:raw? true}))
+        (ui/info {::ui/title "Current (dynamic) Query"}
+          (data-viewer/data-viewer query-view {:raw? true}))))))
 
 (def details (fp/factory Details))
 

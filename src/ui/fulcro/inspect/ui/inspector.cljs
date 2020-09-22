@@ -125,7 +125,7 @@
       (dom/div :.tabs
         (tab-item {:title "DB" :page ::page-db})
         (tab-item {:title "DB Explorer" :page ::page-db-explorer})
-        #_(tab-item {:title "Element" :page ::page-element})
+        (tab-item {:title "Element" :page ::page-element})
         (tab-item {:title "Transactions" :page ::page-transactions})
         (tab-item {:title "Network" :page ::page-network})
         (tab-item {:title "Query" :page ::page-oge})
