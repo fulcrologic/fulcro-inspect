@@ -1,21 +1,23 @@
 (ns com.wsscode.oge.core
-  (:require [cljs.reader :refer [read-string]]
-            [cognitect.transit :as transit]
-            [com.wsscode.oge.ui.codemirror :as codemirror]
-            [com.wsscode.oge.ui.common :as ui]
-            [com.wsscode.oge.ui.flame-graph :as ui.flame]
-            [com.wsscode.oge.ui.helpers :as helpers]
-            [com.wsscode.pathom.connect :as pc]
-            [com.wsscode.pathom.core :as p]
-            [com.wsscode.pathom.profile :as pp]
-            [fulcro.client.data-fetch :as fetch]
-            [fulcro.client.localized-dom :as dom]
-            [fulcro.client.mutations :as mutations]
-            [fulcro.client.primitives :as fp]
-            [fulcro.inspect.helpers :as db.h]
-            [fulcro.inspect.ui.core :as cui]
-            [fulcro.inspect.ui.helpers :as h]
-            [fulcro.tempid :as tempid]))
+  (:require
+    [cljs.reader :refer [read-string]]
+    [cognitect.transit :as transit]
+    [com.wsscode.oge.ui.codemirror :as codemirror]
+    [com.wsscode.oge.ui.common :as ui]
+    [com.wsscode.oge.ui.flame-graph :as ui.flame]
+    [com.wsscode.oge.ui.helpers :as helpers]
+    [com.wsscode.pathom.connect :as pc]
+    [com.wsscode.pathom.core :as p]
+    [com.wsscode.pathom.profile :as pp]
+    [fulcro.client.data-fetch :as fetch]
+    [fulcro.client.localized-dom :as dom]
+    [fulcro.client.mutations :as mutations]
+    [fulcro.client.primitives :as fp]
+    [fulcro.inspect.helpers :as db.h]
+    [fulcro.inspect.ui.core :as cui]
+    [fulcro.inspect.ui.helpers :as h]
+    [fulcro.tempid :as tempid]
+    [taoensso.timbre :as log]))
 
 (mutations/defmutation clear-errors [_]
   (action [{:keys [state]}]
@@ -25,33 +27,52 @@
   (action [{:keys [ref state]}]
     (let [result' (cond-> (-> @state (get-in ref) :oge/result')
                     (get @state ::p/errors) (assoc ::p/errors (->> (get @state ::p/errors)
-                                                                   (into {} (map (fn [[k v]] [(vec (next k)) v]))))))
+                                                                (into {} (map (fn [[k v]] [(vec (next k)) v]))))))
           profile (some-> result' ::pp/profile)
           result  (db.h/pprint (dissoc result' ::pp/profile))]
       (swap! state update-in ref merge {:oge/result  result
                                         :oge/profile profile}))))
 
-(def inspect-readers
-  {'transit/bigdec transit/bigdec
-   'fulcro/tempid  tempid/tempid})
+(mutations/defmutation normalize-mutation-result [_]
+  (action [{:keys [ref state]}]
+    (let [result' (cond-> (-> @state (get-in ref) :oge/result')
+                    (get @state ::p/errors) (assoc ::p/errors (->> (get @state ::p/errors)
+                                                                (into {} (map (fn [[k v]] [(vec (next k)) v]))))))
+          result  (db.h/pprint (dissoc result' ::pp/profile))]
+      (swap! state update-in ref merge {:oge/result  result
+                                        :oge/profile nil}))))
 
-(defn oge-query [this query]
+(defn transit-tagged-reader [tag value] (transit/tagged-value tag value))
+
+(defn oge-query [this string-expression]
   (let [{:oge/keys [remote] :as props} (fp/props this)
         {:fulcro.inspect.core/keys [app-uuid]} (fp/get-computed props)
         ident (fp/get-ident this)]
     (try
-      (fp/transact! this [`(clear-errors {})
-                          (list 'fulcro/load {:target        (conj ident :oge/result')
-                                              :query         [{(list :>/oge {:fulcro.inspect.core/app-uuid app-uuid
-                                                                             :fulcro.inspect.client/remote remote})
-                                                               (read-string {:readers inspect-readers} query)}]
-                                              :refresh       [:oge/result]
-                                              :marker        (keyword "oge-query" (p/ident-value* ident))
-                                              :post-mutation `normalize-result})])
+      (let [eql       (read-string {:default transit-tagged-reader} string-expression)
+            {:keys [children]} (fp/query->ast eql)
+            mutation? (= :call (some-> children first :type))]
+        (if mutation?
+          (do
+            (fp/transact! this [`(clear-errors {})])
+            (fetch/load this :oge/mutation-result nil {:target        (conj ident :oge/result')
+                                                       :post-mutation `normalize-mutation-result
+                                                       :marker        (keyword "oge-query" (p/ident-value* ident))
+                                                       :params        {:fulcro.inspect.core/app-uuid app-uuid
+                                                                       :fulcro.inspect.client/remote remote
+                                                                       :mutation                     eql}}))
+          (fp/transact! this [`(clear-errors {})
+                              (list 'fulcro/load {:target        (conj ident :oge/result')
+                                                  :query         [{(list :>/oge {:fulcro.inspect.core/app-uuid app-uuid
+                                                                                 :fulcro.inspect.client/remote remote})
+                                                                   eql}]
+                                                  :refresh       [:oge/result]
+                                                  :marker        (keyword "oge-query" (p/ident-value* ident))
+                                                  :post-mutation `normalize-result})])))
       ; for some reason the load marker was missing to refresh ui sometimes without the next line
       (js/setTimeout #(fp/transact! this [:oge/id]) 10)
       (catch :default e
-        (js/console.error "Invalid query" e)))))
+        (js/console.error "Invalid EQL" e)))))
 
 (declare Oge)
 
@@ -133,7 +154,7 @@
                                    :cursor        "pointer"
                                    :width         "14px"
                                    :height        "14px"
-                                   :margin        "3px 8px"
+                                   :margin        "0px 4px"
                                    :transition    "background 150ms"}
                     [:&.index-ready {:background "#36c74b"}]
                     [:&.index-loading {:background "#efe43b"}]
@@ -157,30 +178,34 @@
               (for [r remotes]
                 (dom/option {:key (pr-str r) :value (pr-str r)} (pr-str r))))))
         (dom/div :.flex)
-        (dom/div :.index-state
-          {:classes [(cond
-                       (fetch/loading? index-marker)
-                       :.index-loading
+        (dom/button :.run-button {:style   {:display    "inline-flex"
+                                            :alignItems "center"
+                                            :marginRight "3px"}
+                                  :onClick #(if-not (fetch/loading? index-marker) (update-index this))}
+          "(Re)load Pathom Index"
+          (dom/div :.index-state
+            {:classes [(cond
+                         (fetch/loading? index-marker)
+                         :.index-loading
 
-                       (::pc/index-io indexes)
-                       :.index-ready
+                         (::pc/index-io indexes)
+                         :.index-ready
 
-                       :else
-                       :.index-unavailable)]
-           :title   (cond
-                      (fetch/loading? index-marker)
-                      "Loading index..."
+                         :else
+                         :.index-unavailable)]
+             :title   (cond
+                        (fetch/loading? index-marker)
+                        "Loading index..."
 
-                      (::pc/index-io indexes)
-                      "Index ready"
+                        (::pc/index-io indexes)
+                        "Index ready"
 
-                      :else
-                      "Index unavailable")
-           :onClick #(if-not (fetch/loading? index-marker) (update-index this))})
+                        :else
+                        "Index unavailable")}))
         (dom/button :.run-button
           {:onClick  run-query
            :disabled (fetch/loading? query-marker)}
-          "Run query"))
+          "Run EQL"))
       (codemirror/oge {:className           (:editor css)
                        :value               (or (str query) "")
                        ::pc/indexes         (p/elide-not-found indexes)

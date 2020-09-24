@@ -45,15 +45,25 @@
 (defresolver 'oge
   {::pc/output [:>/oge ::pp/profile]}
   (fn [{:keys [query] :as env} _]
+    (log/info "Running oge query")
     (async/go
       (let [params    (-> env :ast :params)
             response  (async/<! (client-request env :fulcro.inspect.client/network-request
                                   (-> (select-keys params [:fulcro.inspect.core/app-uuid
                                                            :fulcro.inspect.client/remote])
-                                      (assoc :query query))))
+                                    (assoc :query query))))
             response' (dissoc response ::pp/profile)]
         {::pp/profile (::pp/profile response)
          :>/oge       response'}))))
+
+(defresolver 'run-mutation
+  {::pc/output [:oge/mutation-result]}
+  (fn [env _]
+    (async/go
+      (let [params    (-> env :ast :params)
+            response  (async/<! (client-request env :fulcro.inspect.client/network-request params))
+            response' (dissoc response ::pp/profile)]
+        {:oge/mutation-result response'}))))
 
 (defresolver 'oge-index
   {::pc/output [::pc/indexes]}
@@ -63,7 +73,7 @@
         (let [response (async/<! (client-request env :fulcro.inspect.client/network-request
                                    (-> (select-keys params [:fulcro.inspect.core/app-uuid
                                                             :fulcro.inspect.client/remote])
-                                       (assoc :query [{::pc/indexes query}]))))]
+                                     (assoc :query [{::pc/indexes query}]))))]
           response)))))
 
 (defresolver 'index-explorer

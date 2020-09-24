@@ -128,7 +128,7 @@
         (tab-item {:title "Element" :page ::page-element})
         (tab-item {:title "Transactions" :page ::page-transactions})
         (tab-item {:title "Network" :page ::page-network})
-        (tab-item {:title "Query" :page ::page-oge})
+        (tab-item {:title "EQL" :page ::page-oge})
         (tab-item {:title "Index Explorer" :page ::page-index-explorer})
         #_(tab-item {:title "i18n" :page ::page-i18n})
         (tab-item {:title "Settings" :page ::page-settings})

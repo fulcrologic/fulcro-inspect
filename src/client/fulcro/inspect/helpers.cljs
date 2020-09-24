@@ -239,14 +239,12 @@
     (assoc-in [:params :fulcro.inspect.core/client-connection-id] (ref-client-connection-id @state ref))
     (assoc-in [:params :fulcro.inspect.core/app-uuid] (ref-app-uuid ref))))
 
-(defn pr-str-with-reader [x]
+(defn pr-str-with-reader [^clj x]
   (cond
-    (transit/bigdec? x)
-    #_=> (str "#transit/bigdec " \" (.-rep x) \")
-    (tempid/tempid? x)
-    #_=> (str "#fulcro/tempid " \" (.-id x) \")
+    (transit/tagged-value? x)
+    #_=> (str "#" (.-tag x) " " (.-rep x))
     :else (try
-            (pr-str x)
+            (str x)
             (catch :default e
               "UNSUPPORTED VALUE"))))
 

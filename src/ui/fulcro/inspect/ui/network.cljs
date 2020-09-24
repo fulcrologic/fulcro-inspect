@@ -93,7 +93,8 @@
   (dom/div :.container
     (ui/info {::ui/title (dom/div
                            "Request"
-                           (dom/button :.send-query {:onClick #(send-to-query this app-uuid (::data-viewer/content request-edn-view))}
+                           (dom/button :.send-query
+                             {:onClick #(send-to-query this app-uuid (::data-viewer/content request-edn-view))}
                              "Send to query"))}
       (dom/pre {:style {:fontSize "10pt"}}
         (h/pprint (::data-viewer/content request-edn-view))))
