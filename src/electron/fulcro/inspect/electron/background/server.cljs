@@ -2,14 +2,36 @@
   (:require
     ["electron" :refer [ipcMain]]
     ["electron-settings" :as settings]
+    [cljs.pprint :refer [pprint]]
     [cljs.core.async :as async :refer [put! take! >! <!] :refer-macros [go go-loop]]
     [cljs.nodejs :as nodejs]
+    [com.fulcrologic.fulcro.inspect.transit-packer :as tp]
     [fulcro.inspect.remote.transit :as encode]
-    [fulcro.websockets.transit-packer :as tp]
     [goog.object :as gobj]
+    [cognitect.transit :as transit]
+    [com.cognitect.transit.types :as transit.types]
     [taoensso.encore :as enc]
     [taoensso.sente.server-adapters.express :as sente-express]
     [taoensso.timbre :as log]))
+
+(defn pr-str-with-reader [^clj x]
+  (cond
+    (transit/tagged-value? x)
+    #_=> (str "#" (.-tag x) " " (.-rep x))
+    :else (try
+            (str x)
+            (catch :default e
+              "UNSUPPORTED VALUE"))))
+
+(extend-protocol IPrintWithWriter
+  transit.types/TaggedValue
+  (-pr-writer [x writer _]
+    (write-all writer (pr-str-with-reader x))))
+
+(defn pprint-default-handler [x]
+  (-write *out* (pr-str-with-reader x)))
+
+(-add-method cljs.pprint/simple-dispatch :default pprint-default-handler)
 
 (defonce channel-socket-server (atom nil))
 
@@ -83,7 +105,7 @@
 
 ;; LANDMARK: ws-client message -> renderer
 (defn forward-client-message-to-renderer! [msg client-id app-uuid]
-  (log/debug "Inspect client->renderer msg-type:" (:type msg))
+  (log/trace "Inspect client->renderer msg-type:" (:type msg))
   (log/trace "Inspect client->renderer message:" msg)
   (log/trace "Inspect client->renderer:" {:client-id client-id :app-uuid app-uuid})
   (try
@@ -161,7 +183,7 @@
 
 (defn forward-renderer-message-to-client! [{:as msg :keys [app-uuid fulcro-inspect-devtool-message]}]
   (log/trace "renderer->client message:" msg)
-  (log/debug "renderer->client devtool-message type:" (:type fulcro-inspect-devtool-message))
+  (log/trace "renderer->client devtool-message type:" (:type fulcro-inspect-devtool-message))
   (log/trace "renderer->client devtool-message:" fulcro-inspect-devtool-message)
   (if-not app-uuid
     (log/warn "Unable to find app-uuid in message:" msg)

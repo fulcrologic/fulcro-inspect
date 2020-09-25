@@ -21,8 +21,7 @@
    "default"               (DefaultHandler.)})
 
 (def read-handlers
-  {"js-error" (fn [[msg data]] (ex-info msg data))
-   unknown-tag (fn [v] (str "UnknownTransitType: " v))})
+  {"js-error" (fn [[msg data]] (ex-info msg data))})
 
 (defn read [str]
   (let [reader (ft/reader {:handlers read-handlers})]
