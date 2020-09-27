@@ -105,7 +105,7 @@
             (dom/p {:style {:fontFamily "Courier"}}
               (dom/pre {}
                 ":devtools {:preloads [;  your websocket or normal preload here, then:\n"
-                "                      com.fulcrologic.fulcro.inspect.element-picker]}"))
+                "                      com.fulcrologic.fulcro.inspect.dom-picker-preload]}"))
             (dom/p "in your shadow-cljs.edn build to install the necessary support.")))))))
 
 (def panel (fp/factory Panel))

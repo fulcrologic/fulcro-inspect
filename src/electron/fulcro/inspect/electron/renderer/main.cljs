@@ -179,7 +179,7 @@
 
 (def fill-last-entry!
   "Request the full state for the currently-selected application"
-  (debounce -fill-last-entry! 500))
+  (debounce -fill-last-entry! 250))
 
 (defn update-client-db [{:fulcro.inspect.core/keys   [app-uuid]
                          :fulcro.inspect.client/keys [state-id]}]

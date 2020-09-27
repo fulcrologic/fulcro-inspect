@@ -104,7 +104,8 @@
           (pr-str watch-path)))
       (if expanded?
         (f.data-viewer/data-viewer data-viewer
-          {::f.data-viewer/path             watch-path
+          {:allow-stale?                    true
+           ::f.data-viewer/path             watch-path
            ::f.data-viewer/path-action      path-action
            ::f.data-viewer/on-expand-change on-expand-change})))))
 
@@ -141,7 +142,8 @@
         watches
         (range))
       (f.data-viewer/data-viewer root-data
-        {::f.data-viewer/search search
+        {:allow-stale?          true
+         ::f.data-viewer/search search
          ::f.data-viewer/path-action
                                 #(fp/transact! this [`(add-data-watch {:path ~%})])}))))
 

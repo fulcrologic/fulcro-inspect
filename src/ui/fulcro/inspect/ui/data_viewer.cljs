@@ -350,11 +350,16 @@
                     [:&:hover
                      [:div {:text-decoration "underline"}]]]]}
   (let [{:keys [id]} content
-        app-uuid  (h/current-app-uuid (fp/component->state-map this))
-        last-step (hist/closest-populated-history-step this id)
-        data      (cond-> (hist/state-map-for-id this app-uuid id)
-                    (vector? path) (get-in path))
-        stale?    (not= (:id last-step) id)]
+        app-uuid      (h/current-app-uuid (fp/component->state-map this))
+        last-step     (hist/closest-populated-history-step this id)
+        desired-state (when-not raw? (hist/state-map-for-id this app-uuid id))
+        stale?        (not= (:id last-step) id)
+        [actual-revision base-data] (cond
+                                      desired-state [id desired-state]
+                                      allow-stale? [(:id last-step) (:value last-step)]
+                                      :else [id {}])
+        data          (cond-> base-data
+                        (vector? path) (get-in path))]
     (dom/div :.container
       (when-not (or path raw?)
         (dom/h4 {:style {:marginTop    "2px"
@@ -362,7 +367,7 @@
           (cond
             (not stale?) (str "Revision " id)
             (and stale? (not allow-stale?)) (str "Revision " id " has not been fetched from the application.")
-            :else (str "Stale Revision " (:id last-step)))))
+            :else (str "Stale Revision " actual-revision " (waiting on revision " id ")"))))
       (if (and stale? (not allow-stale?) (not raw?))
         (when-not path
           (dom/button {:onClick #(fp/transact! this `[(hist/remote-fetch-history-step ~{:id id})])} "Fetch Now"))
@@ -381,10 +386,7 @@
                       :css         css
                       :path        []
                       :path-action path-action}
-          (cond
-            data data
-            raw? content
-            :else (:value last-step)))))))
+          (if raw? content data))))))
 
 (defn all-subvecs [v]
   (:result
