@@ -15,13 +15,9 @@
     [taoensso.timbre :as log]))
 
 (defn pr-str-with-reader [^clj x]
-  (cond
-    (transit/tagged-value? x)
-    #_=> (str "#" (.-tag x) " " (.-rep x))
-    :else (try
-            (str x)
-            (catch :default e
-              "UNSUPPORTED VALUE"))))
+  (if (transit/tagged-value? x)
+    (str "#" (.-tag x) " " (.-rep x))
+    "UNSUPPORTED VALUE"))
 
 (extend-protocol IPrintWithWriter
   transit.types/TaggedValue

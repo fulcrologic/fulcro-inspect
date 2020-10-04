@@ -5,8 +5,7 @@
     [fulcro.client.primitives :as fp]
     [fulcro.client.mutations :as mutations]
     [fulcro.inspect.lib.local-storage :as storage]
-    [cognitect.transit :as transit]
-    [fulcro.tempid :as tempid]))
+    [cognitect.transit :as transit]))
 
 (defn- om-ident? [x]
   (and (vector? x)
@@ -240,19 +239,12 @@
     (assoc-in [:params :fulcro.inspect.core/app-uuid] (ref-app-uuid ref))))
 
 (defn pr-str-with-reader [^clj x]
-  (cond
-    (transit/tagged-value? x)
-    #_=> (str "#" (.-tag x) " " (.-rep x))
-    :else (try
-            (str x)
-            (catch :default e
-              "UNSUPPORTED VALUE"))))
+  (if (transit/tagged-value? x)
+    (str "#" (.-tag x) " " (.-rep x))
+    "UNSUPPORTED VALUE"))
 
 (extend-protocol IPrintWithWriter
   transit.types/TaggedValue
-  (-pr-writer [x writer _]
-    (write-all writer (pr-str-with-reader x)))
-  tempid/TempId
   (-pr-writer [x writer _]
     (write-all writer (pr-str-with-reader x))))
 
