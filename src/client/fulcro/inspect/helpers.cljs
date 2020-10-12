@@ -241,7 +241,10 @@
 (defn pr-str-with-reader [^clj x]
   (if (transit/tagged-value? x)
     (str "#" (.-tag x) " " (.-rep x))
-    "UNSUPPORTED VALUE"))
+    (try
+      (str x)
+      (catch :default _
+        "UNSUPPORTED VALUE"))))
 
 (extend-protocol IPrintWithWriter
   transit.types/TaggedValue
