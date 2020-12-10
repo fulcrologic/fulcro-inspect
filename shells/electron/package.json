@@ -1,6 +1,6 @@
 {
   "name": "fulcro-inspect-electron",
-  "version": "3.0.2",
+  "version": "3.0.3",
   "description": "Electron Version of Fulcro Inspect",
   "homepage": "https://github.com/fulcrologic/fulcro-inspect",
   "main": "js/background/main.js",
@@ -11,10 +11,10 @@
   "license": "MIT",
   "repository": "https://github.com:/fulcrologic/fulcro-inspect.git",
   "dependencies": {
+    "cors": "^2.8.5",
     "electron-settings": "^3.2.0",
     "express": "^4.16.3",
-    "express-ws": "^4.0.0",
-    "cors": "^2.8.5"
+    "express-ws": "^4.0.0"
   },
   "devDependencies": {
     "electron": "^6.0.12",
