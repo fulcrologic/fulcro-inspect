@@ -242,7 +242,10 @@
   (if (transit/tagged-value? x)
     (str "#" (.-tag x) " " (.-rep x))
     (try
-      (str x)
+      (try
+        (pr-str x)
+        (catch :default _
+          (str x)))
       (catch :default _
         "UNSUPPORTED VALUE"))))
 
