@@ -81,7 +81,7 @@ To use the electron inspect make sure you add this preload to your preloads:
            :preloads        [com.fulcrologic.fulcro.inspect.websocket-preload]}
 ```
 
-or call the function `com.fulcrologic.fulcro.inspect.inspect-client/install-ws` somewhere in your 
+or call the function `com.fulcrologic.fulcro.inspect.inspect-ws/install-ws` somewhere in your 
 development startup.
 
 ### Choosing the Websocket Port
