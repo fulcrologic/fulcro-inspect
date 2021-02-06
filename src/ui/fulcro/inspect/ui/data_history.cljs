@@ -15,7 +15,8 @@
     [fulcro.inspect.ui.helpers :as ui.h]
     [fulcro.inspect.helpers :as db.h]
     [fulcro.client.mutations :as m]
-    [taoensso.timbre :as log]))
+    [taoensso.timbre :as log]
+    [fulcro.client.primitives :as prim]))
 
 (def ^:dynamic *max-history* 80)
 
@@ -44,10 +45,30 @@
 (fm/defmutation navigate-history [{::keys [current-index]}]
   (action [{:keys [state ref] :as env}]
     (let [history (get-in @state ref)]
+      (let [state-id (get-in history [::history current-index ::state-id])]
+        (h/swap-entity! env assoc ::current-index current-index)
+        (watcher/update-state* (assoc env :ref (::watcher history)) {:id state-id}))))
+  (refresh [env] [:ui/historical-dom-view]))
+
+(defn has-state? [{:keys [state ref reconciler] :as env} {::keys [current-index]}]
+  (let [history (get-in @state ref)]
+    (let [state-id         (get-in history [::history current-index ::state-id])
+          app-uuid         (second (get history ::history-id))
+          {::hist/keys [db-hash-index]} (get-in reconciler [:config :shared])
+          historical-state (get @db-hash-index [app-uuid state-id])]
+      (not (empty? historical-state)))))
+
+(fm/defmutation fetch-and-show-history [{::keys [current-index] :as params}]
+  (action [{:keys [state ref reconciler] :as env}]
+    (let [history (get-in @state ref)]
       (when (not= current-index (::current-index history))
         (let [state-id (get-in history [::history current-index ::state-id])]
-          (h/swap-entity! env assoc ::current-index current-index)
-          (watcher/update-state* (assoc env :ref (::watcher history)) {:id state-id})))))
+          (if (has-state? env params)
+            (js/setTimeout (fn []
+                             (prim/transact! reconciler ref `[(navigate-history {::current-index ~current-index})])) 0)
+            (js/setTimeout (fn []
+                             (prim/ptransact! reconciler ref `[(hist/remote-fetch-history-step {:id ~state-id})
+                                                               (navigate-history {::current-index ~current-index})])) 0))))))
   (refresh [env] [:ui/historical-dom-view])
   (remote [{:keys [ref state] :as env}]
     (let [history  (get-in @state ref)
@@ -56,6 +77,7 @@
         (-> (db.h/remote-mutation env 'show-dom-preview)
           (assoc-in [:params :fulcro.inspect.client/state-id] state-id))
         false))))
+
 
 (fm/defmutation hide-dom-preview [_]
   (remote [env]
@@ -165,7 +187,7 @@
                      ::history           [(new-state content)]
                      ::search            ""
                      ::current-index     0
-                     ::show-dom-preview? true
+                     ::show-dom-preview? false
                      ::show-snapshots?   true
                      ::watcher           (fp/get-initial-state watcher/DataWatcher (dissoc content :fulcro.inspect.client/state-hash))
                      ::snapshots         []})
@@ -204,16 +226,15 @@
                       :type     "checkbox"}))
 
         (ui/toolbar-action {:disabled (= 0 current-index)
-                            :onClick  #(fp/transact! this `[(navigate-history ~{::current-index (dec current-index)})])}
+                            :onClick  #(fp/transact! this `[(fetch-and-show-history ~{::current-index (dec current-index)})])}
           (ui/icon {:title "Back one version"} :chevron_left))
 
-        (dom/input {:type      "range" :min "0" :max (dec (count history))
-                    :value     (str current-index)
-                    :onMouseUp (fn [] (fp/transact! this `[(hide-dom-preview {})]))
-                    :onChange  #(fp/transact! this `[(navigate-history {::current-index ~(js/parseInt (.. % -target -value))})])})
+        (dom/input {:type     "range" :min "0" :max (dec (count history))
+                    :value    (str current-index)
+                    :onChange #(fp/transact! this `[(fetch-and-show-history {::current-index ~(js/parseInt (.. % -target -value))})])})
 
         (ui/toolbar-action {:disabled at-end?
-                            :onClick  #(fp/transact! this `[(navigate-history ~{::current-index (inc current-index)})])}
+                            :onClick  #(fp/transact! this `[(fetch-and-show-history ~{::current-index (inc current-index)})])}
           (ui/icon {:title "Forward one version"} :chevron_right))
 
         (ui/toolbar-action {:onClick

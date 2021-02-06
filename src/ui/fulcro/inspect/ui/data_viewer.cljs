@@ -367,7 +367,9 @@
           (cond
             (not stale?) (str "Revision " id)
             (and stale? (not allow-stale?)) (str "Revision " id " has not been fetched from the application.")
-            :else (str "Stale Revision " actual-revision " (waiting on revision " id ")"))))
+            :else (if (and (int? actual-revision) (int? id))
+                    (str "Stale Revision " actual-revision " (waiting on revision " id ")")
+                    ""))))
       (if (and stale? (not allow-stale?) (not raw?))
         (when-not path
           (dom/button {:onClick #(fp/transact! this `[(hist/remote-fetch-history-step ~{:id id})])} "Fetch Now"))

@@ -22,20 +22,27 @@
 
 (defn db-index-add
   [db app-uuid {:keys [id value] :as history-step}]
-  (let [history        (get db app-uuid (sorted-map))
-        pruned-history (if (> (count history) DB_HISTORY_BUFFER_SIZE)
-                         (into (sorted-map)
-                           (drop DB_HISTORY_BUFFER_WINDOW history))
-                         history)
-        new-history    (assoc pruned-history id value)]
-    (assoc db app-uuid new-history)))
+  (if id
+    (let [history        (get db app-uuid (sorted-map))
+          pruned-history (if (> (count history) DB_HISTORY_BUFFER_SIZE)
+                           (into (sorted-map)
+                             (drop DB_HISTORY_BUFFER_WINDOW history))
+                           history)
+          new-history    (assoc pruned-history id value)]
+      (assoc db app-uuid new-history))
+    db))
 
 (defn state-map-for-id
   "Get the value of a state in history that has the given state id. Returns an empty map
    with the entry `:inspect/fetched? false` if the state is not currently available."
   [app-ish app-uuid state-id]
-  (let [history (history-by-state-id app-ish app-uuid)]
-    (get history state-id)))
+  (try
+    (if (int? state-id)
+      (let [history (history-by-state-id app-ish app-uuid)]
+        (get history state-id))
+      {})
+    (catch :default _
+      {})))
 
 (defn history-step
   "Return a history step (map w/id and value) for the given state id."
@@ -87,7 +94,6 @@
           history  (when app-uuid (history-by-state-id reconciler app-uuid))
           base     (when history (best-populated-base history id))
           fake-ref [:ignored [:ignored app-uuid]]
-          ;; TASK: acceptable diff logic
           env      (cond-> (assoc env :ref fake-ref)
                      base (assoc-in [:ast :params :based-on] base))]
       (when (not= base id)
