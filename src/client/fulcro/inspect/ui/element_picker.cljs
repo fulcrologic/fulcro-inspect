@@ -65,7 +65,9 @@
 
 (defn react-raw-instance [node]
   (if-let [instance-key (->> (gobj/getKeys node)
-                             (filter #(str/starts-with? % "__reactInternalInstance$"))
+                             (filter #(or (str/starts-with? % "__reactInternalInstance$") ; react < 17
+                                          (str/starts-with? % "__reactFiber$")))          ; react >= 17
+                             (sort-by #(if (str/starts-with? % "__reactInternalInstance$") 0 1))
                              (first))]
     (gobj/get node instance-key)))
 
