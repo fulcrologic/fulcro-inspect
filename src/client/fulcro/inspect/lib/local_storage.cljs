@@ -1,7 +1,8 @@
 (ns fulcro.inspect.lib.local-storage
   (:refer-clojure :exclude [get set!])
   (:require [cljs.reader :refer [read-string]]
-            [fulcro.inspect.remote.transit :as transit]))
+            [fulcro.inspect.remote.transit :as transit]
+            [taoensso.timbre :as log]))
 
 (defn read-transit [s]
   (transit/read s))
@@ -13,11 +14,18 @@
 
 ;; edn
 
+(declare remove!)
+
 (defn get
   ([key] (get key nil))
   ([key default]
    (if-let [value (.getItem local-storage (pr-str key))]
-     (read-string value)
+     (try
+       (read-string value)
+       (catch :default e
+         (log/error e "Unable to read local storage. Clearing storage key" key)
+         (remove! key)
+         default))
      default)))
 
 (defn set! [key value]
