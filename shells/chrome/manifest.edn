@@ -1,6 +1,6 @@
 {:manifest_version        2
  :name                    "Fulcro Inspect"
- :version                 "3.0.5"
+ :version                 "3.1.0"
  :description             "Fulcro is a development framework that uses React and CLJS. This extension adds ability to track Fulcro DB, transactions and network"
 
  :icons                   {"16"  "icon-16.png"
