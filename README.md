@@ -2,7 +2,7 @@
 
 [![Clojars Project](https://img.shields.io/clojars/v/fulcrologic/fulcro-inspect.svg)](https://clojars.org/fulcrologic/fulcro-inspect)
 
-Latest Release: [![CircleCI](https://circleci.com/gh/fulcrologic/fulcro-inspect/tree/master.svg?style=svg)](https://circleci.com/gh/fulcrologic/fulcro-inspect/tree/master)
+Latest Release: [![CircleCI](https://circleci.com/gh/fulcrologic/fulcro-inspect/tree/main.svg?style=svg)](https://circleci.com/gh/fulcrologic/fulcro-inspect/tree/main)
 
 Inspect Fulcro applications
 
@@ -123,19 +123,19 @@ The DB tab contains the state of the app.
 
 Use the triangles to expand/collapse data:
 
-![Expand/collapse data](https://raw.githubusercontent.com/fulcrologic/fulcro-inspect/master/doc/db-expand.gif)
+![Expand/collapse data](https://raw.githubusercontent.com/fulcrologic/fulcro-inspect/main/doc/db-expand.gif)
 
 Click on expanded keys to watch their content:
 
-![Watch DB](https://raw.githubusercontent.com/fulcrologic/fulcro-inspect/master/doc/db-watch.gif)
+![Watch DB](https://raw.githubusercontent.com/fulcrologic/fulcro-inspect/main/doc/db-watch.gif)
 
 Use `cmd`/`meta` key + click to expand/collapse the whole sub-tree:
 
-![Expand/collapse sub-tree](https://raw.githubusercontent.com/fulcrologic/fulcro-inspect/master/doc/db-expand-children.gif)
+![Expand/collapse sub-tree](https://raw.githubusercontent.com/fulcrologic/fulcro-inspect/main/doc/db-expand-children.gif)
 
 To copy contents from maps or sequences, expand it and them click on the copy button:
 
-![Copy data](https://raw.githubusercontent.com/fulcrologic/fulcro-inspect/master/doc/db-copy.gif)
+![Copy data](https://raw.githubusercontent.com/fulcrologic/fulcro-inspect/main/doc/db-copy.gif)
 
 ## Building Chrome Extension
 
