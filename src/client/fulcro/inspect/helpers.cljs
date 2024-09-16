@@ -1,11 +1,13 @@
 (ns fulcro.inspect.helpers
   (:require
     [cljs.pprint]
+    [cognitect.transit :as transit]
     [com.cognitect.transit.types :as transit.types]
+    [com.fulcrologic.fulcro.algorithms.denormalize :as fdn]
+    [com.fulcrologic.fulcro.application :as app]
     [com.fulcrologic.fulcro.components :as fp]
     [com.fulcrologic.fulcro.mutations :as mutations]
-    [fulcro.inspect.lib.local-storage :as storage]
-    [cognitect.transit :as transit]))
+    [fulcro.inspect.lib.local-storage :as storage]))
 
 (defn- om-ident? [x]
   (and (vector? x)
@@ -13,19 +15,12 @@
     (keyword? (first x))))
 
 (defn query-component
-  ([this]
-   (let [component (fp/react-type this)
-         ref       (fp/get-ident this)
-         state     (-> this fp/get-reconciler fp/app-state deref)
-         query     (fp/get-query component)]
-     (fp/db->tree query (get-in state ref) state)))
-  ([this focus-path]
-   (let [component (fp/react-type this)
-         ref       (fp/get-ident this)
-         state     (-> this fp/get-reconciler fp/app-state deref)
-         query     (fp/focus-query (fp/get-query component) focus-path)]
-     (-> (fp/db->tree query (get-in state ref) state)
-       (get-in focus-path)))))
+  [this]
+  (let [component (fp/react-type this)
+        ref       (fp/get-ident this)
+        state     (app/current-state this)
+        query     (fp/get-query component)]
+    (fdn/db->tree query (get-in state ref) state)))
 
 (defn swap-entity! [{:keys [state ref]} & args]
   (apply swap! state update-in ref args))

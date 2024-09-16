@@ -1,20 +1,19 @@
 (ns fulcro.inspect.lib.history
   (:require
-    [clojure.pprint :refer [pprint]]
-    [fulcro.inspect.helpers :as h]
-    [com.fulcrologic.fulcro.components :as fp]
+    [com.fulcrologic.fulcro.application :as app]
+    [com.fulcrologic.fulcro.components :as comp]
+    [com.fulcrologic.fulcro.components]
     [com.fulcrologic.fulcro.mutations :as fm]
-    [taoensso.timbre :as log]))
+    [fulcro.inspect.helpers :as h]))
 
 (def DB_HISTORY_BUFFER_SIZE 80)
 (def DB_HISTORY_BUFFER_WINDOW 20)
 
 (defn history-by-state-id
   "Find the state database history for the given app-uuid, given a component or
-  reconciler."
+  app."
   [app-ish app-uuid]
-  (let [reconciler (fp/any->reconciler app-ish)
-        {::keys [db-hash-index]} (get-in reconciler [:config :shared])]
+  (let [{::keys [db-hash-index]} (comp/shared app-ish [:config :shared])]
     (some-> db-hash-index deref (get app-uuid))))
 
 (defn latest-state-id [app-ish app-uuid]
@@ -56,16 +55,12 @@
    can be recorded without a value, in which case the user will be able to request it
    on demand when needed."
   [app-ish app-uuid history-step]
-  (if-let [reconciler (some-> app-ish (fp/get-reconciler))]
-    (let [{::keys [db-hash-index] :as shared} (get-in reconciler [:config :shared])]
-      (swap! db-hash-index db-index-add app-uuid history-step))
-    (log/error "Could not get reconciler from " app-ish)))
+  (let [{::keys [db-hash-index] :as shared} (comp/shared app-ish [:config :shared])]
+    (swap! db-hash-index db-index-add app-uuid history-step)))
 
 (defn clear-history! [app-ish app-uuid]
-  (if-let [reconciler (some-> app-ish (fp/get-reconciler))]
-    (let [{::keys [db-hash-index]} (get-in reconciler [:config :shared])]
-      (swap! db-hash-index dissoc app-uuid))
-    (log/error "Could not get reconciler from " app-ish)))
+  (let [{::keys [db-hash-index]} (comp/shared app-ish [:config :shared])]
+    (swap! db-hash-index dissoc app-uuid)))
 
 (defn- best-populated-base
   "Given the actual map from state IDs to values: Find the one closest in time to the given ID that is before it
@@ -77,21 +72,20 @@
 
 (defn closest-populated-history-step
   [this id]
-  (let [reconciler (fp/get-reconciler this)
-        state      (fp/app-state reconciler)
-        app-uuid   (h/current-app-uuid @state)
-        history    (when app-uuid (history-by-state-id reconciler app-uuid))
-        base       (when history (best-populated-base history id))
-        value      (state-map-for-id this app-uuid base)]
+  (let [state    (app/current-state this)
+        app-uuid (h/current-app-uuid @state)
+        history  (when app-uuid (history-by-state-id this app-uuid))
+        base     (when history (best-populated-base history id))
+        value    (state-map-for-id this app-uuid base)]
     (when value
       {:id    base
        :value value})))
 
 (fm/defmutation remote-fetch-history-step [{:keys [id]}]
   (refresh [_env] [:fulcro.inspect.ui.data-viewer/content])
-  (remote [{:keys [state reconciler] :as env}]
+  (remote [{:keys [state app] :as env}]
     (let [app-uuid (h/current-app-uuid @state)
-          history  (when app-uuid (history-by-state-id reconciler app-uuid))
+          history  (when app-uuid (history-by-state-id app app-uuid))
           base     (when history (best-populated-base history id))
           fake-ref [:ignored [:ignored app-uuid]]
           env      (cond-> (assoc env :ref fake-ref)

@@ -1,13 +1,12 @@
 (ns fulcro.inspect.ui.element-picker
   (:require [clojure.string :as str]
             [com.fulcrologic.fulcro-css.css :as css]
-            [goog.object :as gobj]
-            [goog.dom :as gdom]
-            [goog.style :as gstyle]
-            [com.fulcrologic.fulcro.dom]
             [com.fulcrologic.fulcro.components :as fp :refer [get-query]]
+            [com.fulcrologic.fulcro.dom]
             [fulcro.inspect.ui.helpers :as ui.h]
-            [fulcro.inspect.remote.transit :as encode]))
+            [goog.dom :as gdom]
+            [goog.object :as gobj]
+            [goog.style :as gstyle]))
 
 (fp/defsc MarkerCSS [_ _]
   {:css [[:.container {:position       "absolute"
