@@ -1,9 +1,9 @@
 (ns com.wsscode.oge.ui.common
-  (:require [fulcro.client.primitives :as fp]
+  (:require [com.fulcrologic.fulcro.components :as fp]
             [com.wsscode.oge.ui.helpers :as helpers]
-            [fulcro-css.css :as css]
-            [fulcro-css.css-protocols :as cssp]
-            [fulcro.client.dom :as dom]))
+            [com.fulcrologic.fulcro-css.css :as css]
+            [com.fulcrologic.fulcro-css.css-protocols :as cssp]
+            [com.fulcrologic.fulcro.dom :as dom]))
 
 (def css-button
   {:color            "#fff"

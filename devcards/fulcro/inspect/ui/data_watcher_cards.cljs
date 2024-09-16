@@ -1,7 +1,7 @@
 (ns fulcro.inspect.ui.data-watcher-cards
   (:require
     [devcards.core :refer-macros [defcard]]
-    [fulcro-css.css :as css]
+    [com.fulcrologic.fulcro-css.css :as css]
     [fulcro.client.cards :refer-macros [defcard-fulcro]]
     [fulcro.inspect.ui.data-watcher :as fi.data-watcher]
     [fulcro.inspect.card-helpers :as card-helpers]))

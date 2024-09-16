@@ -2,8 +2,8 @@
   (:require
     [clojure.pprint :refer [pprint]]
     [fulcro.inspect.helpers :as h]
-    [fulcro.client.primitives :as fp]
-    [fulcro.client.mutations :as fm]
+    [com.fulcrologic.fulcro.components :as fp]
+    [com.fulcrologic.fulcro.mutations :as fm]
     [taoensso.timbre :as log]))
 
 (def DB_HISTORY_BUFFER_SIZE 80)

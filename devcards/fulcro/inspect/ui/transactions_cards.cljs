@@ -1,16 +1,16 @@
 (ns fulcro.inspect.ui.transactions-cards
   (:require
     [devcards.core :refer-macros [defcard]]
-    [fulcro-css.css :as css]
+    [com.fulcrologic.fulcro-css.css :as css]
     [fulcro.client.cards :refer-macros [defcard-fulcro]]
     [fulcro.inspect.ui.transactions :as transactions]
     [fulcro.inspect.card-helpers :as card-helpers]
-    [fulcro.client.primitives :as fp]))
+    [com.fulcrologic.fulcro.components :as fp]))
 
 (def tx
-  '{:tx        [(fulcro.client.mutations/set-props
+  '{:tx        [(com.fulcrologic.fulcro.mutations/set-props
                   {:fulcro.inspect.ui.data-viewer/expanded {[] true [:foo] true}})]
-    :ret       {fulcro.client.mutations/set-props
+    :ret       {com.fulcrologic.fulcro.mutations/set-props
                 {:result
                  {:fulcro.inspect.core/app-id
                                   :fulcro.inspect.ui.data-viewer-cards/data-viewer-16
@@ -25,7 +25,7 @@
                                     :fulcro.inspect.ui.data-viewer/content
                                                                             {:a 3 :b 10 :foo {:barr ["baz" "there"]}}
                                     :fulcro.inspect.ui.data-viewer/expanded {[] true [:foo] true}}}
-                  :fulcro.client.primitives/tables #{:fulcro.inspect.ui.data-viewer/id}
+                  :com.fulcrologic.fulcro.components/tables #{:fulcro.inspect.ui.data-viewer/id}
                   :ui/locale      :en}}}
     :old-state {:id {123 {:a 1}}}
     :new-state {:id {123 {:b 2}}}

@@ -1,16 +1,15 @@
 (ns fulcro.inspect.ui.data-viewer
   (:require [clojure.string :as str]
-            [goog.object :as gobj]
-            [fulcro.client.localized-dom :as dom]
-            [fulcro.client.mutations :as mutations]
-            [fulcro.client.primitives :as fp]
+            [com.fulcrologic.fulcro-css.localized-dom :as dom]
+            [com.fulcrologic.fulcro.components :as fp]
+            [com.fulcrologic.fulcro.mutations :as mutations]
+            [fulcro.inspect.helpers :as h]
             [fulcro.inspect.helpers.clipboard :as clip]
-            [fulcro.inspect.ui.core :as ui]
             [fulcro.inspect.lib.history :as hist]
+            [fulcro.inspect.ui.core :as ui]
             [fulcro.inspect.ui.effects :as effects]
             [fulcro.inspect.ui.events :as events]
-            [taoensso.timbre :as log]
-            [fulcro.inspect.helpers :as h]))
+            [goog.object :as gobj]))
 
 (declare DataViewer)
 

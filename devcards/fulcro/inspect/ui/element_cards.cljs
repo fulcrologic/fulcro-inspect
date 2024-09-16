@@ -1,13 +1,13 @@
 (ns fulcro.inspect.ui.element-cards
   (:require
     [devcards.core :refer-macros [defcard]]
-    [fulcro-css.css :as css]
+    [com.fulcrologic.fulcro-css.css :as css]
     [fulcro.inspect.ui.network-cards :as net.cards]
     [fulcro.client.cards :refer-macros [defcard-fulcro]]
     [fulcro.inspect.ui.network :as network]
     [fulcro.inspect.ui.element :as element]
-    [fulcro.client.primitives :as fp]
-    [fulcro.client.dom :as dom]))
+    [com.fulcrologic.fulcro.components :as fp]
+    [com.fulcrologic.fulcro.dom :as dom]))
 
 (fp/defui ^:once ElementRoot
   static fp/InitialAppState

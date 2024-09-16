@@ -1,9 +1,9 @@
 (ns fulcro.inspect.ui.dom-history-viewer
-  (:require [fulcro.client.primitives :as prim :refer [defsc]]
-            [fulcro.client.mutations :as m :refer [defmutation]]
-            [fulcro-css.css :as css]
-            [fulcro.client.localized-dom :as dom]
-            [fulcro.client.primitives :as fp]
+  (:require [com.fulcrologic.fulcro.components :as prim :refer [defsc]]
+            [com.fulcrologic.fulcro.mutations :as m :refer [defmutation]]
+            [com.fulcrologic.fulcro-css.css :as css]
+            [com.fulcrologic.fulcro-css.localized-dom :as dom]
+            [com.fulcrologic.fulcro.components :as fp]
             [fulcro.inspect.helpers :as db.h]))
 
 (defmutation show-dom-preview [{:keys [state]}]

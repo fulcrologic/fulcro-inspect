@@ -1,8 +1,8 @@
 (ns fulcro.inspect.ui.multi-oge
-  (:require [fulcro.client.primitives :as fp]
+  (:require [com.fulcrologic.fulcro.components :as fp]
             [com.wsscode.oge.core :as oge]
             [fulcro.inspect.helpers :as db.h]
-            [fulcro.client.mutations :as fm]))
+            [com.fulcrologic.fulcro.mutations :as fm]))
 
 (defn select-remote [this remote]
   (fm/set-value! this ::active

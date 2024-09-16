@@ -1,13 +1,13 @@
 (ns fulcro.inspect.ui.data-watcher
-  (:require [fulcro.client.mutations :as mutations :refer-macros [defmutation]]
-            [fulcro.inspect.ui.data-viewer :as f.data-viewer]
+  (:require [com.fulcrologic.fulcro-css.css :as css]
+            [com.fulcrologic.fulcro.components :as fp]
+            [com.fulcrologic.fulcro.dom :as dom]
+            [com.fulcrologic.fulcro.mutations :as mutations :refer-macros [defmutation]]
             [fulcro.inspect.helpers :as db.h]
-            [fulcro-css.css :as css]
-            [fulcro.client.dom :as dom]
-            [fulcro.client.primitives :as fp]
             [fulcro.inspect.lib.local-storage :as storage]
-            [fulcro.inspect.ui.helpers :as h]
-            [fulcro.inspect.ui.core :as ui]))
+            [fulcro.inspect.ui.core :as ui]
+            [fulcro.inspect.ui.data-viewer :as f.data-viewer]
+            [fulcro.inspect.ui.helpers :as h]))
 
 (declare WatchPin)
 

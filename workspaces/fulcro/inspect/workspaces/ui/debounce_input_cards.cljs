@@ -1,12 +1,12 @@
 (ns fulcro.inspect.workspaces.ui.debounce-input-cards
-  (:require [fulcro.client.localized-dom :as dom]
-            [fulcro.client.primitives :as fp]
+  (:require [com.fulcrologic.fulcro-css.localized-dom :as dom]
+            [com.fulcrologic.fulcro.components :as fp]
             [fulcro.inspect.ui.debounce-input :as di]
             [nubank.workspaces.card-types.fulcro :as ct.fulcro]
             [nubank.workspaces.core :as ws]
             [nubank.workspaces.lib.fulcro-portal :as f.portal]
             [nubank.workspaces.model :as wsm]
-            [fulcro.client.mutations :as fm]))
+            [com.fulcrologic.fulcro.mutations :as fm]))
 
 (fp/defsc DataViewerDemo
   [this {::keys [text]}]

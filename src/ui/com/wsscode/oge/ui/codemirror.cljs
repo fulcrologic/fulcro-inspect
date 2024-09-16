@@ -1,6 +1,6 @@
 (ns com.wsscode.oge.ui.codemirror
-  (:require [fulcro.client.primitives :as fp]
-            [fulcro.client.dom :as dom]
+  (:require [com.fulcrologic.fulcro.components :as fp]
+            [com.fulcrologic.fulcro.dom :as dom]
             [goog.object :as gobj]
             [com.wsscode.pathom.connect :as pc]
             [clojure.string :as str]

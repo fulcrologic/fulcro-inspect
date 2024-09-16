@@ -1,12 +1,12 @@
 (ns fulcro.inspect.client
   (:require [cljs.core.async :as async]
             [clojure.set :as set]
-            [fulcro-css.css :as css]
-            [fulcro.client :as fulcro]
-            [fulcro.client.localized-dom :as dom]
-            [fulcro.client.mutations :as fm]
+            [com.fulcrologic.fulcro-css.css :as css]
+            [com.fulcrologic.fulcro.application :as fulcro]
+            [com.fulcrologic.fulcro-css.localized-dom :as dom]
+            [com.fulcrologic.fulcro.mutations :as fm]
             [fulcro.client.network :as f.network]
-            [fulcro.client.primitives :as fp]
+            [com.fulcrologic.fulcro.components :as fp]
             [fulcro.inspect.lib.diff :as diff]
             [fulcro.inspect.lib.misc :as misc]
             [fulcro.inspect.lib.version :as version]
@@ -17,6 +17,7 @@
             [goog.object :as gobj]))
 
 (defonce started?* (atom false))
+
 (defonce tools-app* (atom nil))
 (defonce apps* (atom {}))
 (defonce send-ch (async/chan (async/dropping-buffer 1024)))

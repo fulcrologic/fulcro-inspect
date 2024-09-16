@@ -2,8 +2,8 @@
   (:require
     [cljs.pprint]
     [com.cognitect.transit.types :as transit.types]
-    [fulcro.client.primitives :as fp]
-    [fulcro.client.mutations :as mutations]
+    [com.fulcrologic.fulcro.components :as fp]
+    [com.fulcrologic.fulcro.mutations :as mutations]
     [fulcro.inspect.lib.local-storage :as storage]
     [cognitect.transit :as transit]))
 

@@ -1,13 +1,13 @@
 (ns fulcro.inspect.ui.data-history-cards
   (:require
     [devcards.core :refer-macros [defcard]]
-    [fulcro-css.css :as css]
+    [com.fulcrologic.fulcro-css.css :as css]
     [fulcro.client.cards :refer-macros [defcard-fulcro]]
     [fulcro.inspect.ui.data-watcher :as watcher]
     [fulcro.inspect.ui.data-history :as data-history]
     [fulcro.inspect.card-helpers :as card-helpers]
-    [fulcro.client.dom :as dom]
-    [fulcro.client.primitives :as fp]))
+    [com.fulcrologic.fulcro.dom :as dom]
+    [com.fulcrologic.fulcro.components :as fp]))
 
 (defonce n (atom 34))
 

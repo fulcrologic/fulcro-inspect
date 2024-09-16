@@ -1,11 +1,11 @@
 (ns fulcro.inspect.ui.element-picker
   (:require [clojure.string :as str]
-            [fulcro-css.css :as css]
+            [com.fulcrologic.fulcro-css.css :as css]
             [goog.object :as gobj]
             [goog.dom :as gdom]
             [goog.style :as gstyle]
-            [fulcro.client.dom]
-            [fulcro.client.primitives :as fp :refer [get-query]]
+            [com.fulcrologic.fulcro.dom]
+            [com.fulcrologic.fulcro.components :as fp :refer [get-query]]
             [fulcro.inspect.ui.helpers :as ui.h]
             [fulcro.inspect.remote.transit :as encode]))
 

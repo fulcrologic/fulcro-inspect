@@ -5,8 +5,8 @@
             [nubank.workspaces.core :as ws]
             [nubank.workspaces.model :as wsm]
             [fulcro.inspect.ui.transactions :as c.tx]
-            [fulcro.client.localized-dom :as dom]
-            [fulcro.client.primitives :as fp]))
+            [com.fulcrologic.fulcro-css.localized-dom :as dom]
+            [com.fulcrologic.fulcro.components :as fp]))
 
 (defn new-tx [props]
   (merge {::tx-id                       (random-uuid)

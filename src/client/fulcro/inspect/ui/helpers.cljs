@@ -1,8 +1,8 @@
 (ns fulcro.inspect.ui.helpers
-  (:require [fulcro-css.css :as css]
+  (:require [com.fulcrologic.fulcro-css.css :as css]
             [clojure.string :as str]
             [goog.object :as gobj]
-            [fulcro.client.primitives :as fp]))
+            [com.fulcrologic.fulcro.components :as fp]))
 
 (defn js-get-in [x path]
   (gobj/getValueByKeys x (clj->js path)))

@@ -1,11 +1,10 @@
 (ns fulcro.inspect.ui.core
   (:require ["react-draggable" :refer [DraggableCore]]
             [clojure.string :as str]
-            [fulcro-css.css :as css]
-            [fulcro-css.css-protocols :as cssp]
-            [fulcro.client.localized-dom :as dom]
-            [fulcro.client.mutations :as fm]
-            [fulcro.client.primitives :as fc]
+            [com.fulcrologic.fulcro-css.css :as css]
+            [com.fulcrologic.fulcro-css.localized-dom :as dom]
+            [com.fulcrologic.fulcro.mutations :as fm]
+            [com.fulcrologic.fulcro.components :as fc]
             [fulcro.inspect.ui.debounce-input :as di]
             [fulcro.inspect.ui.events :as events]
             [fulcro.inspect.ui.helpers :as h]
@@ -95,9 +94,9 @@
 (defn print-timestamp [date]
   (if date
     (str (add-zeros (.getHours date) 2) ":"
-         (add-zeros (.getMinutes date) 2) ":"
-         (add-zeros (.getSeconds date) 2) ":"
-         (add-zeros (.getMilliseconds date) 3))))
+      (add-zeros (.getMinutes date) 2) ":"
+      (add-zeros (.getSeconds date) 2) ":"
+      (add-zeros (.getMilliseconds date) 3))))
 
 (defn component-class [comp-class css-selector]
   (if-let [class (get (css/get-classnames comp-class) (keyword (subs (name css-selector) 1)))]
@@ -321,8 +320,8 @@
                      :color       "#fff"
                      :text-shadow "0 1px #1b1b1b"}]
           [:&:active {:background  "#797979"
-                     :color       "#fff"
-                     :text-shadow "0 1px #1b1b1b"}]
+                      :color       "#fff"
+                      :text-shadow "0 1px #1b1b1b"}]
           [:&.active {:background  "#aaa"
                       :color       "#fff"
                       :text-shadow "0 1px #1b1b1b"}]]]}
@@ -453,7 +452,7 @@
 
 (defn gen-all-spaces [values-map]
   (apply concat
-    (for [[k v]    values-map
+    (for [[k v] values-map
           prop ["margin" "padding"]]
       (gen-space-classes prop k v))))
 
@@ -478,41 +477,39 @@
    "large"    (str space-large " !important")
    "x-large"  (str space-x-large " !important")})
 
-(fc/defui ^:once CSS
-  static cssp/CSS
-  (local-rules [_] [[:.focused-panel {:border-top     "1px solid #a3a3a3"
-                                      :display        "flex"
-                                      :flex-direction "column"
-                                      :height         "50%"}]
-                    [:.focused-container css-flex-column {:overflow "auto"
-                                                          :padding  "0 10px"}]
+(fc/defsc CSS [_ _]
+  {:css         [[:.focused-panel {:border-top     "1px solid #a3a3a3"
+                                   :display        "flex"
+                                   :flex-direction "column"
+                                   :height         "50%"}]
+                 [:.focused-container css-flex-column {:overflow "auto"
+                                                       :padding  "0 10px"}]
 
-                    [:a {:color           "#4183c4"
-                         :text-decoration "none"}]
+                 [:a {:color           "#4183c4"
+                      :text-decoration "none"}]
 
-                    [:.info-group css-info-group
-                     [(gs/& gs/first-child) {:border-top "0"}]]
-                    [:.info-label css-info-label]
-                    [:.flex {:flex "1"}]
-                    [:$flex {:flex "1"}]
-                    [:$flex-100 {:flex "1" :max-width "100%"}]
-                    [:$highlight {:background "yellow"}]
-                    [:.ident {:padding     "5px 6px"
-                              :background  "#f3f3f3"
-                              :color       "#424242"
-                              :display     "inline-block"
-                              :font-family mono-font-family
-                              :font-size   label-font-size}]
-                    [:.display-name {:background  "#e5efff"
-                                     :color       "#051d38"
-                                     :display     "inline-block"
-                                     :padding     "4px 8px"
-                                     :font-family mono-font-family
-                                     :font-size   "14px"}]
-                    (gen-all-spaces spaces)])
-  (include-children [_]
-    [ToolBar Row InlineEditor Button Header Input Label Toggler
-     Breadcrumb Table Code]))
+                 [:.info-group css-info-group
+                  [(gs/& gs/first-child) {:border-top "0"}]]
+                 [:.info-label css-info-label]
+                 [:.flex {:flex "1"}]
+                 [:$flex {:flex "1"}]
+                 [:$flex-100 {:flex "1" :max-width "100%"}]
+                 [:$highlight {:background "yellow"}]
+                 [:.ident {:padding     "5px 6px"
+                           :background  "#f3f3f3"
+                           :color       "#424242"
+                           :display     "inline-block"
+                           :font-family mono-font-family
+                           :font-size   label-font-size}]
+                 [:.display-name {:background  "#e5efff"
+                                  :color       "#051d38"
+                                  :display     "inline-block"
+                                  :padding     "4px 8px"
+                                  :font-family mono-font-family
+                                  :font-size   "14px"}]
+                 (gen-all-spaces spaces)]
+   :css-include [ToolBar Row InlineEditor Button Header Input Label Toggler
+                 Breadcrumb Table Code]})
 
 (def scss (css/get-classnames CSS))
 
@@ -554,5 +551,5 @@
                       (fc/set-state! this {attribute new-size})))}
     (dom/div (merge {:style {:pointerEvents "all"
                              :cursor        (if (= "x" axis) "ew-resize" "ns-resize")}}
-                    props)
+               props)
       child)))

@@ -3,12 +3,12 @@
     [cljs.spec.alpha :as s]
     [clojure.test.check.generators :as gen]
     [devcards.core :refer-macros [defcard]]
-    [fulcro-css.css :as css]
+    [com.fulcrologic.fulcro-css.css :as css]
     [fulcro.client.cards :refer-macros [defcard-fulcro]]
     [fulcro.inspect.ui.data-viewer :as f.i.data-viewer]
-    [fulcro.client.dom :as dom]
-    [fulcro.client.primitives :as fp]
-    [fulcro.client.mutations :as m :refer [defmutation]]))
+    [com.fulcrologic.fulcro.dom :as dom]
+    [com.fulcrologic.fulcro.components :as fp]
+    [com.fulcrologic.fulcro.mutations :as m :refer [defmutation]]))
 
 (defn make-root [Root app-id]
   (fp/ui

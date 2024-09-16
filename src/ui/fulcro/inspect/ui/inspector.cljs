@@ -1,7 +1,7 @@
 (ns fulcro.inspect.ui.inspector
-  (:require [fulcro.client.localized-dom :as dom]
-            [fulcro.client.mutations :as mutations]
-            [fulcro.client.primitives :as fp]
+  (:require [com.fulcrologic.fulcro-css.localized-dom :as dom]
+            [com.fulcrologic.fulcro.mutations :as mutations]
+            [com.fulcrologic.fulcro.components :as comp]
             [fulcro.inspect.ui.core :as ui]
             [fulcro.inspect.ui.data-history :as data-history]
             [fulcro.inspect.ui.data-viewer :as data-viewer]
@@ -15,7 +15,7 @@
             [fulcro.inspect.ui.settings :as settings]
             [fulcro.inspect.ui.transactions :as transactions]))
 
-(fp/defsc Inspector
+(comp/defsc Inspector
   [this
    {::keys   [app-state tab client-connection-id
               db-explorer element network transactions
@@ -27,17 +27,17 @@
       ::client-connection-id -1
       ::name                 ""
       ::tab                  ::page-db
-      ::app-state            (-> (fp/get-initial-state data-history/DataHistory state)
+      ::app-state            (-> (comp/get-initial-state data-history/DataHistory state)
                                (assoc-in [::data-history/watcher ::data-watcher/root-data ::data-viewer/expanded]
                                  {[] true}))
-      ::element              (fp/get-initial-state element/Panel nil)
-      ::i18n                 (fp/get-initial-state i18n/TranslationsViewer nil)
-      ::index-explorer       (fp/get-initial-state fiex/IndexExplorer {})
-      ::network              (fp/get-initial-state network/NetworkHistory nil)
-      ::oge                  (fp/get-initial-state oge/OgeView {})
-      ::transactions         (fp/get-initial-state transactions/TransactionList [])
-      ::db-explorer          (fp/get-initial-state db-explorer/DBExplorer {})
-      ::settings             (fp/get-initial-state settings/Settings {})
+      ::element              (comp/get-initial-state element/Panel nil)
+      ::i18n                 (comp/get-initial-state i18n/TranslationsViewer nil)
+      ::index-explorer       (comp/get-initial-state fiex/IndexExplorer {})
+      ::network              (comp/get-initial-state network/NetworkHistory nil)
+      ::oge                  (comp/get-initial-state oge/OgeView {})
+      ::transactions         (comp/get-initial-state transactions/TransactionList [])
+      ::db-explorer          (comp/get-initial-state db-explorer/DBExplorer {})
+      ::settings             (comp/get-initial-state settings/Settings {})
       :ui/more-open?         false})
 
    :ident
@@ -46,15 +46,15 @@
    :query
    [::tab ::id ::name :fulcro.inspect.core/app-id :ui/more-open?
     {[:fulcro.inspect.core/floating-panel "main"] [:ui/dock-side]}
-    {::app-state (fp/get-query data-history/DataHistory)}
-    {::db-explorer (fp/get-query db-explorer/DBExplorer)}
-    {::element (fp/get-query element/Panel)}
-    {::network (fp/get-query network/NetworkHistory)}
-    {::i18n (fp/get-query i18n/TranslationsViewer)}
-    {::transactions (fp/get-query transactions/TransactionList)}
-    {::index-explorer (fp/get-query fiex/IndexExplorer)}
-    {::oge (fp/get-query oge/OgeView)}
-    {::settings (fp/get-query settings/Settings)}]
+    {::app-state (comp/get-query data-history/DataHistory)}
+    {::db-explorer (comp/get-query db-explorer/DBExplorer)}
+    {::element (comp/get-query element/Panel)}
+    {::network (comp/get-query network/NetworkHistory)}
+    {::i18n (comp/get-query i18n/TranslationsViewer)}
+    {::transactions (comp/get-query transactions/TransactionList)}
+    {::index-explorer (comp/get-query fiex/IndexExplorer)}
+    {::oge (comp/get-query oge/OgeView)}
+    {::settings (comp/get-query settings/Settings)}]
 
    :css
    [[:.container {:display        "flex"
@@ -174,4 +174,4 @@
           (dom/div
             "Invalid page " (pr-str tab)))))))
 
-(def inspector (fp/factory Inspector))
+(def inspector (comp/factory Inspector))

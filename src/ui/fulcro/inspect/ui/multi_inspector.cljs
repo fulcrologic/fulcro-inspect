@@ -1,15 +1,15 @@
 (ns fulcro.inspect.ui.multi-inspector
   (:require
     [cljs.reader :refer [read-string]]
-    [fulcro.client.mutations :as m]
-    [fulcro.inspect.ui.core :as ui]
-    [fulcro.inspect.ui.inspector :as inspector]
-    [fulcro.client.localized-dom :as dom]
-    [fulcro.client.primitives :as fp]
+    [com.fulcrologic.fulcro-css.css-injection :refer [style-element]]
+    [com.fulcrologic.fulcro-css.localized-dom :as dom]
+    [com.fulcrologic.fulcro.components :as fp]
+    [com.fulcrologic.fulcro.mutations :as m]
     [fulcro.inspect.helpers :as h]
     [fulcro.inspect.helpers :as db.h]
-    [fulcro-css.css :as css]
     [fulcro.inspect.lib.version :as version]
+    [fulcro.inspect.ui.core :as ui]
+    [fulcro.inspect.ui.inspector :as inspector]
     [fulcro.inspect.ui.settings :as settings]))
 
 (m/defmutation add-inspector [inspector]
@@ -84,7 +84,7 @@
                    [:body {:margin 0 :padding 0}]]
    :css-include   [inspector/Inspector settings/Settings]}
   (dom/div :.container
-    (css/style-element this)
+    (style-element {:component this})
     (let [toggle-settings! #(fp/transact! this `[(toggle-settings {})])]
       (if show-settings?
         (settings/ui-settings (fp/computed settings {:close-settings! toggle-settings!}))

@@ -1,21 +1,19 @@
 (ns fulcro.inspect.chrome.devtool.main
   (:require
-    [clojure.pprint :refer [pprint]]
-    [cljs.core.async :as async :refer [go <! put!]]
+    [cljs.core.async :as async :refer [<! go put!]]
     [com.wsscode.common.async-cljs :refer [<?maybe]]
     [com.wsscode.pathom.core :as p]
     [com.wsscode.pathom.fulcro.network :as pfn]
-    [fulcro-css.css-injection :as cssi]
-    [fulcro.client :as fulcro]
-    [fulcro.client.localized-dom :as dom]
-    [fulcro.client.mutations :as fm]
-    [fulcro.client.primitives :as fp]
+    [com.fulcrologic.fulcro-css.css-injection :as cssi]
+    [com.fulcrologic.fulcro.application:as fulcro]
+    [com.fulcrologic.fulcro-css.localized-dom :as dom]
+    [com.fulcrologic.fulcro.mutations :as fm]
+    [com.fulcrologic.fulcro.components :as fp]
     [fulcro.i18n :as fulcro-i18n]
     [fulcro.inspect.helpers :as h]
     [fulcro.inspect.lib.diff :as diff]
     [fulcro.inspect.lib.history :as hist]
     [fulcro.inspect.lib.local-storage :as storage]
-    [fulcro.inspect.lib.misc :as misc]
     [fulcro.inspect.lib.version :as version]
     [fulcro.inspect.remote.transit :as encode]
     [fulcro.inspect.ui-parser :as ui-parser]
@@ -31,10 +29,10 @@
     [fulcro.inspect.ui.network :as network]
     [fulcro.inspect.ui.settings :as settings]
     [fulcro.inspect.ui.transactions :as transactions]
-    [goog.object :as gobj]
     [goog.functions :refer [debounce]]
-    [taoensso.timbre :as log]
-    [taoensso.encore :as enc]))
+    [goog.object :as gobj]
+    [taoensso.encore :as enc]
+    [taoensso.timbre :as log]))
 
 (declare fill-last-entry!)
 

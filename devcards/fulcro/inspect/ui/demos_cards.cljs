@@ -3,9 +3,9 @@
     [devcards.core :refer-macros [defcard]]
     [fulcro.client.cards :refer-macros [defcard-fulcro]]
     [fulcro.i18n :as i18n :refer [tr]]
-    [fulcro.client.primitives :as fp]
-    [fulcro.client.localized-dom :as dom]
-    [fulcro.client.mutations :as mutations]
+    [com.fulcrologic.fulcro.components :as fp]
+    [com.fulcrologic.fulcro-css.localized-dom :as dom]
+    [com.fulcrologic.fulcro.mutations :as mutations]
     [fulcro.inspect.card-helpers :as card.helpers]
     [fulcro.inspect.helpers :as h]))
 

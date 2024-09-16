@@ -1,22 +1,21 @@
 (ns fulcro.inspect.ui.data-history
   (:require
-    [fulcro.client.primitives :as fp]
-    [fulcro.client.localized-dom :as dom]
-    [fulcro.client.mutations :as fm]
-    [garden.selectors :as gs]
-    [fulcro.inspect.ui.events :as events]
-    [fulcro.inspect.lib.local-storage :as storage]
+    [com.fulcrologic.fulcro-css.localized-dom :as dom]
+    [com.fulcrologic.fulcro.components :as fp]
+    [com.fulcrologic.fulcro.components :as prim]
+    [com.fulcrologic.fulcro.mutations :as fm]
+    [com.fulcrologic.fulcro.mutations :as m]
+    [fulcro.inspect.helpers :as h]
+    [fulcro.inspect.helpers :as db.h]
     [fulcro.inspect.lib.history :as hist]
+    [fulcro.inspect.lib.local-storage :as storage]
+    [fulcro.inspect.ui.core :as ui]
     [fulcro.inspect.ui.data-viewer :as data-viewer]
     [fulcro.inspect.ui.data-watcher :as watcher]
-    [fulcro.inspect.ui.core :as ui]
-    [fulcro.inspect.ui.dom-history-viewer :as domv]
-    [fulcro.inspect.helpers :as h]
+    [fulcro.inspect.ui.events :as events]
     [fulcro.inspect.ui.helpers :as ui.h]
-    [fulcro.inspect.helpers :as db.h]
-    [fulcro.client.mutations :as m]
-    [taoensso.timbre :as log]
-    [fulcro.client.primitives :as prim]))
+    [garden.selectors :as gs]
+    [taoensso.timbre :as log]))
 
 (def ^:dynamic *max-history* 80)
 

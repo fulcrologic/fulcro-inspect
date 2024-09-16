@@ -1,7 +1,7 @@
 (ns com.wsscode.oge.ui.network
   (:require [cljsjs.d3]
-            [fulcro.client.dom :as dom]
-            [fulcro.client.primitives :as fp]))
+            [com.fulcrologic.fulcro.dom :as dom]
+            [com.fulcrologic.fulcro.components :as fp]))
 
 (fp/defui ^:once RelationGraph
   Object

@@ -1,6 +1,6 @@
 (ns com.wsscode.oge.ui.flame-graph
-  (:require [fulcro.client.primitives :as om]
-            [fulcro.client.dom :as dom]
+  (:require [com.fulcrologic.fulcro.components :as om]
+            [com.fulcrologic.fulcro.dom :as dom]
             [com.wsscode.pathom.profile :as p.profile]
             [cljsjs.d3]
             ["d3-tip" :as tip]

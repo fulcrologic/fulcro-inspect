@@ -2,8 +2,8 @@
   (:require [cljs.spec.alpha :as s]
             [clojure.string :as str]
             [goog.object :as gobj]
-            [fulcro.client.dom :as dom]
-            [fulcro.client.primitives :as fp]))
+            [com.fulcrologic.fulcro.dom :as dom]
+            [com.fulcrologic.fulcro.components :as fp]))
 
 (def KEYS
   {"backspace" 8
@@ -47,8 +47,8 @@
 (s/def ::modifier #{"ctrl" "alt" "meta" "shift"})
 (s/def ::keystroke
   (s/and string?
-         (s/conformer #(str/split % #"-") #(str/join "-" %))
-         (s/cat :modifiers (s/* ::modifier) :key ::key-string)))
+    (s/conformer #(str/split % #"-") #(str/join "-" %))
+    (s/cat :modifiers (s/* ::modifier) :key ::key-string)))
 (s/def ::key-code pos-int?)
 
 (defn key-code [name] {::key-code (get KEYS name)})
@@ -76,7 +76,7 @@
   (let [{::keys [action]} (fp/props this)
         {:keys [matcher]} (gobj/get this "matcher")]
     (when (and (match-key? e matcher)
-               (match-modifiers? e matcher))
+            (match-modifiers? e matcher))
       (action e))))
 
 (defn read-target [target]
@@ -89,8 +89,8 @@
   (if-let [matcher (parse-keystroke (-> this fp/props ::keystroke))]
     (let [handler #(handle-event this %)
           {::keys [target event]} (fp/props this)
-          target (read-target target)
-          event  (or event "keydown")]
+          target  (read-target target)
+          event   (or event "keydown")]
       (gobj/set this "matcher" {:handler handler
                                 :matcher matcher})
       (if target
@@ -104,14 +104,11 @@
       (if target
         (.removeEventListener target event handler)))))
 
-(fp/defui ^:once KeyListener
-  Object
-  (componentDidMount [this] (start-handler this))
-  (componentWillUnmount [this] (dispose-handler this))
-  (componentWillUpdate [this _ _] (dispose-handler this))
-  (componentDidUpdate [this _ _] (start-handler this))
-
-  (render [_]
-    (dom/noscript nil)))
+(fp/defsc KeyListener [this props]
+  {:componentDidMount    ([this] (start-handler this))
+   :componentWillUnmount ([this] (dispose-handler this))
+   :componentWillUpdate  ([this _ _] (dispose-handler this))
+   :componentDidUpdate   ([this _ _] (start-handler this))}
+  (dom/noscript nil))
 
 (def key-listener (fp/factory KeyListener))

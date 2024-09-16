@@ -1,7 +1,7 @@
 (ns fulcro.inspect.ui.debounce-input
-  (:require [fulcro.client.primitives :as fp]
-            [fulcro.client.localized-dom :as dom]
-            [fulcro.client.mutations :as fm]
+  (:require [com.fulcrologic.fulcro-css.localized-dom :as dom]
+            [com.fulcrologic.fulcro.components :as fp]
+            [com.fulcrologic.fulcro.mutations]
             [goog.functions :as gfun]))
 
 (fp/defsc DebounceInput

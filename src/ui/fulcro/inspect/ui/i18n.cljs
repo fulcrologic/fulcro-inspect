@@ -1,12 +1,12 @@
 (ns fulcro.inspect.ui.i18n
-  (:require [fulcro.client.mutations :as mutations :refer [defmutation]]
+  (:require [com.fulcrologic.fulcro.mutations :as mutations :refer [defmutation]]
             [cljs.reader :refer [read-string]]
-            [fulcro-css.css :as css]
+            [com.fulcrologic.fulcro-css.css :as css]
             [fulcro.i18n :as i18n]
             [fulcro.inspect.ui.core :as ui]
             [fulcro.inspect.helpers :as h]
-            [fulcro.client.localized-dom :as dom]
-            [fulcro.client.primitives :as fp]
+            [com.fulcrologic.fulcro-css.localized-dom :as dom]
+            [com.fulcrologic.fulcro.components :as fp]
             [fulcro.inspect.helpers :as db.h]))
 
 (declare TranslationsViewer)

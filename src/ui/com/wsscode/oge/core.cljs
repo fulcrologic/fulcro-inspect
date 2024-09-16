@@ -2,22 +2,20 @@
   (:require
     [cljs.reader :refer [read-string]]
     [cognitect.transit :as transit]
+    [com.fulcrologic.fulcro-css.localized-dom :as dom]
+    [com.fulcrologic.fulcro.components :as fp]
+    [com.fulcrologic.fulcro.data-fetch :as fetch]
+    [com.fulcrologic.fulcro.mutations :as mutations]
     [com.wsscode.oge.ui.codemirror :as codemirror]
-    [com.wsscode.oge.ui.common :as ui]
+    [com.wsscode.oge.ui.common]
     [com.wsscode.oge.ui.flame-graph :as ui.flame]
     [com.wsscode.oge.ui.helpers :as helpers]
     [com.wsscode.pathom.connect :as pc]
     [com.wsscode.pathom.core :as p]
     [com.wsscode.pathom.profile :as pp]
-    [fulcro.client.data-fetch :as fetch]
-    [fulcro.client.localized-dom :as dom]
-    [fulcro.client.mutations :as mutations]
-    [fulcro.client.primitives :as fp]
     [fulcro.inspect.helpers :as db.h]
     [fulcro.inspect.ui.core :as cui]
-    [fulcro.inspect.ui.helpers :as h]
-    [fulcro.tempid :as tempid]
-    [taoensso.timbre :as log]))
+    [fulcro.inspect.ui.helpers :as h]))
 
 (mutations/defmutation clear-errors [_]
   (action [{:keys [state]}]

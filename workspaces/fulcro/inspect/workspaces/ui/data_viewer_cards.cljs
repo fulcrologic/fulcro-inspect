@@ -1,6 +1,6 @@
 (ns fulcro.inspect.workspaces.ui.data-viewer-cards
-  (:require [fulcro.client.localized-dom :as dom]
-            [fulcro.client.primitives :as fp]
+  (:require [com.fulcrologic.fulcro-css.localized-dom :as dom]
+            [com.fulcrologic.fulcro.components :as fp]
             [fulcro.inspect.ui.data-viewer :as dv]
             [nubank.workspaces.card-types.fulcro :as ct.fulcro]
             [nubank.workspaces.core :as ws]
