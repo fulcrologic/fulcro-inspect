@@ -1,15 +1,14 @@
 (ns fulcro.inspect.chrome.devtool.main
   (:require
     [cljs.core.async :as async :refer [<! go put!]]
+    [com.fulcrologic.fulcro-css.css-injection :as cssi]
+    [com.fulcrologic.fulcro-css.localized-dom :as dom]
+    [com.fulcrologic.fulcro-i18n.i18n :as fulcro-i18n]
+    [com.fulcrologic.fulcro.application :as fulcro]
+    [com.fulcrologic.fulcro.components :as fp]
+    [com.fulcrologic.fulcro.mutations :as fm]
     [com.wsscode.common.async-cljs :refer [<?maybe]]
     [com.wsscode.pathom.core :as p]
-    [com.wsscode.pathom.fulcro.network :as pfn]
-    [com.fulcrologic.fulcro-css.css-injection :as cssi]
-    [com.fulcrologic.fulcro.application:as fulcro]
-    [com.fulcrologic.fulcro-css.localized-dom :as dom]
-    [com.fulcrologic.fulcro.mutations :as fm]
-    [com.fulcrologic.fulcro.components :as fp]
-    [fulcro.i18n :as fulcro-i18n]
     [fulcro.inspect.helpers :as h]
     [fulcro.inspect.lib.diff :as diff]
     [fulcro.inspect.lib.history :as hist]
@@ -40,7 +39,7 @@
   {:initial-state (fn [params] {:ui/root
                                 (-> (fp/get-initial-state multi-inspector/MultiInspector params)
                                   (assoc-in [::multi-inspector/settings :ui/hide-websocket?] true))})
-   :query         [{:ui/root (fp/get-query multi-inspector/MultiInspector)}]
+   :query         [{:ui/root (fp/get-query multi-inspector/1GjMultiInspector)}]
    :css           [[:html {:overflow "hidden"}]
                    [:body {:margin "0" :padding "0" :box-sizing "border-box"}]]
    :css-include   [multi-inspector/MultiInspector]}

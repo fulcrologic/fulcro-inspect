@@ -8,7 +8,7 @@
     [com.fulcrologic.fulcro-css.localized-dom :as dom]
     [com.fulcrologic.fulcro.mutations :as fm]
     [com.fulcrologic.fulcro.components :as fp]
-    [fulcro.i18n :as fulcro-i18n]
+    [com.fulcrologic.fulcro.i18n :as fulcro-i18n]
     [fulcro.inspect.helpers :as h]
     [fulcro.inspect.lib.diff :as diff]
     [fulcro.inspect.lib.history :as hist]

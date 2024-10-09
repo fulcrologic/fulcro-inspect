@@ -1,7 +1,7 @@
 (ns fulcro.inspect.remote.transit
   (:require [cognitect.transit :as t]
             [com.cognitect.transit.types :as ty]
-            [fulcro.transit :as ft]))
+            [com.fulcrologic.fulcro.algorithms.transit :as ft]))
 
 (deftype ErrorHandler []
   Object

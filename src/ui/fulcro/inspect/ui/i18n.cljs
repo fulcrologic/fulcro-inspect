@@ -2,7 +2,7 @@
   (:require [com.fulcrologic.fulcro.mutations :as mutations :refer [defmutation]]
             [cljs.reader :refer [read-string]]
             [com.fulcrologic.fulcro-css.css :as css]
-            [fulcro.i18n :as i18n]
+            [com.fulcrologic.fulcro.i18n :as i18n]
             [fulcro.inspect.ui.core :as ui]
             [fulcro.inspect.helpers :as h]
             [com.fulcrologic.fulcro-css.localized-dom :as dom]
