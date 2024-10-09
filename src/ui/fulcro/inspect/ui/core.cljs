@@ -8,7 +8,7 @@
             [fulcro.inspect.ui.debounce-input :as di]
             [fulcro.inspect.ui.events :as events]
             [fulcro.inspect.ui.helpers :as h]
-            [fulcro.ui.icons :as icons]
+            [com.fulcrologic.fulcro.dom.icons :as icons]
             [garden.selectors :as gs]
             [goog.object :as gobj]))
 
@@ -119,21 +119,20 @@
         path-check (icon-name icons/material-icon-paths)
         icon-name  (str/replace (name icon-name) #"_" "-")]
     (when-not (str/blank? path-check)
-      (dom/svg (clj->js
-                 (cond->
-                   {:className       (str/join " " [(icons/concat-class-string "c-icon" "--" modifiers)
-                                                    (str "c-icon--" icon-name)
-                                                    (icons/concat-state-string states)
-                                                    (icons/concat-class-string className)])
-                    :version         "1.1"
-                    :xmlns           "http://www.w3.org/2000/svg"
-                    :width           "24"
-                    :height          "24"
-                    :aria-labelledby "title"
-                    :role            "img"
-                    :viewBox         "0 0 24 24"
-                    :style           style}
-                   onClick (assoc :onClick #(onClick))))
+      (dom/svg (cond->
+                 {#_#_:classes (str/join " " [(icons/concat-class-string "c-icon" "--" modifiers)
+                                              (str "c-icon--" icon-name)
+                                              (icons/concat-state-string states)
+                                              (icons/concat-class-string className)])
+                  :version         "1.1"
+                  :xmlns           "http://www.w3.org/2000/svg"
+                  :width           "24"
+                  :height          "24"
+                  :aria-labelledby "title"
+                  :role            "img"
+                  :viewBox         "0 0 24 24"
+                  :style           style}
+                 onClick (assoc :onClick #(onClick)))
         (dom/title nil (str title))
         (dom/path #js {:d path-check})))))
 
@@ -388,7 +387,7 @@
 
 (fc/defsc AutoFocusInput
   [this props]
-  {:componentDidMount #(.select (dom/node this))}
+  {:componentDidMount (fn [this] (.select ^js (dom/node this)))}
   (dom/input props))
 
 (def auto-focus-input (fc/factory AutoFocusInput))

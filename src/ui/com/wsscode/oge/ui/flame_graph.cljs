@@ -37,18 +37,15 @@
         (.datum profile')
         (.call flame))))
 
-(om/defui ^:once FlameGraph
-  Object
-  (componentDidMount [this]
-    (let [{:keys [profile]} (om/props this)]
-      (render-flame profile (gobj/get this "root"))))
+(om/defsc  FlameGraph [this props]
+  {:componentDidMount         (fn [this]
+                                (let [{:keys [profile]} (om/props this)]
+                                  (render-flame profile (gobj/get this "root"))))
 
-  (componentWillReceiveProps [this {:keys [profile]}]
-    (when (not= profile (-> this om/props :profile))
-      (gobj/set (gobj/get this "root") "innerHTML" "")
-      (render-flame profile (gobj/get this "root"))))
-
-  (render [this]
-    (dom/div #js {:ref #(gobj/set this "root" %)})))
+   :componentWillReceiveProps (fn [this {:keys [profile]}]
+                                (when (not= profile (-> this om/props :profile))
+                                  (gobj/set (gobj/get this "root") "innerHTML" "")
+                                  (render-flame profile (gobj/get this "root"))))}
+  (dom/div #js {:ref #(gobj/set this "root" %)}))
 
 (def flame-graph (om/factory FlameGraph))

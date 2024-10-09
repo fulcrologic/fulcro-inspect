@@ -5,7 +5,6 @@
             [com.wsscode.pathom.connect :as pc]
             [com.wsscode.pathom.core :as p]
             [com.wsscode.pathom.profile :as pp]
-            [com.wsscode.pathom.viz.index-explorer :as iex]
             [taoensso.timbre :as log]))
 
 ;; LANDMARK: This is the general code that abstract communication between the Fulcro UI and whatever environment it
@@ -75,16 +74,6 @@
                                                             :fulcro.inspect.client/remote])
                                      (assoc :query [{::pc/indexes query}]))))]
           response)))))
-
-(defresolver 'index-explorer
-  {::pc/input  #{::iex/id}
-   ::pc/output [::iex/index]}
-  (fn [env {::iex/keys [id]}]
-    (go-catch
-      (let [params  (-> env ::p/parent-query meta :remote-data)
-            indexes (<? (client-request env :fulcro.inspect.client/network-request
-                          (assoc params :query [{[::iex/id id] [::iex/id ::iex/index]}])))]
-        {::iex/index (get-in indexes [[::iex/id id] ::iex/index])}))))
 
 (defmutation 'reset-app
   {}

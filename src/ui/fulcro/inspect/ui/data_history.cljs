@@ -1,6 +1,7 @@
 (ns fulcro.inspect.ui.data-history
   (:require
     [com.fulcrologic.fulcro-css.localized-dom :as dom]
+    [com.fulcrologic.fulcro.application :as app]
     [com.fulcrologic.fulcro.components :as fp]
     [com.fulcrologic.fulcro.components :as prim]
     [com.fulcrologic.fulcro.mutations :as fm]
@@ -242,7 +243,7 @@
                               #(fp/transact! this `[(reset-app ~{:target-state app-state})]))}
           (ui/icon {:title (if at-end? "Force app re-render" "Reset App To This State")} :settings_backup_restore))
 
-        (ui/toolbar-action {:onClick #(let [{:keys [id] :as content} (-> this fp/get-reconciler fp/app-state deref
+        (ui/toolbar-action {:onClick #(let [{:keys [id] :as content} (-> this app/current-state
                                                                        (h/get-in-path [::watcher/id (::watcher/id watcher)
                                                                                        ::watcher/root-data ::data-viewer/content]))
                                             state-map (hist/state-map-for-id this (h/comp-app-uuid this) id)]

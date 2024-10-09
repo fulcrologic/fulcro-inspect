@@ -4,9 +4,12 @@
     [com.fulcrologic.fulcro-css.css-injection :as cssi]
     [com.fulcrologic.fulcro-css.localized-dom :as dom]
     [com.fulcrologic.fulcro-i18n.i18n :as fulcro-i18n]
+    [com.fulcrologic.fulcro.algorithms.normalize :as fnorm]
+    [com.fulcrologic.fulcro.application :as app]
     [com.fulcrologic.fulcro.application :as fulcro]
     [com.fulcrologic.fulcro.components :as fp]
     [com.fulcrologic.fulcro.mutations :as fm]
+    [com.fulcrologic.fulcro.networking.mock-server-remote :as mock-net]
     [com.wsscode.common.async-cljs :refer [<?maybe]]
     [com.wsscode.pathom.core :as p]
     [fulcro.inspect.helpers :as h]
@@ -21,7 +24,6 @@
     [fulcro.inspect.ui.db-explorer :as db-explorer]
     [fulcro.inspect.ui.element :as element]
     [fulcro.inspect.ui.i18n :as i18n]
-    [fulcro.inspect.ui.index-explorer :as fiex]
     [fulcro.inspect.ui.inspector :as inspector]
     [fulcro.inspect.ui.multi-inspector :as multi-inspector]
     [fulcro.inspect.ui.multi-oge :as multi-oge]
@@ -39,7 +41,7 @@
   {:initial-state (fn [params] {:ui/root
                                 (-> (fp/get-initial-state multi-inspector/MultiInspector params)
                                   (assoc-in [::multi-inspector/settings :ui/hide-websocket?] true))})
-   :query         [{:ui/root (fp/get-query multi-inspector/1GjMultiInspector)}]
+   :query         [{:ui/root (fp/get-query multi-inspector/MultiInspector)}]
    :css           [[:html {:overflow "hidden"}]
                    [:body {:margin "0" :padding "0" :box-sizing "border-box"}]]
    :css-include   [multi-inspector/MultiInspector]}
@@ -70,7 +72,7 @@
       :else new-id)))
 
 (defn inspector-app-names []
-  (some->> @global-inspector* :reconciler fp/app-state deref ::inspector/id vals
+  (some->> @global-inspector* (app/current-state) (::inspector/id) (vals)
     (mapv ::inspector/name) set))
 
 (defn dedupe-name [name]
@@ -111,10 +113,7 @@
                                                                       (mapv #(vector (::fulcro-i18n/locale %) (:ui/locale-name %)))))
                         (assoc-in [::inspector/transactions ::transactions/tx-list-id] [app-uuid-key app-uuid])
                         (assoc-in [::inspector/oge] (fp/get-initial-state multi-oge/OgeView {:app-uuid app-uuid
-                                                                                             :remotes  remotes}))
-                        (assoc-in [::inspector/index-explorer] (fp/get-initial-state fiex/IndexExplorer
-                                                                 {:app-uuid app-uuid
-                                                                  :remotes  remotes})))]
+                                                                                             :remotes  remotes})))]
 
     (hist/record-history-step! inspector app-uuid initial-history-step)
     (fill-last-entry!)
@@ -137,21 +136,21 @@
     new-inspector))
 
 (defn dispose-app [{:fulcro.inspect.core/keys [app-uuid]}]
-  (let [{:keys [reconciler] :as inspector} @global-inspector*
-        state         (fp/app-state reconciler)
+  (let [app           @global-inspector*
+        state         (app/current-state app)
         inspector-ref [::inspector/id app-uuid]
-        app-id        (get (get-in @state inspector-ref) :fulcro.inspect.core/app-id)
-        {::keys [db-hash-index]} (-> inspector :reconciler :config :shared)]
+        app-id        (get (get-in state inspector-ref) :fulcro.inspect.core/app-id)
+        {::keys [db-hash-index]} (fp/shared app)]
 
     (if (= (get-in @state [::multi-inspector/multi-inspector "main" ::multi-inspector/current-app])
           inspector-ref)
       (reset! last-disposed-app* app-id)
       (reset! last-disposed-app* nil))
 
-    (hist/clear-history! inspector app-uuid)
+    (hist/clear-history! app app-uuid)
 
-    (fp/transact! reconciler [::multi-inspector/multi-inspector "main"]
-      [`(multi-inspector/remove-inspector {::inspector/id ~app-uuid})])))
+    (fp/transact! app [(multi-inspector/remove-inspector {::inspector/id app-uuid})]
+      {:ref [::multi-inspector/multi-inspector "main"]})))
 
 (defn tx-run [{:fulcro.inspect.client/keys [tx tx-ref]}]
   (let [{:keys [reconciler]} @global-inspector*]
@@ -160,16 +159,15 @@
       (fp/transact! reconciler tx))))
 
 (defn reset-inspector []
-  (-> @global-inspector* :reconciler fp/app-state (reset! (fp/tree->db GlobalRoot (fp/get-initial-state GlobalRoot {}) true))))
+  (-> @global-inspector* ::app/state-atom (reset! (fnorm/tree->db GlobalRoot (fp/get-initial-state GlobalRoot {}) true))))
 
 (defn- -fill-last-entry!
   []
-  (enc/if-let [inspector  @global-inspector*
-               reconciler (fp/get-reconciler inspector)
-               state-map  @(fp/app-state inspector)
-               app-uuid   (h/current-app-uuid state-map)
-               state-id   (hist/latest-state-id inspector app-uuid)]
-    (fp/transact! reconciler `[(hist/remote-fetch-history-step ~{:id state-id})])
+  (enc/if-let [app       @global-inspector*
+               state-map (app/current-state app)
+               app-uuid  (h/current-app-uuid state-map)
+               state-id  (hist/latest-state-id app app-uuid)]
+    (fp/transact! app [(hist/remote-fetch-history-step {:id state-id})])
     (log/error "Something was nil")))
 
 (def fill-last-entry!
@@ -228,7 +226,7 @@
                     (let [base-state (hist/state-map-for-id inspector app-uuid based-on)]
                       (diff/patch base-state diff)))]
     (hist/record-history-step! inspector app-uuid {:id state-id :value state})
-    (fp/force-root-render! inspector)))
+    (app/force-root-render! inspector)))
 
 ;; LANDMARK: This is where incoming messages from the app are handled
 (defn handle-remote-message [{:keys [port event responses*] :as message}]
@@ -316,37 +314,37 @@
     #_else nil))
 
 (defn make-network [port* parser responses*]
-  (pfn/fn-network
-    (fn [this edn ok error]
-      (go
-        (try
-          (ok (<! (parser {:send-message (fn [type data]
-                                           (or
-                                             (?handle-local-message responses* type data)
-                                             (post-message @port* type data)))
-                           :responses*   responses*} edn)))
-          (catch :default e
-            (error e)))))
-    false))
+  (mock-net/mock-http-server
+    {:parser (fn [edn]
+               (go
+                 (parser
+                   {:send-message (fn [type data]
+                                    (or
+                                      (?handle-local-message responses* type data)
+                                      (post-message @port* type data)))
+                    :responses*   responses*}
+                   edn)))}))
 
 (defn start-global-inspector [options]
   (let [port*      (atom nil)
         responses* (atom {})
-        app        (fulcro/new-fulcro-client
-                     :started-callback
-                     (fn [app]
-                       (reset! port* (event-loop app responses*))
-                       (post-message @port* :fulcro.inspect.client/check-client-version {})
-                       (settings/load-settings (:reconciler app)))
+        app        (app/fulcro-app
+                     {:client-did-mount
+                      (fn [app]
+                        (reset! port* (event-loop app responses*))
+                        (post-message @port* :fulcro.inspect.client/check-client-version {})
+                        (settings/load-settings (:reconciler app)))
 
-                     :shared
-                     {::hist/db-hash-index (atom {})}
+                      :shared
+                      {::hist/db-hash-index (atom {})}
 
-                     :networking
-                     (make-network port* (ui-parser/parser) responses*))
+                      :remotes {:remote
+                                ;; TASK: Proper creation of remote
+                                (make-network port* (ui-parser/parser) responses*)}})
         node       (js/document.createElement "div")]
     (js/document.body.appendChild node)
-    (fulcro/mount app GlobalRoot node)))
+    (app/mount! app GlobalRoot node)
+    app))
 
 (defn global-inspector
   ([] @global-inspector*)

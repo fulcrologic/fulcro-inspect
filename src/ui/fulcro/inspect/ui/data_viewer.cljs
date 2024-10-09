@@ -1,6 +1,8 @@
 (ns fulcro.inspect.ui.data-viewer
   (:require [clojure.string :as str]
             [com.fulcrologic.fulcro-css.localized-dom :as dom]
+            [com.fulcrologic.fulcro.algorithms.tempid :as tempid]
+            [com.fulcrologic.fulcro.application :as app]
             [com.fulcrologic.fulcro.components :as fp]
             [com.fulcrologic.fulcro.mutations :as mutations]
             [fulcro.inspect.helpers :as h]
@@ -60,7 +62,7 @@
     (boolean? x)
     (symbol? x)
     (uuid? x)
-    (fp/tempid? x)
+    (tempid/tempid? x)
     (and (vector? x)
       (<= (count x) vec-max-inline))))
 
@@ -290,7 +292,7 @@
                             ::expanded {}}
                       current-normalized data-tree))
    :ident         [::id ::id]
-   :query         [::id ::content ::expanded]
+   :query         [::id ::content ::expanded ::elide-one? ::static?]
    :css           [[:.container ui/css-code-font]
                    [:.nil {:color "#808080"}]
                    [:.string {:color "#c41a16"}]
@@ -382,7 +384,7 @@
                                                                                     (.-metaKey %))})])
                                       (if on-expand-change
                                         (on-expand-change %2
-                                          (-> this fp/app-state deref
+                                          (-> this (app/current-state)
                                             (get-in (conj (fp/get-ident this) ::expanded))))))
                       :css         css
                       :path        []

@@ -1,9 +1,9 @@
 (ns com.wsscode.oge.ui.common
-  (:require [com.fulcrologic.fulcro.components :as fp]
-            [com.wsscode.oge.ui.helpers :as helpers]
-            [com.fulcrologic.fulcro-css.css :as css]
-            [com.fulcrologic.fulcro-css.css-protocols :as cssp]
-            [com.fulcrologic.fulcro.dom :as dom]))
+  (:require
+    [com.fulcrologic.fulcro.components :as fp]
+    [com.wsscode.oge.ui.helpers :as helpers]
+    [com.fulcrologic.fulcro-css.css :as css]
+    [com.fulcrologic.fulcro.dom :as dom]))
 
 (def css-button
   {:color            "#fff"
@@ -28,18 +28,12 @@
    :background-color "#025aa5"
    :border-color     "#01549b"})
 
-(fp/defui ^:once Button
-  static cssp/CSS
-  (local-rules [_] [[:.button css-button
-                     [:&:hover css-button-hover]]])
-  (include-children [_] [])
-
-  Object
-  (render [this]
-    (let [props (fp/props this)
-          css   (css/get-classnames Button)]
-      (dom/button (helpers/props->html {:className (:button css)} props)
-        (fp/children this)))))
+(fp/defsc Button [this props]
+  {:css [[:.button css-button
+          [:&:hover css-button-hover]]]}
+  (let [css (css/get-classnames Button)]
+    (dom/button (helpers/props->html {:className (:button css)} props)
+      (fp/children this))))
 
 (def button (fp/factory Button))
 
@@ -63,26 +57,18 @@
    :border-color     "#5cb3fd"
    :outline          "0"})
 
-(fp/defui ^:once TextField
-  static cssp/CSS
-  (local-rules [_] [[:.input css-input
-                     [:&:focus css-input-focus]
-                     [:&.success {:border-color "#5cb85c"}]
-                     [:&.warning {:border-color "#f0ad4e"}]]])
-  (include-children [_] [])
-
-  Object
-  (render [this]
-    (let [props (fp/props this)
-          css   (css/get-classnames TextField)]
-      (dom/input (helpers/props->html {:className (:input css)
-                                       :type      "text"}
-                   (helpers/expand-classes css (::classes props))
-                   props)))))
+(fp/defsc TextField [this props]
+  {:css [[:.input css-input
+          [:&:focus css-input-focus]
+          [:&.success {:border-color "#5cb85c"}]
+          [:&.warning {:border-color "#f0ad4e"}]]]}
+  (let [css (css/get-classnames TextField)]
+    (dom/input (helpers/props->html {:className (:input css)
+                                     :type      "text"}
+                 (helpers/expand-classes css (::classes props))
+                 props))))
 
 (def text-field (fp/factory TextField))
 
-(fp/defui ^:once CSS
-  static cssp/CSS
-  (local-rules [_] [])
-  (include-children [_] [Button TextField]))
+(fp/defsc CSS [this props]
+  {:css-include [Button TextField]})

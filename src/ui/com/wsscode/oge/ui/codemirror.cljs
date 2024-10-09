@@ -1,29 +1,29 @@
 (ns com.wsscode.oge.ui.codemirror
-  (:require [com.fulcrologic.fulcro.components :as fp]
-            [com.fulcrologic.fulcro.dom :as dom]
-            [goog.object :as gobj]
-            [com.wsscode.pathom.connect :as pc]
-            [clojure.string :as str]
-            [cljs.spec.alpha :as s]
-            [cljs.reader :refer [read-string]]
-
-            [cljsjs.codemirror]
-            ["codemirror/mode/clojure/clojure"]
-            ["codemirror/addon/edit/matchbrackets"]
-            ["codemirror/addon/edit/closebrackets"]
-            ["codemirror/addon/fold/foldcode"]
-            ["codemirror/addon/fold/foldgutter"]
-            ["codemirror/addon/fold/brace-fold"]
-            ["codemirror/addon/fold/indent-fold"]
-            ["codemirror/addon/selection/active-line"]
-            ["codemirror/addon/search/match-highlighter"]
-            ["codemirror/addon/search/search"]
-            ["codemirror/addon/search/searchcursor"]
-            ["codemirror/addon/hint/anyword-hint"]
-            ["codemirror/addon/hint/show-hint"]
-            ["codemirror/addon/display/placeholder"]
-            ["parinfer-codemirror" :as parinfer-cm]
-            ["./oge-mode"]))
+  (:require
+    [cljs.reader :refer [read-string]]
+    [cljs.spec.alpha :as s]
+    [cljsjs.codemirror]
+    [clojure.string :as str]
+    [com.fulcrologic.fulcro.components :as fp]
+    [com.fulcrologic.fulcro.dom :as dom]
+    [com.wsscode.pathom.connect :as pc]
+    [goog.object :as gobj]
+    ["codemirror/mode/clojure/clojure"]
+    ["codemirror/addon/edit/matchbrackets"]
+    ["codemirror/addon/edit/closebrackets"]
+    ["codemirror/addon/fold/foldcode"]
+    ["codemirror/addon/fold/foldgutter"]
+    ["codemirror/addon/fold/brace-fold"]
+    ["codemirror/addon/fold/indent-fold"]
+    ["codemirror/addon/selection/active-line"]
+    ["codemirror/addon/search/match-highlighter"]
+    ["codemirror/addon/search/search"]
+    ["codemirror/addon/search/searchcursor"]
+    ["codemirror/addon/hint/anyword-hint"]
+    ["codemirror/addon/hint/show-hint"]
+    ["codemirror/addon/display/placeholder"]
+    ["parinfer-codemirror" :as parinfer-cm]
+    ["./oge-mode"]))
 
 (s/def ::mode (s/or :string string? :obj map?))
 (s/def ::theme string?)
@@ -53,64 +53,61 @@
 
 (defn html-props [props]
   (->> props
-       (remove (fn [[k _]] (namespace k)))
-       (into {})
-       (clj->js)))
+    (remove (fn [[k _]] (namespace k)))
+    (into {})
+    (clj->js)))
 
 (def oge-cache (atom {}))
 
 (declare autocomplete)
 
-(fp/defui ^:once Editor
-  Object
-  (componentDidMount [this]
-    (let [textarea   (gobj/get this "textNode")
-          options    (-> this fp/props ::options (or {}) clj->js)
-          process    (-> this fp/props ::process)
-          codemirror (js/CodeMirror.fromTextArea textarea options)]
-      (reset! oge-cache {})
+(fp/defsc Editor [this props]
+  {:componentDidMount (fn [this]
+                        (let [textarea   (gobj/get this "textNode")
+                              options    (-> this fp/props ::options (or {}) clj->js)
+                              process    (-> this fp/props ::process)
+                              codemirror (js/CodeMirror.fromTextArea textarea options)]
+                          (reset! oge-cache {})
 
-      (try
-        (.on codemirror "change" #(when (not= (gobj/get % "origin") "setValue")
-                                    (js/clearTimeout (gobj/get this "editorHold"))
-                                    (gobj/set this "editorHold"
-                                      (js/setTimeout
-                                        (fn []
-                                          (gobj/set this "editorHold" false))
-                                        800))
-                                    (prop-call this :onChange (.getValue %))))
-        (.setValue codemirror (-> this fp/props :value))
-        (if process (process codemirror))
-        (catch :default e (js/console.warn "Error setting up CodeMirror" e)))
-      (gobj/set this "codemirror" codemirror)))
+                          (try
+                            (.on codemirror "change" #(when (not= (gobj/get % "origin") "setValue")
+                                                        (js/clearTimeout (gobj/get this "editorHold"))
+                                                        (gobj/set this "editorHold"
+                                                          (js/setTimeout
+                                                            (fn []
+                                                              (gobj/set this "editorHold" false))
+                                                            800))
+                                                        (prop-call this :onChange (.getValue %))))
+                            (.setValue codemirror (-> this fp/props :value))
+                            (if process (process codemirror))
+                            (catch :default e (js/console.warn "Error setting up CodeMirror" e)))
+                          (gobj/set this "codemirror" codemirror)))}
 
-  (componentWillReceiveProps [this {:keys     [value]
-                                    ::pc/keys [indexes]}]
-    (let [cm        (gobj/get this "codemirror")
-          cur-index (gobj/getValueByKeys cm #js ["options" "ogeIndex"])]
-      (when (and cur-index (not= indexes @cur-index))
-        (reset! oge-cache {})
-        (reset! cur-index indexes)
-        (gobj/set (gobj/getValueByKeys cm #js ["options" "hintOptions"]) "hint" (partial autocomplete indexes)))
+  :componentWillReceiveProps (fn [this {:keys     [value]
+                                        ::pc/keys [indexes]}]
+                               (let [cm        (gobj/get this "codemirror")
+                                     cur-index (gobj/getValueByKeys cm #js ["options" "ogeIndex"])]
+                                 (when (and cur-index (not= indexes @cur-index))
+                                   (reset! oge-cache {})
+                                   (reset! cur-index indexes)
+                                   (gobj/set (gobj/getValueByKeys cm #js ["options" "hintOptions"]) "hint" (partial autocomplete indexes)))
 
-      ; there is a race condition that happens when user types something, react updates state and try to update
-      ; the state back to the editor, which moves the cursor in the editor in weird ways. the workaround is to
-      ; stop accepting external values after a short period after user key strokes.
-      (if-not (gobj/get this "editorHold")
-        (let [cur-value (.getValue cm)]
-          (if (and cm value (not= value cur-value))
-            (.setValue cm value))))))
+                                 ; there is a race condition that happens when user types something, react updates state and try to update
+                                 ; the state back to the editor, which moves the cursor in the editor in weird ways. the workaround is to
+                                 ; stop accepting external values after a short period after user key strokes.
+                                 (if-not (gobj/get this "editorHold")
+                                   (let [cur-value (.getValue cm)]
+                                     (if (and cm value (not= value cur-value))
+                                       (.setValue cm value))))))
 
-  (componentWillUnmount [this]
-    (if-let [cm (gobj/get this "codemirror")]
-      (.toTextArea cm)))
+  :componentWillUnmount (fn [this]
+                          (if-let [cm (gobj/get this "codemirror")]
+                            (.toTextArea cm)))
 
-  (render [this]
-    (let [props (fp/props this)]
-      (dom/div (-> props (dissoc :value :onChange) (html-props))
-        (js/React.createElement "textarea"
-          #js {:ref          #(gobj/set this "textNode" %)
-               :defaultValue (:value props)})))))
+  (dom/div (-> props (dissoc :value :onChange) (html-props))
+    (js/React.createElement "textarea"
+      #js {:ref          #(gobj/set this "textNode" %)
+           :defaultValue (:value props)})))
 
 (def editor (fp/factory Editor))
 
@@ -120,7 +117,7 @@
 
 (defn fuzzy-re [input]
   (-> (reduce (fn [s c] (str s (escape-re c) ".*")) "" input)
-      (js/RegExp "i")))
+    (js/RegExp "i")))
 
 (defn str->keyword [s] (keyword (subs s 1)))
 
@@ -137,13 +134,13 @@
                         (cond
                           ; ident join: [{[:ident x] [|]}]
                           (and (= "join" mode)
-                               (= "ident" (gobj/getValueByKeys s "key" "mode")))
+                            (= "ident" (gobj/getValueByKeys s "key" "mode")))
                           (let [key (str->keyword (gobj/getValueByKeys s "key" "key"))]
                             {:type :attribute :context (conj ctx key)})
 
                           ; join: [{:child [|]}]
                           (and (= "join" mode)
-                               (= (string? key)))
+                            (= (string? key)))
                           (let [key (str->keyword key)]
                             (if (contains? (get index-io #{}) key)
                               {:type :attribute :context (conj ctx key)}
@@ -154,13 +151,13 @@
 
     (cond
       (and (= "ident" mode)
-           (or (nil? (gobj/get path-stack "key"))
-               (= (gobj/get token "string") (gobj/get path-stack "key"))))
+        (or (nil? (gobj/get path-stack "key"))
+          (= (gobj/get token "string") (gobj/get path-stack "key"))))
       {:type :ident}
 
       (and (= "join" mode)
-           (or (= (gobj/get token "string") (gobj/get path-stack "key"))
-               (nil? (gobj/get path-stack "key"))))
+        (or (= (gobj/get token "string") (gobj/get path-stack "key"))
+          (nil? (gobj/get path-stack "key"))))
       (find-ctx (if (= "param-exp" (gobj/getValueByKeys path-stack "prev" "mode"))
                   (gobj/getValueByKeys path-stack "prev" "prev" "prev")
                   (gobj/getValueByKeys path-stack "prev" "prev")))
@@ -178,12 +175,12 @@
 (defn ^:export completions [index token reg]
   (try
     (let [ctx (token-context index token)]
-     (when reg
-       (case (:type ctx)
-         :attribute (->> (pc/discover-attrs (assoc index ::pc/cache oge-cache)
-                           (->> ctx :context (remove (comp #{">"} namespace)))))
-         :ident (into {} (map #(hash-map % {})) (-> index ::pc/idents))
-         {})))
+      (when reg
+        (case (:type ctx)
+          :attribute (->> (pc/discover-attrs (assoc index ::pc/cache oge-cache)
+                            (->> ctx :context (remove (comp #{">"} namespace)))))
+          :ident (into {} (map #(hash-map % {})) (-> index ::pc/idents))
+          {})))
     (catch :default e
       (js/console.error "Unable to compute completions" e)
       {})))
@@ -211,11 +208,11 @@
     (if words
       (let [fuzzy (if blank? #".*" (fuzzy-re reg))]
         #js {:list (->> words
-                        (remove (get index ::pc/autocomplete-ignore #{}))
-                        (map str)
-                        (filter #(re-find fuzzy %))
-                        sort
-                        clj->js)
+                     (remove (get index ::pc/autocomplete-ignore #{}))
+                     (map str)
+                     (filter #(re-find fuzzy %))
+                     sort
+                     clj->js)
              :from start
              :to   end}))))
 
@@ -225,8 +222,8 @@
 (defn ^:export key-has-children? [completions token]
   (let [reg (str->keyword (gobj/get token "string"))]
     (and (= "atom" (gobj/get token "type"))
-         (or (seq (get completions reg))
-             (= ">" (namespace reg))))))
+      (or (seq (get completions reg))
+        (= ">" (namespace reg))))))
 
 (defn str-repeat [s n]
   (str/join (repeat n s)))
@@ -236,10 +233,10 @@
     (let [cur    (.getCursor cm)
           token  (.getTokenAt cm cur)
           indent (or (gobj/getValueByKeys token #js ["state" "pathStack" "indent"])
-                     0)]
+                   0)]
 
       (if (and (= "attr-list" (gobj/getValueByKeys token #js ["state" "mode"]))
-               (= "atom-composite" (gobj/get token "type")))
+            (= "atom-composite" (gobj/get token "type")))
         (let [line  (.-line cur)
               start (.Pos js/CodeMirror line (gobj/get token "start"))
               end   (.Pos js/CodeMirror line (gobj/get token "end"))
@@ -271,12 +268,12 @@
                  ::gutters                   ["CodeMirror-linenumbers" "CodeMirror-foldgutter"]
                  :ogeIndex                   (atom indexes)}]
     (editor (-> props
-                (assoc ::process (fn [cm]
-                                   (.on cm "keyup" (fn [cm e] (when (and (not (gobj/getValueByKeys cm #js ["state" "completionActive"]))
-                                                                         (= 1 (-> (gobj/get e "key") (count))))
-                                                                (js/CodeMirror.showHint cm))))
-                                   (parinfer-cm/init cm "smart" #js {:forceBalance true})))
-                (update ::options #(merge options %))))))
+              (assoc ::process (fn [cm]
+                                 (.on cm "keyup" (fn [cm e] (when (and (not (gobj/getValueByKeys cm #js ["state" "completionActive"]))
+                                                                    (= 1 (-> (gobj/get e "key") (count))))
+                                                              (js/CodeMirror.showHint cm))))
+                                 (parinfer-cm/init cm "smart" #js {:forceBalance true})))
+              (update ::options #(merge options %))))))
 
 (defn clojure [props]
   (let [options {::lineNumbers               true
@@ -286,4 +283,4 @@
                  ::foldGutter                true
                  ::gutters                   ["CodeMirror-linenumbers" "CodeMirror-foldgutter"]}]
     (editor (-> props
-                (update ::options #(merge options %))))))
+              (update ::options #(merge options %))))))

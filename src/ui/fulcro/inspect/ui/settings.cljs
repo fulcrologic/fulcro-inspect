@@ -2,6 +2,7 @@
   (:require
     [com.fulcrologic.fulcro-css.localized-dom :as dom]
     [com.fulcrologic.fulcro.components :as fp :refer [defsc]]
+    [com.fulcrologic.fulcro.dom.events :as evt]
     [com.fulcrologic.fulcro.mutations :refer [defmutation]]
     [com.fulcrologic.fulcro.data-fetch :as df]
     [fulcro.inspect.ui.core :as ui]))
@@ -22,16 +23,14 @@
 (defn load-settings [app]
   (df/load app :fulcro.inspect/settings SettingsQuery))
 
-(defsc Settings
-  [this
-   {:keys    [fulcro.inspect/settings]
-    :ui/keys [hide-websocket?]}
-   {:keys [close-settings!]}]
+(defsc Settings [this {:keys    [fulcro.inspect/settings]
+                       :ui/keys [hide-websocket?]}
+                 {:keys [close-settings!]}]
   {:ident             (fn [] [::id :main])
    :query             [::id :ui/hide-websocket?
                        {[:fulcro.inspect/settings '_]
                         [:setting/websocket-port :setting/compact-keywords?]}]
-   :componentDidMount (fn [] (load-settings this))
+   :componentDidMount (fn [this] (load-settings this))
    :initial-state     {::id :main}
    :css               [[:.container {:padding "12px"}]]}
   (let [{:setting/keys [websocket-port compact-keywords?]} settings]
@@ -49,15 +48,15 @@
               (ui/label "Websocket Port:")
               (ui/input {:value    (or websocket-port 0)
                          :type     "number"
-                         :onChange #(fp/transact! this `[(update-settings {:setting/websocket-port ~(js/parseInt (m/target-value %))})])})
-              (ui/primary-button {:onClick #(fp/transact! this `[(save-settings {:setting/websocket-port ~websocket-port})])}
+                         :onChange #(fp/transact! this [(update-settings {:setting/websocket-port (js/parseInt (evt/target-value %))})])})
+              (ui/primary-button {:onClick #(fp/transact! this [(save-settings {:setting/websocket-port websocket-port})])}
                 "Restart Websockets")))
           (ui/row {:classes [:.align-center]}
             (ui/label
               (dom/input :$margin-right-small
                 {:checked  (or compact-keywords? false)
                  :type     "checkbox"
-                 :onChange #(fp/transact! this `[(save-settings {:setting/compact-keywords? ~(not compact-keywords?)})])})
+                 :onChange #(fp/transact! this [(save-settings {:setting/compact-keywords? (not compact-keywords?)})])})
               "Compact Keywords in DB Explorer?")))))))
 
-(def ui-settings (fp/factory Settings))
+(def ui-settings (fp/computed-factory Settings))

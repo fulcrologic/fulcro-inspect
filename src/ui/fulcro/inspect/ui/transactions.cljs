@@ -5,15 +5,13 @@
     [clojure.string :as str]
     [com.fulcrologic.fulcro-css.css :as css]
     [com.fulcrologic.fulcro-css.localized-dom :as dom]
-    [com.fulcrologic.fulcro.mutations :as mutations :refer-macros [defmutation]]
+    [com.fulcrologic.fulcro.algorithms.denormalize :as fdn]
     [com.fulcrologic.fulcro.components :as fp]
-    [fulcro.inspect.helpers :as db.h]
+    [com.fulcrologic.fulcro.dom.html-entities :as ent]
+    [com.fulcrologic.fulcro.mutations :as mutations :refer-macros [defmutation]]
     [fulcro.inspect.helpers :as h]
-    [fulcro.inspect.lib.history :as hist]
     [fulcro.inspect.ui.core :as ui]
-    [fulcro.inspect.ui.data-viewer :as data-viewer]
-    [fulcro.ui.html-entities :as ent]
-    [taoensso.timbre :as log]))
+    [fulcro.inspect.ui.data-viewer :as data-viewer]))
 
 (def tx-options :com.fulcrologic.fulcro.algorithms.tx-processing/options)
 
@@ -268,7 +266,7 @@
     (let [{:keys [state ref]} env
           tx-ref (fp/ident Transaction tx)
           {:ui/keys [full-computed?]
-           :as      transaction} (fp/db->tree (fp/get-query TransactionRow) (get-in @state tx-ref) @state)]
+           :as      transaction} (fdn/db->tree (fp/get-query TransactionRow) (get-in @state tx-ref) @state)]
       (if-not full-computed?
         (swap! state h/merge-entity Transaction
           (fp/get-initial-state Transaction transaction)))
@@ -284,7 +282,7 @@
 
 (defmutation replay-tx [_]
   (remote [env]
-    (db.h/remote-mutation env 'transact)))
+    (h/remote-mutation env 'transact)))
 
 (fp/defsc TransactionList
   [this
@@ -309,11 +307,11 @@
                     [:.transactions {:flex     "1"
                                      :overflow "auto"}]]
    :css-include    [Transaction TransactionRow ui/CSS]
-   :initLocalState (fn []
+   :initLocalState (fn [this _]
                      {:select-tx (fn [tx]
-                                   (fp/transact! this [`(select-tx ~tx)]))
+                                   (fp/transact! this [(select-tx tx)]))
                       :replay-tx (fn [{:keys [tx ident-ref]}]
-                                   (fp/transact! this [`(replay-tx ~{:tx tx :tx-ref ident-ref})]))})}
+                                   (fp/transact! this [(replay-tx {:tx tx :tx-ref ident-ref})]))})}
 
   (let [tx-list (if (seq tx-filter)
                   (filterv #(str/includes? (-> % :fulcro.history/tx pr-str) tx-filter) tx-list)

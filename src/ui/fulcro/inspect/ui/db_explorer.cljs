@@ -10,7 +10,7 @@
     [fulcro.inspect.lib.history :as hist]
     [fulcro.inspect.ui.core :as ui]
     [fulcro.inspect.ui.data-watcher :as dw]
-    [fulcro.util :refer [ident?]]
+    [edn-query-language.core :as eql]
     [taoensso.encore :as enc]))
 
 (defn re-pattern-insensitive [pattern]
@@ -41,9 +41,8 @@
 
 (defn set-path! [this path]
   (let [{::keys [id]} (fc/props this)
-        reconciler (fc/any->reconciler this)]
-    (fc/transact! reconciler [::id id]
-      `[(set-path {:path ~path})])))
+        ]
+    (fc/transact! this [(set-path {:path path})] {:ref [::id id]})))
 
 (defmutation append-to-path [{:keys [sub-path]}]
   (action [{:as env :keys [state ref]}]
@@ -52,10 +51,9 @@
       {:path (get-in @state (conj ref :ui/path :path))})))
 
 (defn append-to-path! [this & sub-path]
-  (let [{::keys [id]} (fc/props this)
-        reconciler (fc/any->reconciler this)]
-    (fc/transact! reconciler [::id id]
-      `[(append-to-path {:sub-path ~sub-path})])))
+  (let [{::keys [id]} (fc/props this)]
+    (fc/transact! this [(append-to-path {:sub-path sub-path})]
+      {:ref [::id id]})))
 
 (defn settings-env [this]
   (-> this fc/props :fulcro.inspect/settings))
@@ -102,7 +100,7 @@
       (span {:style {:fontWeight "bold"}}
         (name x)))
 
-    (ident? x) (ui-ident env x)
+    (eql/ident? x) (ui-ident env x)
 
     :else (span {:style {:whiteSpace "nowrap"}} (pr-str x))))
 
@@ -118,10 +116,10 @@
       (map? v)
       (a {:href "#" :onClick #(select-map k)} (str (count (keys v)) " items"))
 
-      (ident? v)
+      (eql/ident? v)
       (ui-ident env v)
 
-      (and (vector? v) (every? ident? v))
+      (and (vector? v) (every? eql/ident? v))
       (fc/fragment (map (partial ui-ident env) v))
 
       :else (pr-str v))))
@@ -275,13 +273,12 @@
 
 (defn search-for! [this search-query [shift-key? search-type]]
   (let [{::keys [id]} (fc/props this)
-        reconciler         (fc/any->reconciler this)
         invert-search-type {:search/by-id    :search/by-value
                             :search/by-value :search/by-id}]
-    (fc/transact! reconciler [::id id]
-      `[(search-for ~{:search-type  (cond-> search-type
-                                      shift-key? invert-search-type)
-                      :search-query search-query})])))
+    (fc/transact! this [(search-for {:search-type  (cond-> search-type
+                                                     shift-key? invert-search-type)
+                                     :search-query search-query})]
+      {:ref [::id id]})))
 
 (defn pop-history!* [env]
   (h/swap-entity! env update :ui/history (comp vec drop-last)))
@@ -298,22 +295,19 @@
         (h/swap-entity! env assoc :ui/search-type search-type)))))
 
 (defn pop-history! [this]
-  (let [{::keys [id]} (fc/props this)
-        reconciler (fc/any->reconciler this)]
-    (fc/transact! reconciler [::id id]
-      `[(pop-history {})])))
+  (let [{::keys [id]} (fc/props this)]
+    (fc/transact! this [(pop-history {})]
+      {:ref [::id id]})))
 
 (defn add-data-watch! [this path]
-  (let [{::keys [id]} (fc/props this)
-        reconciler (fc/any->reconciler this)]
-    (fc/transact! reconciler [::id id]
-      `[(dw/add-data-watch ~{:path path})])
+  (let [{::keys [id]} (fc/props this)]
+    (fc/transact! this [(dw/add-data-watch {:path path})] {:ref [::id id]})
     (let [[_ app-uuid] id]
-      (fc/transact! reconciler
-        [:fulcro.inspect.ui.inspector/id app-uuid]
-        `[(fm/set-props
-            ~{:fulcro.inspect.ui.inspector/tab
-              :fulcro.inspect.ui.inspector/page-db})]))))
+      (fc/transact! this
+        [(fm/set-props
+            {:fulcro.inspect.ui.inspector/tab
+              :fulcro.inspect.ui.inspector/page-db})]
+        {:ref [:fulcro.inspect.ui.inspector/id app-uuid]}))))
 
 (defn mode [{:as props :keys [current-state]}]
   (let [{:keys [path search-query]} (:ui/path props)]

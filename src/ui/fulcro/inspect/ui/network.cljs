@@ -2,8 +2,6 @@
   (:require
     [com.wsscode.oge.ui.flame-graph :as ui.flame]
     [com.wsscode.pathom.profile :as pp]
-    [com.wsscode.pathom.viz.trace :as trace]
-    [com.fulcrologic.fulcro-css.css :as css]
     [com.fulcrologic.fulcro-css.localized-dom :as dom]
     [com.fulcrologic.fulcro.mutations :as fm :refer-macros [defmutation]]
     [com.fulcrologic.fulcro.components :as fp]
@@ -56,39 +54,34 @@
     (h/remove-edge! env ::requests)))
 
 (defn send-to-query [this app-uuid query]
-  (fp/transact! (fp/get-reconciler this)
-    [:fulcro.inspect.ui.multi-oge/id [:fulcro.inspect.core/app-uuid app-uuid]]
-    [`(fulcro.inspect.ui.multi-oge/set-active-query {:query ~(h/pprint query)})])
+  (fp/transact! this
+    [(fulcro.inspect.ui.multi-oge/set-active-query {:query (h/pprint query)})]
+    {:ref [:fulcro.inspect.ui.multi-oge/id [:fulcro.inspect.core/app-uuid app-uuid]]})
 
-  (fp/transact! (fp/get-reconciler this)
-    [:fulcro.inspect.ui.inspector/id app-uuid]
-    [`(fm/set-props {:fulcro.inspect.ui.inspector/tab :fulcro.inspect.ui.inspector/page-oge})]))
-
-(fm/defmutation log-trace-details [_]
-  (remote [env]
-    (h/remote-mutation env 'console-log)))
+  (fp/transact! this
+    [(fm/set-props {:fulcro.inspect.ui.inspector/tab :fulcro.inspect.ui.inspector/page-oge})]
+    {:ref [:fulcro.inspect.ui.inspector/id app-uuid]}))
 
 (fp/defsc RequestDetails
   [this
    {:ui/keys [request-edn-view response-edn-view error-view]}
    {:fulcro.inspect.core/keys [app-uuid]
     :keys                     [parent]}]
-  {:ident       [::request-id ::request-id]
-   :query       [::request-id ::request-edn ::response-edn ::request-started-at ::request-finished-at ::error
-                 {:ui/request-edn-view (fp/get-query data-viewer/DataViewer)}
-                 {:ui/response-edn-view (fp/get-query data-viewer/DataViewer)}
-                 {:ui/error-view (fp/get-query data-viewer/DataViewer)}]
-   :css         [[:.container ui/css-flex-column]
-                 [:.flame {:background "#f6f7f8"
-                           :width      "400px"}]
-                 [:.trace {:display     "flex"
-                           :min-height  "300px"
-                           :flex        "1"
-                           :margin-top  "4px"
-                           :padding-top "18px"
-                           :border-top  "1px solid #eee"}]
-                 [:.send-query {:margin-left "5px"}]]
-   :css-include [trace/D3Trace]}
+  {:ident [::request-id ::request-id]
+   :query [::request-id ::request-edn ::response-edn ::request-started-at ::request-finished-at ::error
+           {:ui/request-edn-view (fp/get-query data-viewer/DataViewer)}
+           {:ui/response-edn-view (fp/get-query data-viewer/DataViewer)}
+           {:ui/error-view (fp/get-query data-viewer/DataViewer)}]
+   :css   [[:.container ui/css-flex-column]
+           [:.flame {:background "#f6f7f8"
+                     :width      "400px"}]
+           [:.trace {:display     "flex"
+                     :min-height  "300px"
+                     :flex        "1"
+                     :margin-top  "4px"
+                     :padding-top "18px"
+                     :border-top  "1px solid #eee"}]
+           [:.send-query {:margin-left "5px"}]]}
   (dom/div :.container
     (ui/info {::ui/title (dom/div
                            "Request"
@@ -110,11 +103,7 @@
 
     (if-let [profile (-> response-edn-view ::data-viewer/content ::pp/profile)]
       (ui/info {::ui/title "Profile"}
-        (dom/div :.flame (ui.flame/flame-graph {:profile profile}))))
-
-    (if-let [trace (-> response-edn-view ::data-viewer/content :com.wsscode.pathom/trace)]
-      (dom/div :.trace (trace/d3-trace {::trace/trace-data      trace
-                                        ::trace/on-show-details #(fp/transact! parent [`(log-trace-details {:log-js ~%})])})))))
+        (dom/div :.flame (ui.flame/flame-graph {:profile profile}))))))
 
 (def request-details (fp/factory RequestDetails))
 

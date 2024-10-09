@@ -4,6 +4,7 @@
     [com.fulcrologic.fulcro-css.css-injection :refer [style-element]]
     [com.fulcrologic.fulcro-css.localized-dom :as dom]
     [com.fulcrologic.fulcro.components :as fp]
+    [com.fulcrologic.fulcro.dom.events :as evt]
     [com.fulcrologic.fulcro.mutations :as m]
     [fulcro.inspect.helpers :as h]
     [fulcro.inspect.helpers :as db.h]
@@ -87,7 +88,7 @@
     (style-element {:component this})
     (let [toggle-settings! #(fp/transact! this `[(toggle-settings {})])]
       (if show-settings?
-        (settings/ui-settings (fp/computed settings {:close-settings! toggle-settings!}))
+        (settings/ui-settings settings {:close-settings! toggle-settings!})
         (if current-app
           (inspector/inspector current-app)
           (dom/div :.no-app
@@ -99,7 +100,7 @@
       (dom/div :.selector
         (dom/div :.label "App")
         (dom/select {:value    (pr-str (::inspector/id current-app))
-                     :onChange #(fp/transact! this `[(set-app {::inspector/id ~(read-string (m/target-value %))})])}
+                     :onChange #(fp/transact! this [(set-app {::inspector/id (read-string (evt/target-value %))})])}
           (for [{::inspector/keys [id name]} (sort-by (comp str ::inspector/name) inspectors)]
             (dom/option {:key   id
                          :value (pr-str id)}

@@ -1,12 +1,12 @@
 (ns fulcro.inspect.ui.index-explorer
-  (:require [com.wsscode.pathom.viz.index-explorer :as iex]
-            [cljs.reader :refer [read-string]]
-            [com.fulcrologic.fulcro.components :as fp]
-            [com.fulcrologic.fulcro-css.localized-dom :as dom]
-            [com.fulcrologic.fulcro.data-fetch :as df]
-            [fulcro.inspect.helpers :as db.h]
-            [com.fulcrologic.fulcro.mutations :as fm]
-            [fulcro.inspect.ui.core :as cui]))
+  (:require
+    [cljs.reader :refer [read-string]]
+    [com.fulcrologic.fulcro.components :as fp]
+    [com.fulcrologic.fulcro-css.localized-dom :as dom]
+    [com.fulcrologic.fulcro.data-fetch :as df]
+    [fulcro.inspect.helpers :as db.h]
+    [com.fulcrologic.fulcro.mutations :as fm]
+    [fulcro.inspect.ui.core :as cui]))
 
 (defn explorer->remote [{::iex/keys [id]}]
   (if (vector? id) (peek id) id))
@@ -15,11 +15,11 @@
   (let [app-id (try (db.h/comp-app-uuid this) (catch :default _))
         remote (explorer->remote {::iex/id id})]
     (df/load this [::iex/id id] iex/IndexExplorer
-      {:refresh       [::explorer]
-       :marker        [::index-marker id]
-       :update-query  (fn [query]
-                        (vary-meta query assoc :remote-data {:fulcro.inspect.core/app-uuid app-id
-                                                             :fulcro.inspect.client/remote remote}))})))
+      {:refresh      [::explorer]
+       :marker       [::index-marker id]
+       :update-query (fn [query]
+                       (vary-meta query assoc :remote-data {:fulcro.inspect.core/app-uuid app-id
+                                                            :fulcro.inspect.client/remote remote}))})))
 
 (fp/defsc IndexExplorer
   [this {::keys [id explorer explorers] :as props} {}]
@@ -101,9 +101,6 @@
             integration at "
             (dom/a {:href "https://wilkerlucio.github.io/pathom/#_setting_up_the_index_explorer_resolver" :target "_blank"}
               " pathom docs") "."))
-
-        (-> explorer ::iex/idx seq)
-        (iex/index-explorer explorer)
 
         :else
         (dom/div :.empty "Use the \"Load index\" button to start.")))))

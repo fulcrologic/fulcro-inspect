@@ -7,12 +7,13 @@
     [com.fulcrologic.fulcro.data-fetch :as fetch]
     [com.fulcrologic.fulcro.mutations :as mutations]
     [com.wsscode.oge.ui.codemirror :as codemirror]
-    [com.wsscode.oge.ui.common]
+    [com.wsscode.oge.ui.common :as ui]
     [com.wsscode.oge.ui.flame-graph :as ui.flame]
     [com.wsscode.oge.ui.helpers :as helpers]
     [com.wsscode.pathom.connect :as pc]
     [com.wsscode.pathom.core :as p]
     [com.wsscode.pathom.profile :as pp]
+    [edn-query-language.core :as eql]
     [fulcro.inspect.helpers :as db.h]
     [fulcro.inspect.ui.core :as cui]
     [fulcro.inspect.ui.helpers :as h]))
@@ -48,7 +49,7 @@
         ident (fp/get-ident this)]
     (try
       (let [eql       (read-string {:default transit-tagged-reader} string-expression)
-            {:keys [children]} (fp/query->ast eql)
+            {:keys [children]} (eql/query->ast eql)
             mutation? (= :call (some-> children first :type))]
         (if mutation?
           (do

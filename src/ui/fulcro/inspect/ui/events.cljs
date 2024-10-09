@@ -105,10 +105,10 @@
         (.removeEventListener target event handler)))))
 
 (fp/defsc KeyListener [this props]
-  {:componentDidMount    ([this] (start-handler this))
-   :componentWillUnmount ([this] (dispose-handler this))
-   :componentWillUpdate  ([this _ _] (dispose-handler this))
-   :componentDidUpdate   ([this _ _] (start-handler this))}
+  {:componentDidMount    (fn [this] (start-handler this))
+   :componentWillUnmount (fn [this] (dispose-handler this))
+   :componentWillUpdate  (fn [this _ _] (dispose-handler this))
+   :componentDidUpdate   (fn [this _ _] (start-handler this))}
   (dom/noscript nil))
 
 (def key-listener (fp/factory KeyListener))
