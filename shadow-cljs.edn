@@ -19,6 +19,19 @@
                               :compiler-options {:closure-output-charset "US-ASCII"}
                               :extension-dir    "shells/chrome"
                               :devtools         {:devtools-url "http://localhost:9632"}}
+          
+          :chrome-v3         {:target :esm
+                              :output-dir "shells/chrome/js/devtool"
+                              :asset-path       "js/devtool" ; ??? 
+                              :runtime :browser
+                              :compiler-options {:closure-output-charset "US-ASCII"} ; ???
+                              :devtools         {:devtools-url "http://localhost:9632"} ; ???
+                              :modules
+                              {:shared
+                               {:entries []}
+                               :service-worker
+                               {:init-fn fulcro.inspect.chrome.devtool.main/init
+                                :depends-on #{:shared}}}}
 
           :chrome-devtool    {:target           :browser
                               :output-dir       "shells/chrome/js/devtool"

@@ -1,6 +1,7 @@
 (ns fulcro.inspect.chrome.background.main
   (:require [goog.object :as gobj]
-            [cljs.core.async :as async :refer [go go-loop chan <! >! put!]]))
+            [cljs.core.async :as async :refer [go go-loop chan <! >! put!]]
+            [shadow.cljs.modern :refer [js-await]]))
 
 (defonce remote-conns* (atom {}))
 (defonce tools-conns* (atom {}))
@@ -17,13 +18,13 @@
       (.postMessage remote-port message))))
 
 (defn set-icon-and-popup [tab-id]
-  (js/chrome.browserAction.setIcon
+  (js/chrome.action.setIcon
     #js {:tabId tab-id
          :path  #js {"16"  "icon-16.png"
                      "32"  "icon-32.png"
                      "48"  "icon-48.png"
                      "128" "icon-128.png"}})
-  (js/chrome.browserAction.setPopup
+  (js/chrome.action.setPopup
     #js {:tabId tab-id
          :popup "popups/enabled.html"}))
 
@@ -43,7 +44,8 @@
     (let [tab-id (gobj/getValueByKeys port "sender" "tab" "id")]
       (set-icon-and-popup tab-id))))
 
-(js/chrome.runtime.onConnect.addListener
+(defn add-listener []
+ (js/chrome.runtime.onConnect.addListener
   (fn [port]
     (case (gobj/get port "name")
       "fulcro-inspect-remote"
@@ -55,10 +57,10 @@
 
         (.addListener (gobj/get port "onMessage") listener)
         (.addListener (gobj/get port "onDisconnect")
-          (fn [port]
-            (.removeListener (gobj/get port "onMessage") listener)
-            (swap! remote-conns* dissoc tab-id)
-            (async/close! background->devtool-chan)))
+                      (fn [port]
+                        (.removeListener (gobj/get port "onMessage") listener)
+                        (swap! remote-conns* dissoc tab-id)
+                        (async/close! background->devtool-chan)))
 
         (go-loop []
           (when-let [{:keys [tab-id message] :as data} (<! background->devtool-chan)]
@@ -73,11 +75,15 @@
       (let [listener (partial handle-devtool-message port)]
         (.addListener (gobj/get port "onMessage") listener)
         (.addListener (gobj/get port "onDisconnect")
-          (fn [port]
-            (.removeListener (gobj/get port "onMessage") listener)
-            (if-let [port-key (->> @tools-conns*
-                                   (keep (fn [[k v]] (if (= v port) k)))
-                                   (first))]
-              (swap! tools-conns* dissoc port-key)))))
+                      (fn [port]
+                        (.removeListener (gobj/get port "onMessage") listener)
+                        (if-let [port-key (->> @tools-conns*
+                                               (keep (fn [[k v]] (if (= v port) k)))
+                                               (first))]
+                          (swap! tools-conns* dissoc port-key)))))
 
-      (js/console.log "Ignoring connection" (gobj/get port "name")))))
+      (js/console.log "Ignoring connection" (gobj/get port "name"))))))
+
+(defn init []
+  (add-listener)
+  (js/console.log "Fulcro service worker init done"))

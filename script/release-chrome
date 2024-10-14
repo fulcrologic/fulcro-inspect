@@ -1,6 +1,7 @@
 #!/bin/bash
 
-npx shadow-cljs release chrome chrome-devtool
+#npx shadow-cljs release chrome chrome-devtool
+npx shadow-cljs release chrome-v3
 mkdir -p releases
 rm -rf releases/chrome
 cp -rf shells/chrome releases
