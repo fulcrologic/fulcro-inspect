@@ -46,7 +46,7 @@
                               :output-dir       "shells/chrome/js/devtool"
                               :asset-path       "js/devtool"
                               :compiler-options {:closure-output-charset "US-ASCII"
-                                                 :optimizations :whitespace}
+                                                 :optimizations :simple}
                               :devtools         {:devtools-url "http://localhost:9632"}
                               :modules          {:main {:entries [fulcro.inspect.chrome.devtool.main]}}}
 
