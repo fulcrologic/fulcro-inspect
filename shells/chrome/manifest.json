@@ -36,7 +36,7 @@
   },
   "content_scripts":
  [{"js":
-   ["out/shared.js", "out/bg-shared.js", "out/content-script.js"],
+   ["js/content-script/main.js"],
    "matches":["<all_urls>"],
    "run_at":"document_idle"}],
  "manifest_version":3,

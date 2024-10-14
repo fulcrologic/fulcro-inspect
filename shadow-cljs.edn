@@ -14,11 +14,6 @@
                                            :http-resource-root "."
                                            :devtools-url       "http://localhost:9632"}
                               :modules    {:main {:entries [fulcro.inspect.workspaces.main]}}}
-
-          :chrome            {:target           :chrome-extension
-                              :compiler-options {:closure-output-charset "US-ASCII"}
-                              :extension-dir    "shells/chrome"
-                              :devtools         {:devtools-url "http://localhost:9632"}}
           
           ;; Build the core extension elements, the service worker and the content script that
           ;; we inject into the page.
@@ -28,12 +23,14 @@
                               :runtime :custom
                               :compiler-options {:closure-output-charset "US-ASCII"} ; ???
                               :devtools         {:devtools-url "http://localhost:9632"} ; ???
+                              :source-map true
                               :modules
                               {:shared
                                {:entries []}
                                :service-worker
                                {:init-fn fulcro.inspect.chrome.background.main/init
                                 :depends-on #{:shared}}
+                               #_#_
                                :content-script
                                {:init-fn fulcro.inspect.chrome.content-script.main/init
                                 ;:default true
@@ -42,12 +39,32 @@
                                {:init-fn fulcro.inspect.chrome.devtool.main/init
                                 :depends-on #{:shared}}}}
 
-          :chrome-devtool    {:target           :browser
+          ;; LEGACY: Build js for the Fulcro-powered content of the devtool itself
+          :chrome-content-script {:target           :browser
+                                  :output-dir       "shells/chrome/js/content-script"
+                                  :asset-path       "js/content-script"
+                                  :compiler-options {:closure-output-charset "US-ASCII"}
+                                  ;:devtools         {:devtools-url "http://localhost:9632"}
+                                  :modules          {:main {:entries [fulcro.inspect.chrome.content-script.main]}}}
+
+          ;; LEGACY: Build js for the Fulcro-powered content of the devtool itself
+          :chrome-devtool    {:target           :browser 
                               :output-dir       "shells/chrome/js/devtool"
                               :asset-path       "js/devtool"
-                              :compiler-options {:closure-output-charset "US-ASCII"}
+                              :js-options {:resolve {"goog.debug.Logger.Level"
+                                                                        {:target :global
+                                                                         :global "goog.log.Logger.Level"}}}
+                              :compiler-options {:closure-output-charset "US-ASCII"
+                                                 :optimizations :whitespace
+                                                 :global-goog-object&array true}
                               :devtools         {:devtools-url "http://localhost:9632"}
                               :modules          {:main {:entries [fulcro.inspect.chrome.devtool.main]}}}
+          
+          ;; LEGACY: build the extension (content script, background page js)
+          :chrome            {:target           :chrome-extension
+                              :compiler-options {:closure-output-charset "US-ASCII"}
+                              :extension-dir    "shells/chrome"
+                              :devtools         {:devtools-url "http://localhost:9632"}}
 
           :electron-main     {:target           :node-script
                               :main             fulcro.inspect.electron.background.main/init

@@ -354,6 +354,7 @@
 (defn global-inspector
   ([] @global-inspector*)
   ([options]
+   (log/info "Starting the devtool..." (not (boolean @global-inspector*)))
    (or @global-inspector*
      (reset! global-inspector* (start-global-inspector options)))))
 

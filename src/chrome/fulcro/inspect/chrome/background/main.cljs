@@ -14,11 +14,16 @@
     (gobj/getValueByKeys message "fulcro-inspect-devtool-message")
     (let [tab-id      (gobj/get message "tab-id")
           remote-port (get @remote-conns* tab-id)]
-      (.postMessage remote-port message))))
+      (when-not remote-port
+        (println "WARN: No stored remote port for this sender tab"
+                 tab-id
+                 "Known tabs:" (keys @remote-conns*))) ; FIXME rm
+      (some-> remote-port (.postMessage message)))))
 
 (defn set-icon-and-popup [tab-id]
-  (js/chrome.action.setIcon
-    #js {:tabId tab-id
+  #_ 
+  (js/chrome.action.setIcon ; FIXME Fails to be fetched
+    #js {;:tabId tab-id
          :path  #js {"16"  "icon-16.png"
                      "32"  "icon-32.png"
                      "48"  "icon-48.png"
@@ -53,6 +58,11 @@
             tab-id                   (gobj/getValueByKeys port "sender" "tab" "id")]
 
         (swap! remote-conns* assoc tab-id port)
+
+        (println "DEBUG onConn listener msg=" 
+                 (gobj/get port "name")
+                 "for tab-id" tab-id "storing the port...") ; FIXME rm
+    
 
         (.addListener (gobj/get port "onMessage") listener)
         (.addListener (gobj/get port "onDisconnect")
