@@ -15,15 +15,38 @@
                                            :devtools-url       "http://localhost:9632"}
                               :modules    {:main {:entries [fulcro.inspect.workspaces.main]}}}
 
+          ;; LEGACY, remove:
           :chrome            {:target           :chrome-extension
                               :compiler-options {:closure-output-charset "US-ASCII"}
                               :extension-dir    "shells/chrome"
                               :devtools         {:devtools-url "http://localhost:9632"}}
 
+          ;; Build the core extension elements, the service worker and the content script that
+          ;; we inject into the page.
+          :chrome-extension  {:target :esm
+                              :output-dir "shells/chrome/js/extension"
+                              :asset-path       "js/extension" ; ??? 
+                              :runtime :custom
+                              :compiler-options {:closure-output-charset "US-ASCII"} ; ???
+                              :devtools         {:devtools-url "http://localhost:9632"} ; ???
+                              :source-map true
+                              :modules
+                              {:shared
+                               {:entries []}
+                               :service-worker
+                               {:init-fn fulcro.inspect.chrome.background.main/init
+                                :depends-on #{:shared}}}}
+          :chrome-content-script {:target           :browser
+                                  :output-dir       "shells/chrome/js/content-script"
+                                  :asset-path       "js/content-script"
+                                  :compiler-options {:closure-output-charset "US-ASCII"}
+                                            ;:devtools         {:devtools-url "http://localhost:9632"}
+                                  :modules          {:main {:entries [fulcro.inspect.chrome.content-script.main]}}}
           :chrome-devtool    {:target           :browser
                               :output-dir       "shells/chrome/js/devtool"
                               :asset-path       "js/devtool"
-                              :compiler-options {:closure-output-charset "US-ASCII"}
+                              :compiler-options {:closure-output-charset "US-ASCII"
+                                                 :optimizations :whitespace}
                               :devtools         {:devtools-url "http://localhost:9632"}
                               :modules          {:main {:entries [fulcro.inspect.chrome.devtool.main]}}}
 
