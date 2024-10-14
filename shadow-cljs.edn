@@ -20,16 +20,25 @@
                               :extension-dir    "shells/chrome"
                               :devtools         {:devtools-url "http://localhost:9632"}}
           
+          ;; Build the core extension elements, the service worker and the content script that
+          ;; we inject into the page.
           :chrome-v3         {:target :esm
-                              :output-dir "shells/chrome/js/devtool"
-                              :asset-path       "js/devtool" ; ??? 
-                              :runtime :browser
+                              :output-dir "shells/chrome/js/all"
+                              :asset-path       "js/all" ; ??? 
+                              :runtime :custom
                               :compiler-options {:closure-output-charset "US-ASCII"} ; ???
                               :devtools         {:devtools-url "http://localhost:9632"} ; ???
                               :modules
                               {:shared
                                {:entries []}
                                :service-worker
+                               {:init-fn fulcro.inspect.chrome.background.main/init
+                                :depends-on #{:shared}}
+                               :content-script
+                               {:init-fn fulcro.inspect.chrome.content-script.main/init
+                                ;:default true
+                                :depends-on #{:shared}}
+                               :devtool
                                {:init-fn fulcro.inspect.chrome.devtool.main/init
                                 :depends-on #{:shared}}}}
 

@@ -74,4 +74,6 @@
 
   :ready)
 
+(defn init [])
+
 (defonce start (event-loop))

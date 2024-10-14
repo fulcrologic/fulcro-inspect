@@ -1,7 +1,6 @@
 (ns fulcro.inspect.chrome.background.main
   (:require [goog.object :as gobj]
-            [cljs.core.async :as async :refer [go go-loop chan <! >! put!]]
-            [shadow.cljs.modern :refer [js-await]]))
+            [cljs.core.async :as async :refer [go go-loop chan <! >! put!]]))
 
 (defonce remote-conns* (atom {}))
 (defonce tools-conns* (atom {}))

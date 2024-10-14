@@ -7,7 +7,7 @@
   thheller/shadow-cljs       {:mvn/version "2.11.25"} ; 2.12 req. cljs 1.10.844, where goog.debug.Logger.Level stops existing
   com.cognitect/transit-cljs {:mvn/version "0.8.264"}
   com.wsscode/pathom         {:mvn/version "2.2.26"}
-  com.wsscode/pathom-viz     {:mvn/version "1.0.6"}
+  ;com.wsscode/pathom-viz     {:mvn/version "1.0.6"}
   devcards                   {:mvn/version "0.2.4"}
   fulcrologic/fulcro         {:mvn/version "2.8.11"}
   fulcrologic/fulcro-spec    {:mvn/version "2.1.3"}

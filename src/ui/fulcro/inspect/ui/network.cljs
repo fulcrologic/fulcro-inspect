@@ -2,7 +2,7 @@
   (:require
     [com.wsscode.oge.ui.flame-graph :as ui.flame]
     [com.wsscode.pathom.profile :as pp]
-    [com.wsscode.pathom.viz.trace :as trace]
+    ;[com.wsscode.pathom.viz.trace :as trace]
     [fulcro-css.css :as css]
     [fulcro-css.css-protocols :as cssp]
     [fulcro.client.localized-dom :as dom]
@@ -89,7 +89,7 @@
                            :padding-top "18px"
                            :border-top  "1px solid #eee"}]
                  [:.send-query {:margin-left "5px"}]]
-   :css-include [trace/D3Trace]}
+   #_#_:css-include [trace/D3Trace]}
   (dom/div :.container
     (ui/info {::ui/title (dom/div
                            "Request"
@@ -113,9 +113,10 @@
       (ui/info {::ui/title "Profile"}
         (dom/div :.flame (ui.flame/flame-graph {:profile profile}))))
 
+    #_
     (if-let [trace (-> response-edn-view ::data-viewer/content :com.wsscode.pathom/trace)]
-      (dom/div :.trace (trace/d3-trace {::trace/trace-data      trace
-                                        ::trace/on-show-details #(fp/transact! parent [`(log-trace-details {:log-js ~%})])})))))
+      (dom/div :.trace (trace/d3-trace {:com.wsscode.pathom.viz.trace/trace-data      trace
+                                        :com.wsscode.pathom.viz.trace/on-show-details #(fp/transact! parent [`(log-trace-details {:log-js ~%})])})))))
 
 (def request-details (fp/factory RequestDetails))
 

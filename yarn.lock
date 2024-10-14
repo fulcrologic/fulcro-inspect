@@ -2387,6 +2387,13 @@ graphql-request@^1.5.0:
   dependencies:
     cross-fetch "2.2.2"
 
+"graphql@^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0", "graphql@^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0", "graphql@^0.11.0 || ^0.12.0 || ^0.13.0", "graphql@^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0":
+  version "0.13.2"
+  resolved "https://registry.npmjs.org/graphql/-/graphql-0.13.2.tgz"
+  integrity sha512-QZ5BL8ZO/B20VA8APauGBg3GyEgZ19eduvpLWoq5x7gMmWnHoy8rlQWPLmWgFvo1yNgjSEFMesmS4R6pPr7xog==
+  dependencies:
+    iterall "^1.2.1"
+
 handlebars@^4.5.3:
   version "4.7.2"
   resolved "https://registry.npmjs.org/handlebars/-/handlebars-4.7.2.tgz"
@@ -3001,6 +3008,11 @@ isstream@~0.1.2:
   resolved "https://registry.npmjs.org/isstream/-/isstream-0.1.2.tgz"
   integrity sha1-R+Y/evVa+m+S4VAOaQ64uFKcCZo=
 
+iterall@^1.2.1:
+  version "1.3.0"
+  resolved "https://registry.npmjs.org/iterall/-/iterall-1.3.0.tgz"
+  integrity sha512-QZ9qOMdF+QLHxy1QIpUHUU1D5pS2CG2P69LF6L6CPjPYA/XMOmKV3PZpawHoAjHNyB0swdVTRxdYT4tbBbxqwg==
+
 "js-tokens@^3.0.0 || ^4.0.0":
   version "4.0.0"
   resolved "https://registry.npmjs.org/js-tokens/-/js-tokens-4.0.0.tgz"
@@ -3513,7 +3525,7 @@ node-fetch@2.1.2:
   resolved "https://registry.npmjs.org/node-fetch/-/node-fetch-2.1.2.tgz"
   integrity sha1-q4hOjn5X44qUR1POxwb3iNF2i7U=
 
-node-libs-browser@^2.0.0:
+node-libs-browser@^2.2.1:
   version "2.2.1"
   resolved "https://registry.npmjs.org/node-libs-browser/-/node-libs-browser-2.2.1.tgz"
   integrity sha512-h/zcD8H9kaDZ9ALUWwlBUDo6TKF8a7qBSCSEGfjTVIYeqsioSKaAX+BN7NgiMGp6iSIXZ3PxgCu8KS3b71YK5Q==
@@ -4722,23 +4734,22 @@ sha.js@^2.4.0, sha.js@^2.4.8:
     inherits "^2.0.1"
     safe-buffer "^5.0.1"
 
-shadow-cljs-jar@1.3.1:
-  version "1.3.1"
-  resolved "https://registry.npmjs.org/shadow-cljs-jar/-/shadow-cljs-jar-1.3.1.tgz"
-  integrity sha512-IJSm4Gfu/wWDsOQ0wNrSxuaGdjzsd78us+3bop3cpWsoO2Igdu6VIBItYrZHRRBKl5LIZKXfnSh/2eWG3C1EFw==
+shadow-cljs-jar@1.3.4:
+  version "1.3.4"
+  resolved "https://registry.npmjs.org/shadow-cljs-jar/-/shadow-cljs-jar-1.3.4.tgz"
+  integrity sha512-cZB2pzVXBnhpJ6PQdsjO+j/MksR28mv4QD/hP/2y1fsIa9Z9RutYgh3N34FZ8Ktl4puAXaIGlct+gMCJ5BmwmA==
 
-shadow-cljs@^2.8.59:
-  version "2.8.83"
-  resolved "https://registry.npmjs.org/shadow-cljs/-/shadow-cljs-2.8.83.tgz"
-  integrity sha512-oqqSLARvYXopA9QLf5znrguvJOSRm65LYL9XHuRWaUbMGXlygqgCjSFgW1yREXmqUQ+i2TLoA1zulYO6nTTy6g==
+shadow-cljs@^2.11.25:
+  version "2.28.16"
+  resolved "https://registry.npmjs.org/shadow-cljs/-/shadow-cljs-2.28.16.tgz"
+  integrity sha512-6b4V287V0MeZUG+yUxnfCfuVCG1F4sVtpB+KcoDKtZSJIrAjBb1vkZTx/DFct0gYb0WYD5VAPVTzoGy7H+lMFg==
   dependencies:
-    mkdirp "^0.5.1"
-    node-libs-browser "^2.0.0"
+    node-libs-browser "^2.2.1"
     readline-sync "^1.4.7"
-    shadow-cljs-jar "1.3.1"
+    shadow-cljs-jar "1.3.4"
     source-map-support "^0.4.15"
     which "^1.3.1"
-    ws "^3.0.0"
+    ws "^7.4.6"
 
 shebang-command@^1.2.0:
   version "1.2.0"
@@ -5633,19 +5644,10 @@ write-file-atomic@^2.0.0:
     imurmurhash "^0.1.4"
     signal-exit "^3.0.2"
 
-ws@^3.0.0:
-  version "3.3.3"
-  resolved "https://registry.npmjs.org/ws/-/ws-3.3.3.tgz"
-  integrity sha512-nnWLa/NwZSt4KQJu51MYlCcSQ5g7INpOrOMt4XV8j4dqTXdmlUmSHQ8/oLC069ckre0fRsgfvsKwbTdtKLCDkA==
-  dependencies:
-    async-limiter "~1.0.0"
-    safe-buffer "~5.1.0"
-    ultron "~1.1.0"
-
-ws@^7:
-  version "7.2.1"
-  resolved "https://registry.npmjs.org/ws/-/ws-7.2.1.tgz"
-  integrity sha512-sucePNSafamSKoOqoNfBd8V0StlkzJKL2ZAhGQinCfNQ+oacw+Pk7lcdAElecBF2VkLNZRiIb5Oi1Q5lVUVt2A==
+ws@^7, ws@^7.4.6:
+  version "7.5.10"
+  resolved "https://registry.npmjs.org/ws/-/ws-7.5.10.tgz"
+  integrity sha512-+dbF1tHwZpXcbOJdVOkzLDxZP1ailvSxM6ZweXTegylPny803bFhA+vqBYw4s31NSAk4S2Qz+AKXK9a4wkdjcQ==
 
 ws@~3.3.1:
   version "3.3.3"

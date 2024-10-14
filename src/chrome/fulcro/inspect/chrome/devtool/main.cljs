@@ -24,7 +24,7 @@
     [fulcro.inspect.ui.db-explorer :as db-explorer]
     [fulcro.inspect.ui.element :as element]
     [fulcro.inspect.ui.i18n :as i18n]
-    [fulcro.inspect.ui.index-explorer :as fiex]
+    ;[fulcro.inspect.ui.index-explorer :as fiex]
     [fulcro.inspect.ui.inspector :as inspector]
     [fulcro.inspect.ui.multi-inspector :as multi-inspector]
     [fulcro.inspect.ui.multi-oge :as multi-oge]
@@ -115,7 +115,7 @@
                         (assoc-in [::inspector/transactions ::transactions/tx-list-id] [app-uuid-key app-uuid])
                         (assoc-in [::inspector/oge] (fp/get-initial-state multi-oge/OgeView {:app-uuid app-uuid
                                                                                              :remotes  remotes}))
-                        (assoc-in [::inspector/index-explorer] (fp/get-initial-state fiex/IndexExplorer
+                        #_(assoc-in [::inspector/index-explorer] (fp/get-initial-state fiex/IndexExplorer
                                                                  {:app-uuid app-uuid
                                                                   :remotes  remotes})))]
 
@@ -358,3 +358,5 @@
      (reset! global-inspector* (start-global-inspector options)))))
 
 (global-inspector {})
+
+(defn init [])

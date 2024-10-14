@@ -15,7 +15,6 @@ figwheel_server.log
 *.iml
 .idea
 node_modules
-/shells/chrome/manifest.json
 /releases
 .shadow-cljs
 .DS_Store
