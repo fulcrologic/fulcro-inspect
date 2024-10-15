@@ -1,16 +1,17 @@
 (ns fulcro.inspect.ui.network
   (:require
+    [com.fulcrologic.fulcro-css.localized-dom :as dom]
     [com.fulcrologic.fulcro.algorithms.merge :as merge]
+    [com.fulcrologic.fulcro.components :as fp]
+    [com.fulcrologic.fulcro.mutations :as fm :refer-macros [defmutation]]
     [com.wsscode.oge.ui.flame-graph :as ui.flame]
     [com.wsscode.pathom.profile :as pp]
-    [com.fulcrologic.fulcro-css.localized-dom :as dom]
-    [com.fulcrologic.fulcro.mutations :as fm :refer-macros [defmutation]]
-    [com.fulcrologic.fulcro.components :as fp]
     [fulcro.inspect.helpers :as h]
     [fulcro.inspect.ui.core :as ui]
     [fulcro.inspect.ui.data-viewer :as data-viewer]
+    [fulcro.inspect.ui.transactions :as transactions]
     [garden.selectors :as gs]
-    [fulcro.inspect.ui.transactions :as transactions]))
+    [taoensso.timbre :as log]))
 
 (declare Request)
 
@@ -28,9 +29,9 @@
       (when (get-in @state request-ref)                     ; prevent adding back a cleared request
         (when (get-in @state (conj request-ref :ui/request-edn-view))
           (if response-edn
-            (h/create-entity! env' data-viewer/DataViewer response-edn :set :ui/response-edn-view))
+            (h/create-entity! env' data-viewer/DataViewer response-edn :replace :ui/response-edn-view))
           (if error
-            (h/create-entity! env' data-viewer/DataViewer error :set :ui/error-view)))
+            (h/create-entity! env' data-viewer/DataViewer error :replace :ui/error-view)))
 
         (swap! state merge/merge-component Request (cond-> request
                                                      (not request-finished-at)
@@ -39,14 +40,14 @@
 (defmutation select-request [{::keys [request-edn response-edn error] :as request}]
   (action [env]
     (let [{:keys [state] :as env} env
-          req-ref (fp/ident Request request)]
+          req-ref (log/spy :info (fp/ident Request request))]
       (if-not (get-in @state (conj req-ref :ui/request-edn-view))
         (let [env' (assoc env :ref req-ref)]
-          (h/create-entity! env' data-viewer/DataViewer request-edn :set :ui/request-edn-view)
-          (if response-edn
-            (h/create-entity! env' data-viewer/DataViewer response-edn :set :ui/response-edn-view))
+          (h/create-entity! env' data-viewer/DataViewer request-edn :replace :ui/request-edn-view)
+          (if (log/spy :info response-edn)
+            (h/create-entity! env' data-viewer/DataViewer response-edn :replace :ui/response-edn-view))
           (if error
-            (h/create-entity! env' data-viewer/DataViewer error :set :ui/error-view))))
+            (h/create-entity! env' data-viewer/DataViewer error :replace :ui/error-view))))
       (h/swap-entity! env assoc ::active-request req-ref))))
 
 (defmutation clear-requests [_]

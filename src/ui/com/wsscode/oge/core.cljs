@@ -22,8 +22,8 @@
   (action [{:keys [state]}]
     (swap! state dissoc ::p/errors)))
 
-(mutations/defmutation normalize-result [_]
-  (action [{:keys [ref state]}]
+(mutations/defmutation normalize-result [{:keys [ref]}]
+  (action [{:keys [state]}]
     (let [result' (cond-> (-> @state (get-in ref) :oge/result')
                     (get @state ::p/errors) (assoc ::p/errors (->> (get @state ::p/errors)
                                                                 (into {} (map (fn [[k v]] [(vec (next k)) v]))))))
@@ -51,23 +51,24 @@
       (let [eql       (read-string {:default transit-tagged-reader} string-expression)
             {:keys [children]} (eql/query->ast eql)
             mutation? (= :call (some-> children first :type))]
+        (fp/transact! this [`(clear-errors {})])
         (if mutation?
-          (do
-            (fp/transact! this [`(clear-errors {})])
-            (fetch/load this :oge/mutation-result nil {:target        (conj ident :oge/result')
-                                                       :post-mutation `normalize-mutation-result
-                                                       :marker        (keyword "oge-query" (p/ident-value* ident))
-                                                       :params        {:fulcro.inspect.core/app-uuid app-uuid
+          (fetch/load! this :oge/mutation-result nil {:target        (conj ident :oge/result')
+                                                      :post-mutation `normalize-mutation-result
+                                                      :marker        (keyword "oge-query" (p/ident-value* ident))
+                                                      :params        {:fulcro.inspect.core/app-uuid app-uuid
+                                                                      :fulcro.inspect.client/remote remote
+                                                                      :mutation                     eql}})
+          ;; TASK: This isn't working. it's calling the right thing, but ref isn't making it through or something
+          (fp/transact! this [(list `fetch/internal-load!
+                                {:target               (conj ident :oge/result')
+                                 :query                [{(list :>/oge {:fulcro.inspect.core/app-uuid app-uuid
                                                                        :fulcro.inspect.client/remote remote
-                                                                       :mutation                     eql}}))
-          (fp/transact! this [`(clear-errors {})
-                              (list 'fulcro/load {:target        (conj ident :oge/result')
-                                                  :query         [{(list :>/oge {:fulcro.inspect.core/app-uuid app-uuid
-                                                                                 :fulcro.inspect.client/remote remote})
-                                                                   eql}]
-                                                  :refresh       [:oge/result]
-                                                  :marker        (keyword "oge-query" (p/ident-value* ident))
-                                                  :post-mutation `normalize-result})])))
+                                                                       })
+                                                         eql}]
+                                 :marker               (keyword "oge-query" (p/ident-value* ident))
+                                 :post-mutation-params {:ref (fp/get-ident this)}
+                                 :post-mutation        `normalize-result})])))
       ; for some reason the load marker was missing to refresh ui sometimes without the next line
       (js/setTimeout #(fp/transact! this [:oge/id]) 10)
       (catch :default e
@@ -177,8 +178,8 @@
               (for [r remotes]
                 (dom/option {:key (pr-str r) :value (pr-str r)} (pr-str r))))))
         (dom/div :.flex)
-        (dom/button :.run-button {:style   {:display    "inline-flex"
-                                            :alignItems "center"
+        (dom/button :.run-button {:style   {:display     "inline-flex"
+                                            :alignItems  "center"
                                             :marginRight "3px"}
                                   :onClick #(if-not (fetch/loading? index-marker) (update-index this))}
           "(Re)load Pathom Index"

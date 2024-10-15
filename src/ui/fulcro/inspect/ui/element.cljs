@@ -46,7 +46,7 @@
     (h/swap-entity! env assoc :ui/picking? false)
     (h/swap-in! env [::details] assoc ::ident nil)
     (h/remove-edge! env ::details)
-    (h/create-entity! env Details details :set ::details)))
+    (h/create-entity! env Details details :replace ::details)))
 
 (mutations/defmutation remote-pick-element [_]
   (remote [env]

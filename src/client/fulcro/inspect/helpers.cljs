@@ -3,9 +3,8 @@
     [cljs.pprint]
     [cognitect.transit :as transit]
     [com.cognitect.transit.types :as transit.types]
-    [com.fulcrologic.fulcro.algorithms.denormalize :as fdn]
     [com.fulcrologic.fulcro.algorithms.merge :as merge]
-    [com.fulcrologic.fulcro.application :as app]
+    [com.fulcrologic.fulcro.algorithms.normalized-state :as fns]
     [com.fulcrologic.fulcro.components :as fp]
     [com.fulcrologic.fulcro.mutations :as mutations]
     [fulcro.inspect.lib.local-storage :as storage]))
@@ -17,11 +16,7 @@
 
 (defn query-component
   [this]
-  (let [component (fp/react-type this)
-        ref       (fp/get-ident this)
-        state     (app/current-state this)
-        query     (fp/get-query component)]
-    (fdn/db->tree query (get-in state ref) state)))
+  (fns/ui->props this))
 
 (defn swap-entity! [{:keys [state ref]} & args]
   (apply swap! state update-in ref args))
