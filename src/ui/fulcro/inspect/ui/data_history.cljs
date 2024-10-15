@@ -47,15 +47,14 @@
     (let [history (get-in @state ref)]
       (let [state-id (get-in history [::history current-index ::state-id])]
         (h/swap-entity! env assoc ::current-index current-index)
-        (watcher/update-state* (assoc env :ref (::watcher history)) {:id state-id}))))
-  (refresh [env] [:ui/historical-dom-view]))
+        (watcher/update-state* (assoc env :ref (::watcher history)) {:id state-id})))))
 
 (defn has-state? [{:keys [state ref app] :as env} {::keys [current-index]}]
   (let [history (get-in @state ref)]
     (let [state-id         (get-in history [::history current-index ::state-id])
           app-uuid         (second (get history ::history-id))
           {::hist/keys [db-hash-index]} (fp/shared app)
-          historical-state (get @db-hash-index [app-uuid state-id])]
+          historical-state (get-in @db-hash-index [app-uuid state-id])]
       (not (empty? historical-state)))))
 
 (fm/defmutation fetch-and-show-history [{::keys [current-index] :as params}]
@@ -64,32 +63,34 @@
       (when (not= current-index (::current-index history))
         (let [state-id (get-in history [::history current-index ::state-id])]
           (if (has-state? env params)
-            (prim/transact! app ref `[(navigate-history {::current-index ~current-index})])
-            (prim/ptransact! app ref `[(hist/remote-fetch-history-step {:id ~state-id})
-                                       (navigate-history {::current-index ~current-index})]))))))
-  (refresh [env] [:ui/historical-dom-view])
-  (remote [{:keys [ref state] :as env}]
-    (let [history  (get-in @state ref)
-          state-id (get-in history [::history current-index ::state-id])]
-      (if (::show-dom-preview? history)
-        (-> env
-          (m/with-server-side-mutation 'show-dom-preview)
-          (m/with-params {:fulcro.inspect.client/state-id state-id}))
-        false))))
+            (prim/transact! app `[(navigate-history {::current-index ~current-index})] {:ref ref})
+            (prim/transact! app `[(hist/remote-fetch-history-step {:id ~state-id})
+                                  (navigate-history {::current-index ~current-index})]
+              {:optimistic? false
+               :ref         ref}))))))
+  ;; dom preview requires we tie ourselves to React. Disabling for now
+  #_(remote [{:keys [ref state] :as env}]
+      (let [history  (get-in @state ref)
+            state-id (get-in history [::history current-index ::state-id])]
+        (if (::show-dom-preview? history)
+          (-> env
+            (m/with-server-side-mutation 'show-dom-preview)
+            (m/with-params (merge params {:fulcro.inspect.client/state-id state-id})))
+          false))))
 
 
 (fm/defmutation hide-dom-preview [_]
   (remote [env]
     (db.h/remote-mutation env 'hide-dom-preview)))
 
-(fm/defmutation reset-app [_]
+(fm/defmutation reset-app [params]
   (action [{:keys [state ref] :as env}]
     (h/swap-entity! env assoc ::current-index (-> (get-in @state ref) ::history count dec)))
   (refresh [_] [::current-index])
   (remote [{:keys [ref] :as env}]
     (-> env
       (m/with-server-side-mutation 'reset-app)
-      (m/with-params {:fulcro.inspect.core/app-uuid (db.h/ref-app-uuid ref)}))))
+      (m/with-params (merge params {:fulcro.inspect.core/app-uuid (db.h/ref-app-uuid ref)})))))
 
 (fp/defsc Snapshot
   [this
@@ -220,7 +221,7 @@
         app-state (-> watcher ::watcher/root-data :fulcro.inspect.ui.data-viewer/content)]
     (dom/div :.container
       (ui/toolbar {:className (:toolbar css)}
-        (ui/toolbar-action {}
+       #_(ui/toolbar-action {} ; no longer supported
           (dom/input {:title    "Show DOM preview."
                       :checked  show-dom-preview?
                       :onChange #(fm/toggle! this ::show-dom-preview?)
@@ -248,7 +249,7 @@
                                                                        (h/get-in-path [::watcher/id (::watcher/id watcher)
                                                                                        ::watcher/root-data ::data-viewer/content]))
                                             state-map (hist/state-map-for-id this (h/comp-app-uuid this) id)]
-                                        (log/info "Saving" id state-map)
+                                        (log/info "Saving snapshot" id state-map)
                                         (fp/transact! this [`(save-snapshot {::snapshot-db ~state-map})]))}
           (ui/icon {:title "Save snapshot of current state"} :add_a_photo))
         (ui/toolbar-debounced-text-field

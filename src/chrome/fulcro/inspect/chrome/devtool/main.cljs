@@ -59,7 +59,6 @@
 (def current-tab-id js/chrome.devtools.inspectedWindow.tabId)
 
 (defn post-message [port type data]
-  (log/info "Posting message" type data)
   (.postMessage port #js {:fulcro-inspect-devtool-message (encode/write {:type type :data data :timestamp (js/Date.)})
                           :tab-id                         current-tab-id}))
 
@@ -169,9 +168,9 @@
 (defn- -fill-last-entry!
   []
   (enc/if-let [app       @global-inspector*
-               state-map (log/spy :info (app/current-state app))
-               app-uuid  (log/spy :info (h/current-app-uuid state-map))
-               state-id  (log/spy :info (hist/latest-state-id app app-uuid))]
+               state-map (app/current-state app)
+               app-uuid  (h/current-app-uuid state-map)
+               state-id  (hist/latest-state-id app app-uuid)]
     (fp/transact! app [(hist/remote-fetch-history-step {:id state-id})])
     (log/error "Something was nil")))
 
@@ -224,13 +223,15 @@
         state     (if state
                     state
                     (let [base-state (hist/state-map-for-id inspector app-uuid based-on)]
+                      (when-not base-state
+                        (log/error "Cannot build a new history state because there was no base state"))
                       (diff/patch base-state diff)))]
     (hist/record-history-step! inspector app-uuid {:id state-id :value state})
     (app/force-root-render! inspector)))
 
 ;; LANDMARK: This is where incoming messages from the app are handled
 (defn handle-remote-message [{:keys [port event responses*] :as message}]
-  (when-let [{:keys [type data]} (log/spy :info (event-data event))]
+  (when-let [{:keys [type data]} (event-data event)]
     (let [data (assoc data ::port port)]
       (case type
         :fulcro.inspect.client/init-app
@@ -319,15 +320,14 @@
     {:parser (fn [edn]
                (log/info edn)
                (go
-                 (log/spy :info
-                   (async/<!
-                     (parser
-                       {:send-message (fn [type data]
-                                        (or
-                                          (?handle-local-message responses* type data)
-                                          (post-message @port* type data)))
-                        :responses*   responses*}
-                       edn)))))}))
+                 (async/<!
+                   (parser
+                     {:send-message (fn [type data]
+                                      (or
+                                        (?handle-local-message responses* type data)
+                                        (post-message @port* type data)))
+                      :responses*   responses*}
+                     edn))))}))
 
 (defn start-global-inspector [options]
   (let [port*      (atom nil)
@@ -346,7 +346,7 @@
     (js/document.body.appendChild node)
     ;; Sending a message of any kind will wake up the service worker, otherwise our comms won't succeed because
     ;; it will register for our initial comms AFTER we've sent them.
-    ;; TASK: We must handle the service worker going away gracefully...not sure how to do that yet. 
+    ;; TASK: We must handle the service worker going away gracefully...not sure how to do that yet.
     (js-await [_ (js/chrome.runtime.sendMessage #js {:ping true})]
               (reset! port* (event-loop app responses*))
               (post-message @port* :fulcro.inspect.client/check-client-version {})

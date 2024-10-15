@@ -82,7 +82,6 @@
        :value value})))
 
 (fm/defmutation remote-fetch-history-step [{:keys [id]}]
-  (refresh [_env] [:fulcro.inspect.ui.data-viewer/content])
   (remote [{:keys [state app] :as env}]
     (let [app-uuid (h/current-app-uuid @state)
           history  (when app-uuid (history-by-state-id app app-uuid))
