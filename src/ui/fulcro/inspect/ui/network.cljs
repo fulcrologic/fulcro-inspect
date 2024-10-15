@@ -1,5 +1,6 @@
 (ns fulcro.inspect.ui.network
   (:require
+    [com.fulcrologic.fulcro.algorithms.merge :as merge]
     [com.wsscode.oge.ui.flame-graph :as ui.flame]
     [com.wsscode.pathom.profile :as pp]
     [com.fulcrologic.fulcro-css.localized-dom :as dom]
@@ -31,9 +32,9 @@
           (if error
             (h/create-entity! env' data-viewer/DataViewer error :set :ui/error-view)))
 
-        (swap! state h/merge-entity Request (cond-> request
-                                              (not request-finished-at)
-                                              (assoc ::request-finished-at (js/Date.))))))))
+        (swap! state merge/merge-component Request (cond-> request
+                                                     (not request-finished-at)
+                                                     (assoc ::request-finished-at (js/Date.))))))))
 
 (defmutation select-request [{::keys [request-edn response-edn error] :as request}]
   (action [env]
@@ -65,8 +66,7 @@
 (fp/defsc RequestDetails
   [this
    {:ui/keys [request-edn-view response-edn-view error-view]}
-   {:fulcro.inspect.core/keys [app-uuid]
-    :keys                     [parent]}]
+   {:fulcro.inspect.core/keys [app-uuid]}]
   {:ident [::request-id ::request-id]
    :query [::request-id ::request-edn ::response-edn ::request-started-at ::request-finished-at ::error
            {:ui/request-edn-view (fp/get-query data-viewer/DataViewer)}

@@ -6,6 +6,7 @@
     [com.fulcrologic.fulcro-css.css :as css]
     [com.fulcrologic.fulcro-css.localized-dom :as dom]
     [com.fulcrologic.fulcro.algorithms.denormalize :as fdn]
+    [com.fulcrologic.fulcro.algorithms.merge :as merge]
     [com.fulcrologic.fulcro.components :as fp]
     [com.fulcrologic.fulcro.dom.html-entities :as ent]
     [com.fulcrologic.fulcro.mutations :as mutations :refer-macros [defmutation]]
@@ -255,7 +256,7 @@
           (if (= last-tx-ref (-> @state (get-in ref) ::active-tx))
             (do
               (h/create-entity! env TransactionRow tx :append ::tx-list :replace ::active-tx)
-              (swap! state h/merge-entity Transaction (fp/get-initial-state Transaction tx)))
+              (swap! state merge/merge-component Transaction (fp/get-initial-state Transaction tx)))
             (h/create-entity! env TransactionRow tx :append ::tx-list)))
         (do
           (h/create-entity! env TransactionRow tx :append ::tx-list)
@@ -268,7 +269,7 @@
           {:ui/keys [full-computed?]
            :as      transaction} (fdn/db->tree (fp/get-query TransactionRow) (get-in @state tx-ref) @state)]
       (if-not full-computed?
-        (swap! state h/merge-entity Transaction
+        (swap! state merge/merge-component Transaction
           (fp/get-initial-state Transaction transaction)))
       (swap! state update-in ref assoc ::active-tx tx-ref))))
 

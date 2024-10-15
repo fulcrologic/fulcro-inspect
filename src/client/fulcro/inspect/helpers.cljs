@@ -4,6 +4,7 @@
     [cognitect.transit :as transit]
     [com.cognitect.transit.types :as transit.types]
     [com.fulcrologic.fulcro.algorithms.denormalize :as fdn]
+    [com.fulcrologic.fulcro.algorithms.merge :as merge]
     [com.fulcrologic.fulcro.application :as app]
     [com.fulcrologic.fulcro.components :as fp]
     [com.fulcrologic.fulcro.mutations :as mutations]
@@ -88,22 +89,6 @@
                   (throw (ex-info "Unknown post-op to merge-state!: " {:command command :arg data-path})))))
       state actions)))
 
-(defn merge-entity [state x data & named-parameters]
-  "Starting from a denormalized entity map, normalizes using class x.
-   It assumes the entity is going to be normalized too, then get all
-   normalized data and merge back into the app state and idents."
-  (let [idents     (-> (fp/tree->db
-                         (reify
-                           fp/IQuery
-                           (query [_] [{::root (fp/get-query x)}]))
-                         {::root data} true)
-                     (dissoc ::root ::fp/tables))
-        root-ident (fp/ident x data)
-        state      (merge-with (partial merge-with merge) state idents)]
-    (if (seq named-parameters)
-      (apply integrate-ident state root-ident named-parameters)
-      state)))
-
 (defn named-params-with-ref [ref named-parameters]
   (->> (partition 2 named-parameters)
     (map (fn [[op path]] [op (conj ref path)]))
@@ -116,11 +101,11 @@
         data'            (if (-> data meta ::initialized)
                            data
                            (fp/get-initial-state x data))]
-    (apply swap! state merge-entity x data' named-parameters)
+    (apply swap! state merge/merge-component x data' named-parameters)
     data'))
 
 (defn create-entity-pm! [{:keys [state ref]} x data & named-parameters]
-  (apply swap! state fp/merge-component x data
+  (apply swap! state merge/merge-component x data
     (named-params-with-ref ref named-parameters)))
 
 (defn- dissoc-in [m path]

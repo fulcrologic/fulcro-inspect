@@ -188,8 +188,8 @@
           (ui/th {:colSpan "2"}
             (dom/h2 :$margin-micro "Tables")))
         (ui/tr {}
-          (ui/th "Table")
-          (ui/th "Entities")))
+          (ui/th {} "Table")
+          (ui/th {} "Entities")))
 
       (ui/tbody {}
         (for [[k v] (sort-by (comp str key) tables)]
@@ -248,10 +248,10 @@
                  paths))
     [] state))
 
-(defn search-for!* [{:as env :keys [reconciler state ref]} {:keys [search-query search-type]}]
+(defn search-for!* [{:as env :keys [app state ref]} {:keys [search-query search-type]}]
   (let [props                  (get-in @state ref)
         current-state          (:current-state props)
-        {current-state :value} (hist/closest-populated-history-step reconciler (:id current-state))
+        {current-state :value} (hist/closest-populated-history-step app (:id current-state))
         internal-fulcro-tables #{:com.fulcrologic.fulcro.components/queries}
         searchable-state       (reduce dissoc current-state internal-fulcro-tables)]
     (h/swap-entity! env assoc :ui/search-results

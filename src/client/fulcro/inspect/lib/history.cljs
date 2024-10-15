@@ -73,7 +73,7 @@
 (defn closest-populated-history-step
   [this id]
   (let [state    (app/current-state this)
-        app-uuid (h/current-app-uuid @state)
+        app-uuid (h/current-app-uuid state)
         history  (when app-uuid (history-by-state-id this app-uuid))
         base     (when history (best-populated-base history id))
         value    (state-map-for-id this app-uuid base)]

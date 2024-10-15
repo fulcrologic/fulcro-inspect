@@ -1,12 +1,14 @@
 (ns fulcro.inspect.chrome.devtool.main
   (:require
     [cljs.core.async :as async :refer [<! go put!]]
+    [com.fulcrologic.fulcro-css.css :as css]
     [com.fulcrologic.fulcro-css.css-injection :as cssi]
     [com.fulcrologic.fulcro-css.localized-dom :as dom]
     [com.fulcrologic.fulcro-i18n.i18n :as fulcro-i18n]
     [com.fulcrologic.fulcro.algorithms.normalize :as fnorm]
     [com.fulcrologic.fulcro.application :as app]
     [com.fulcrologic.fulcro.application :as fulcro]
+    [com.fulcrologic.fulcro.components :as comp]
     [com.fulcrologic.fulcro.components :as fp]
     [com.fulcrologic.fulcro.mutations :as fm]
     [com.fulcrologic.fulcro.networking.mock-server-remote :as mock-net]
@@ -87,7 +89,7 @@
 
 (defn start-app [{:fulcro.inspect.core/keys   [app-id app-uuid]
                   :fulcro.inspect.client/keys [initial-history-step remotes]}]
-  (let [{:keys [reconciler] :as inspector} @global-inspector*
+  (let [inspector     @global-inspector*
         {initial-state :value} initial-history-step
         new-inspector (-> (fp/get-initial-state inspector/Inspector initial-state)
                         (assoc ::inspector/id app-uuid)
@@ -119,20 +121,21 @@
     (hist/record-history-step! inspector app-uuid initial-history-step)
     (fill-last-entry!)
 
-    (fp/transact! reconciler [::multi-inspector/multi-inspector "main"]
-      [`(multi-inspector/add-inspector ~new-inspector)])
+    (fp/transact! inspector [(multi-inspector/add-inspector new-inspector)]
+      {:ref [::multi-inspector/multi-inspector "main"]})
 
     (when (= app-id @last-disposed-app*)
       (reset! last-disposed-app* nil)
-      (fp/transact! reconciler [::multi-inspector/multi-inspector "main"]
-        [`(multi-inspector/set-app {::inspector/id ~app-uuid})]))
+      (fp/transact! inspector
+        [(multi-inspector/set-app {::inspector/id app-uuid})]
+        {:ref [::multi-inspector/multi-inspector "main"]}))
 
-    (fp/transact! reconciler
-      [::db-explorer/id [app-uuid-key app-uuid]]
-      [`(db-explorer/set-current-state ~initial-history-step) :current-state])
-    (fp/transact! reconciler
-      [::data-history/history-id [app-uuid-key app-uuid]]
-      [`(data-history/set-content ~initial-history-step) ::data-history/history])
+    (fp/transact! inspector
+      [(db-explorer/set-current-state initial-history-step) :current-state]
+      {:ref [::db-explorer/id [app-uuid-key app-uuid]]})
+    (fp/transact! inspector
+      [(data-history/set-content initial-history-step) ::data-history/history]
+      {:ref [::data-history/history-id [app-uuid-key app-uuid]]})
 
     new-inspector))
 
@@ -154,10 +157,10 @@
       {:ref [::multi-inspector/multi-inspector "main"]})))
 
 (defn tx-run [{:fulcro.inspect.client/keys [tx tx-ref]}]
-  (let [{:keys [reconciler]} @global-inspector*]
+  (let [app @global-inspector*]
     (if tx-ref
-      (fp/transact! reconciler tx-ref tx)
-      (fp/transact! reconciler tx))))
+      (fp/transact! app tx {:ref tx-ref})
+      (fp/transact! app tx))))
 
 (defn reset-inspector []
   (-> @global-inspector* ::app/state-atom (reset! (fnorm/tree->db GlobalRoot (fp/get-initial-state GlobalRoot {}) true))))
@@ -182,17 +185,12 @@
 
     (fill-last-entry!)
 
-    #_(if-let [current-locale (-> new-state ::fulcro-i18n/current-locale p/ident-value*)]
-        (fp/transact! (:reconciler @global-inspector*)
-          [::i18n/id [app-uuid-key app-uuid]]
-          [`(fm/set-props ~{::i18n/current-locale current-locale})]))
-
-    (fp/transact! (:reconciler @global-inspector*)
-      [::db-explorer/id [app-uuid-key app-uuid]]
-      [`(db-explorer/set-current-state ~step) :current-state])
-    (fp/transact! (:reconciler @global-inspector*)
-      [::data-history/history-id [app-uuid-key app-uuid]]
-      [`(data-history/set-content ~step) ::data-history/history])))
+    (fp/transact! @global-inspector*
+      [(db-explorer/set-current-state step) :current-state]
+      {:ref [::db-explorer/id [app-uuid-key app-uuid]]})
+    (fp/transact! @global-inspector*
+      [(data-history/set-content step) ::data-history/history]
+      {:ref [::data-history/history-id [app-uuid-key app-uuid]]})))
 
 (defn new-client-tx [{:fulcro.inspect.core/keys   [app-uuid]
                       :fulcro.inspect.client/keys [tx]}]
@@ -202,19 +200,19 @@
         tx        (assoc tx
                     :fulcro.history/db-before (hist/history-step inspector app-uuid db-before-id)
                     :fulcro.history/db-after (hist/history-step inspector app-uuid db-after-id))]
-    (fp/transact! (:reconciler @global-inspector*)
-      [:fulcro.inspect.ui.transactions/tx-list-id [app-uuid-key app-uuid]]
-      [`(fulcro.inspect.ui.transactions/add-tx ~tx) :fulcro.inspect.ui.transactions/tx-list])))
+    (fp/transact! @global-inspector*
+      [`(fulcro.inspect.ui.transactions/add-tx ~tx) :fulcro.inspect.ui.transactions/tx-list]
+      {:ref [:fulcro.inspect.ui.transactions/tx-list-id [app-uuid-key app-uuid]]})))
 
 (defn set-active-app [{:fulcro.inspect.core/keys [app-uuid]}]
   (let [inspector @global-inspector*]
-    (fp/transact! (:reconciler inspector) [::multi-inspector/multi-inspector "main"]
-      [`(multi-inspector/set-app {::inspector/id ~app-uuid})])))
+    (fp/transact! inspector [(multi-inspector/set-app {::inspector/id app-uuid})]
+      {:ref [::multi-inspector/multi-inspector "main"]})))
 
 (defn notify-stale-app []
   (let [inspector @global-inspector*]
-    (fp/transact! (:reconciler inspector) [::multi-inspector/multi-inspector "main"]
-      [`(fm/set-props {::multi-inspector/client-stale? true})])))
+    (fp/transact! inspector [(fm/set-props {::multi-inspector/client-stale? true})]
+      {:ref [::multi-inspector/multi-inspector "main"]})))
 
 (defn fill-history-entry
   "Called in response to the client sending us the real state for a given state id, at which time we update
@@ -231,7 +229,7 @@
 
 ;; LANDMARK: This is where incoming messages from the app are handled
 (defn handle-remote-message [{:keys [port event responses*] :as message}]
-  (when-let [{:keys [type data]} (event-data event)]
+  (when-let [{:keys [type data]} (log/spy :info (event-data event))]
     (let [data (assoc data ::port port)]
       (case type
         :fulcro.inspect.client/init-app
@@ -275,7 +273,6 @@
   (let [port (js/chrome.runtime.connect #js {:name "fulcro-inspect-devtool"})]
     (.addListener (.-onMessage port)
       (fn [msg]
-        (log/info "Devtool received message on port" msg)
         (put! message-handler-ch
           {:port       port
            :event      msg
@@ -334,19 +331,25 @@
   (let [port*      (atom nil)
         responses* (atom {})
         app        (app/fulcro-app
-                     {:client-did-mount
-                      (fn [app]
-                        (reset! port* (event-loop app responses*))
-                        (post-message @port* :fulcro.inspect.client/check-client-version {})
-                        (settings/load-settings app))
+                     {:props-middleware (comp/wrap-update-extra-props
+                                          (fn [cls extra-props]
+                                            (merge extra-props (css/get-classnames cls))))
 
                       :shared
                       {::hist/db-hash-index (atom {})}
 
-                      :remotes {:remote
-                                (make-network port* (ui-parser/parser) responses*)}})
+                      :remotes          {:remote
+                                         (make-network port* (ui-parser/parser) responses*)}})
         node       (js/document.createElement "div")]
     (js/document.body.appendChild node)
+    ;; Sending a message of any kind will wake up the service worker, otherwise our comms won't succeed because
+    ;; it will register for our initial comms AFTER we've sent them.
+    ;; TASK: We must handle the service worker going away gracefully...not sure how to do that yet.
+    (js/chrome.runtime.sendMessage #js {:ping true}
+      (fn []
+        (reset! port* (event-loop app responses*))
+        (post-message @port* :fulcro.inspect.client/check-client-version {})
+        (settings/load-settings app)))
     (app/mount! app GlobalRoot node)
     app))
 

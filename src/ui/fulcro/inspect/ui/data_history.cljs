@@ -50,32 +50,31 @@
         (watcher/update-state* (assoc env :ref (::watcher history)) {:id state-id}))))
   (refresh [env] [:ui/historical-dom-view]))
 
-(defn has-state? [{:keys [state ref reconciler] :as env} {::keys [current-index]}]
+(defn has-state? [{:keys [state ref app] :as env} {::keys [current-index]}]
   (let [history (get-in @state ref)]
     (let [state-id         (get-in history [::history current-index ::state-id])
           app-uuid         (second (get history ::history-id))
-          {::hist/keys [db-hash-index]} (get-in reconciler [:config :shared])
+          {::hist/keys [db-hash-index]} (fp/shared app)
           historical-state (get @db-hash-index [app-uuid state-id])]
       (not (empty? historical-state)))))
 
 (fm/defmutation fetch-and-show-history [{::keys [current-index] :as params}]
-  (action [{:keys [state ref reconciler] :as env}]
+  (action [{:keys [state ref app] :as env}]
     (let [history (get-in @state ref)]
       (when (not= current-index (::current-index history))
         (let [state-id (get-in history [::history current-index ::state-id])]
           (if (has-state? env params)
-            (js/setTimeout (fn []
-                             (prim/transact! reconciler ref `[(navigate-history {::current-index ~current-index})])) 0)
-            (js/setTimeout (fn []
-                             (prim/ptransact! reconciler ref `[(hist/remote-fetch-history-step {:id ~state-id})
-                                                               (navigate-history {::current-index ~current-index})])) 0))))))
+            (prim/transact! app ref `[(navigate-history {::current-index ~current-index})])
+            (prim/ptransact! app ref `[(hist/remote-fetch-history-step {:id ~state-id})
+                                       (navigate-history {::current-index ~current-index})]))))))
   (refresh [env] [:ui/historical-dom-view])
   (remote [{:keys [ref state] :as env}]
     (let [history  (get-in @state ref)
           state-id (get-in history [::history current-index ::state-id])]
       (if (::show-dom-preview? history)
-        (-> (db.h/remote-mutation env 'show-dom-preview)
-          (assoc-in [:params :fulcro.inspect.client/state-id] state-id))
+        (-> env
+          (m/with-server-side-mutation 'show-dom-preview)
+          (m/with-params {:fulcro.inspect.client/state-id state-id}))
         false))))
 
 
@@ -87,9 +86,10 @@
   (action [{:keys [state ref] :as env}]
     (h/swap-entity! env assoc ::current-index (-> (get-in @state ref) ::history count dec)))
   (refresh [_] [::current-index])
-  (remote [{:keys [ast ref]}]
-    (-> (assoc ast :key 'reset-app)
-      (assoc-in [:params :fulcro.inspect.core/app-uuid] (db.h/ref-app-uuid ref)))))
+  (remote [{:keys [ref] :as env}]
+    (-> env
+      (m/with-server-side-mutation 'reset-app)
+      (m/with-params {:fulcro.inspect.core/app-uuid (db.h/ref-app-uuid ref)}))))
 
 (fp/defsc Snapshot
   [this
@@ -156,6 +156,7 @@
 
     (h/swap-entity! env assoc ::show-snapshots? true)))
 
+;; FIXME: Snapshots are probably broken. component is probably not in env
 (fm/defmutation update-snapshot-label [{::keys [snapshot-id snapshot-label]}]
   (action [{:keys [ref component state] :as env}]
     (h/swap-entity! (assoc env :ref [::snapshot-id snapshot-id]) assoc ::snapshot-label snapshot-label)

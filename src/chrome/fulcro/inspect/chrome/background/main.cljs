@@ -1,7 +1,6 @@
 (ns fulcro.inspect.chrome.background.main
   (:require [goog.object :as gobj]
-            [cljs.core.async :as async :refer [go go-loop chan <! >! put!]]
-            [taoensso.timbre :as log]))
+            [cljs.core.async :as async :refer [go go-loop chan <! >! put!]]))
 
 (defonce remote-conns* (atom {}))
 (defonce tools-conns* (atom {}))
@@ -33,7 +32,7 @@
          :popup "popups/enabled.html"}))
 
 (defn handle-remote-message [ch message port]
-  (log/info "Backgroud worker received message" message)
+  (js/console.log "Backgroud worker received message" message)
   (cond
     ; send message to devtool
     (gobj/getValueByKeys message "fulcro-inspect-remote-message")
@@ -50,9 +49,12 @@
       (set-icon-and-popup tab-id))))
 
 (defn add-listener []
+  (js/chrome.runtime.onMessage.addListener (fn [msg sender respond]
+                                             (js/console.log "Content script message" msg)))
   (js/chrome.runtime.onConnect.addListener
     (fn [port]
-      (case (log/spy :info (gobj/get port "name"))
+      (js/console.log "Connected!" (.-name port ))
+      (case (gobj/get port "name")
         "fulcro-inspect-remote"
         (let [background->devtool-chan (chan (async/sliding-buffer 50000))
               listener                 (partial handle-remote-message background->devtool-chan)

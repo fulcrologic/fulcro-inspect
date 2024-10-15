@@ -3,6 +3,7 @@
     [cljs.reader :refer [read-string]]
     [com.fulcrologic.fulcro-css.css-injection :refer [style-element]]
     [com.fulcrologic.fulcro-css.localized-dom :as dom]
+    [com.fulcrologic.fulcro.algorithms.merge :as merge]
     [com.fulcrologic.fulcro.components :as fp]
     [com.fulcrologic.fulcro.dom.events :as evt]
     [com.fulcrologic.fulcro.mutations :as m]
@@ -18,7 +19,7 @@
     (let [{:keys [ref state]} env
           inspector-ref (fp/ident inspector/Inspector inspector)
           current       (get-in @state (conj ref ::current-app))]
-      (swap! state h/merge-entity inspector/Inspector inspector :append (conj ref ::inspectors))
+      (swap! state merge/merge-component inspector/Inspector inspector :append (conj ref ::inspectors))
       (if (nil? current)
         (swap! state update-in ref assoc ::current-app inspector-ref)))))
 
