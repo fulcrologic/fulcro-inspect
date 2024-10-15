@@ -5,73 +5,68 @@
 
  :nrepl  {:port 63104}
 
- :builds {:workspaces        {:target     :browser
-                              :output-dir "resources/public/js/workspaces"
-                              :asset-path "/js/workspaces"
-                              :devtools   {:preloads           [devtools.preload fulcro.inspect.preload]
-                                           :http-root          "resources/public"
-                                           :http-port          8084
-                                           :http-resource-root "."
-                                           :devtools-url       "http://localhost:9632"}
-                              :modules    {:main {:entries [fulcro.inspect.workspaces.main]}}}
-
-          ;; LEGACY, remove:
-          :chrome            {:target           :chrome-extension
-                              :compiler-options {:closure-output-charset "US-ASCII"}
-                              :extension-dir    "shells/chrome"
-                              :devtools         {:devtools-url "http://localhost:9632"}}
+ :builds {:workspaces            {:target     :browser
+                                  :output-dir "resources/public/js/workspaces"
+                                  :asset-path "/js/workspaces"
+                                  :devtools   {:preloads           [devtools.preload fulcro.inspect.preload]
+                                               :http-root          "resources/public"
+                                               :http-port          8084
+                                               :http-resource-root "."
+                                               :devtools-url       "http://localhost:9632"}
+                                  :modules    {:main {:entries [fulcro.inspect.workspaces.main]}}}
 
           ;; Build the core extension elements, the service worker and the content script that
           ;; we inject into the page.
-          :chrome-extension  {:target :esm
-                              :output-dir "shells/chrome/js/extension"
-                              :asset-path       "js/extension" ; ??? 
-                              :runtime :custom
-                              :compiler-options {:closure-output-charset "US-ASCII"} ; ???
-                              :devtools         {:devtools-url "http://localhost:9632"} ; ???
-                              :source-map true
-                              :modules
-                              {:shared
-                               {:entries []}
-                               :service-worker
-                               {:init-fn fulcro.inspect.chrome.background.main/init
-                                :depends-on #{:shared}}}}
+          :chrome-background     {:target           :esm
+                                  :output-dir       "shells/chrome/js/extension"
+                                  :asset-path       "js/extension" ; ???
+                                  :runtime          :custom
+                                  :compiler-options {:closure-output-charset "US-ASCII"} ; ???
+                                  :devtools         {:devtools-url "http://localhost:9632"} ; ???
+                                  :source-map       true
+                                  :modules
+                                  {:shared
+                                   {:entries []}
+                                   :service-worker
+                                   {:init-fn    fulcro.inspect.chrome.background.main/init
+                                    :depends-on #{:shared}}}}
           :chrome-content-script {:target           :browser
                                   :output-dir       "shells/chrome/js/content-script"
                                   :asset-path       "js/content-script"
                                   :compiler-options {:closure-output-charset "US-ASCII"}
-                                            ;:devtools         {:devtools-url "http://localhost:9632"}
+                                  ;:devtools         {:devtools-url "http://localhost:9632"}
                                   :modules          {:main {:entries [fulcro.inspect.chrome.content-script.main]}}}
-          :chrome-devtool    {:target           :browser
-                              :output-dir       "shells/chrome/js/devtool"
-                              :asset-path       "js/devtool"
-                              :compiler-options {:closure-output-charset "US-ASCII"
-                                                 :optimizations :simple}
-                              :devtools         {:devtools-url "http://localhost:9632"}
-                              :modules          {:main {:entries [fulcro.inspect.chrome.devtool.main]}}}
+          :chrome-devtool        {:target           :browser
+                                  :output-dir       "shells/chrome/js/devtool"
+                                  :asset-path       "js/devtool"
+                                  :compiler-options {:closure-output-charset "US-ASCII"
+                                                     :source-map             true
+                                                     :optimizations          :simple}
+                                  :devtools         {:devtools-url "http://localhost:9632"}
+                                  :modules          {:main {:entries [fulcro.inspect.chrome.devtool.main]}}}
 
-          :electron-main     {:target           :node-script
-                              :main             fulcro.inspect.electron.background.main/init
-                              :devtools         {:devtools-url "http://localhost:9632"
-                                                 :after-load   fulcro.inspect.electron.background.main/done}
-                              :compiler-options {:optimizations :simple}
-                              :output-to        "shells/electron/js/background/main.js"}
+          :electron-main         {:target           :node-script
+                                  :main             fulcro.inspect.electron.background.main/init
+                                  :devtools         {:devtools-url "http://localhost:9632"
+                                                     :after-load   fulcro.inspect.electron.background.main/done}
+                                  :compiler-options {:optimizations :simple}
+                                  :output-to        "shells/electron/js/background/main.js"}
 
-          :electron-renderer {:target           :browser
-                              :modules          {:main {:entries [fulcro.inspect.electron.renderer.main]}}
-                              :devtools         {:devtools-url "http://localhost:9632"
-                                                 :after-load   fulcro.inspect.electron.renderer.main/start}
-                              :compiler-options {:optimizations :simple}
-                              :output-dir       "shells/electron/js/renderer"
-                              :asset-path       "js/renderer"}
+          :electron-renderer     {:target           :browser
+                                  :modules          {:main {:entries [fulcro.inspect.electron.renderer.main]}}
+                                  :devtools         {:devtools-url "http://localhost:9632"
+                                                     :after-load   fulcro.inspect.electron.renderer.main/start}
+                                  :compiler-options {:optimizations :simple}
+                                  :output-dir       "shells/electron/js/renderer"
+                                  :asset-path       "js/renderer"}
 
-          :test-dev          {:target    :browser-test
-                              :test-dir  "resources/public/js/test"
-                              :ns-regexp "-spec$"
-                              :devtools  {:http-port          8021
-                                          :http-resource-root "public"
-                                          :http-root          "resources/public/js/test"}}
+          :test-dev              {:target    :browser-test
+                                  :test-dir  "resources/public/js/test"
+                                  :ns-regexp "-spec$"
+                                  :devtools  {:http-port          8021
+                                              :http-resource-root "public"
+                                              :http-root          "resources/public/js/test"}}
 
-          :test-ci           {:target    :karma
-                              :output-to "target/ci.js"
-                              :ns-regexp "-spec$"}}}
+          :test-ci               {:target    :karma
+                                  :output-to "target/ci.js"
+                                  :ns-regexp "-spec$"}}}

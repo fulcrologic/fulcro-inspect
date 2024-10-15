@@ -55,7 +55,7 @@
 
 (defn send-to-query [this app-uuid query]
   (fp/transact! this
-    [(fulcro.inspect.ui.multi-oge/set-active-query {:query (h/pprint query)})]
+    `[(fulcro.inspect.ui.multi-oge/set-active-query {:query ~(h/pprint query)})]
     {:ref [:fulcro.inspect.ui.multi-oge/id [:fulcro.inspect.core/app-uuid app-uuid]]})
 
   (fp/transact! this

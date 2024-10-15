@@ -333,7 +333,7 @@
                       (fn [app]
                         (reset! port* (event-loop app responses*))
                         (post-message @port* :fulcro.inspect.client/check-client-version {})
-                        (settings/load-settings (:reconciler app)))
+                        (settings/load-settings app))
 
                       :shared
                       {::hist/db-hash-index (atom {})}

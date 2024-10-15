@@ -53,17 +53,16 @@
     (h/remote-mutation env 'pick-element)))
 
 (fp/defsc Panel [this props]
-  :initial-state (fn [_] {::panel-id (random-uuid)})
-  :ident ::panel-id
-  :query [::panel-id :ui/picking?
-          {::details (fp/get-query Details)}]
-  :css [[:.container {:flex           1
-                      :display        "flex"
-                      :flex-direction "column"}
-         [:.icon-active
-          [:svg.c-icon {:fill "#4682E9"}]]]]
-  :css-include [ui/CSS Details]
-
+  {:initial-state (fn [_] {::panel-id (random-uuid)})
+   :ident         ::panel-id
+   :query         [::panel-id :ui/picking?
+                   {::details (fp/get-query Details)}]
+   :css           [[:.container {:flex           1
+                                 :display        "flex"
+                                 :flex-direction "column"}
+                    [:.icon-active
+                     [:svg.c-icon {:fill "#4682E9"}]]]]
+   :css-include   [ui/CSS Details]}
   (let [{:keys [ui/picking? ::panel-id] :as props} (fp/props this)
         css (css/get-classnames Panel)]
     (dom/div #js {:className (:container css)}

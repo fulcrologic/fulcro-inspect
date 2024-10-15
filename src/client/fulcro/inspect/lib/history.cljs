@@ -13,7 +13,7 @@
   "Find the state database history for the given app-uuid, given a component or
   app."
   [app-ish app-uuid]
-  (let [{::keys [db-hash-index]} (comp/shared app-ish [:config :shared])]
+  (let [{::keys [db-hash-index]} (comp/shared app-ish)]
     (some-> db-hash-index deref (get app-uuid))))
 
 (defn latest-state-id [app-ish app-uuid]
@@ -55,11 +55,11 @@
    can be recorded without a value, in which case the user will be able to request it
    on demand when needed."
   [app-ish app-uuid history-step]
-  (let [{::keys [db-hash-index] :as shared} (comp/shared app-ish [:config :shared])]
+  (let [{::keys [db-hash-index] :as shared} (comp/shared app-ish)]
     (swap! db-hash-index db-index-add app-uuid history-step)))
 
 (defn clear-history! [app-ish app-uuid]
-  (let [{::keys [db-hash-index]} (comp/shared app-ish [:config :shared])]
+  (let [{::keys [db-hash-index]} (comp/shared app-ish)]
     (swap! db-hash-index dissoc app-uuid)))
 
 (defn- best-populated-base

@@ -317,7 +317,7 @@
                      :started-callback
                      (fn [app]
                        (event-loop! app responses*)
-                       (settings/load-settings (:reconciler app)))
+                       (settings/load-settings app))
 
                      :shared
                      {::hist/db-hash-index               (atom {})
