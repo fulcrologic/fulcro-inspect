@@ -1,11 +1,18 @@
 (ns fulcro.inspect.chrome.background.main
+  "A middleman facilitating communication between the content script 
+   (injected into the page with the Fulcro app)
+   and the Fulcro Inspect Chrome DevTools panel.
+   (They are not allowed to communicate directly.)"
   (:require [goog.object :as gobj]
             [cljs.core.async :as async :refer [go go-loop chan <! >! put!]]))
 
-(defonce remote-conns* (atom {}))
-(defonce tools-conns* (atom {}))
+(defonce remote-conns* (atom {})) ; connections from the content script
+(defonce tools-conns* (atom {})) ; connections to our DevTools pane
 
-(defn handle-devtool-message [devtool-port message port]
+(defn handle-devtool-message 
+  "Handle a message from the DevTools pane"
+  [devtool-port message _port]
+  (println "handle-devtool-message" message) ; FIXME rm
   (cond
     (= "init" (gobj/get message "name"))
     (let [tab-id (gobj/get message "tab-id")]
@@ -21,20 +28,23 @@
       (some-> remote-port (.postMessage message)))))
 
 (defn set-icon-and-popup [tab-id]
-  #_(js/chrome.action.setIcon                               ; FIXME Fails to be fetched
-      #js {;:tabId tab-id
-           :path #js {"16"  "icon-16.png"
-                      "32"  "icon-32.png"
-                      "48"  "icon-48.png"
-                      "128" "icon-128.png"}})
+  (js/chrome.action.setIcon
+   ;; Replace the 'inactive fulcro' w/ 'active fulcro' icon
+   #js {:tabId tab-id
+        :path #js {"16"  "/icon-16.png"
+                   "32"  "/icon-32.png"
+                   "48"  "/icon-48.png"
+                   "128" "/icon-128.png"}})
   (js/chrome.action.setPopup
     #js {:tabId tab-id
          :popup "popups/enabled.html"}))
 
-(defn handle-remote-message [ch message port]
+(defn handle-remote-message 
+  "Handle a message from the content script"
+  [ch message port]
   (js/console.log "Backgroud worker received message" message)
   (cond
-    ; send message to devtool
+    ; Forward message to devtool
     (gobj/getValueByKeys message "fulcro-inspect-remote-message")
     (let [tab-id (gobj/getValueByKeys port "sender" "tab" "id")]
       (put! ch {:tab-id tab-id :message message})
@@ -89,8 +99,8 @@
           (.addListener (gobj/get port "onDisconnect")
             (fn [port]
               (.removeListener (gobj/get port "onMessage") listener)
-              (if-let [port-key (->> @tools-conns*
-                                  (keep (fn [[k v]] (if (= v port) k)))
+              (when-let [port-key (->> @tools-conns*
+                                  (keep (fn [[k v]] (when (= v port) k)))
                                   (first))]
                 (swap! tools-conns* dissoc port-key)))))
 
