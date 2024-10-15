@@ -25,7 +25,8 @@
         (println "WARN: No stored remote port for this sender tab"
           tab-id
           "Known tabs:" (keys @remote-conns*)))             ; FIXME rm
-      (some-> remote-port (.postMessage message)))))
+      (some-> remote-port (.postMessage message))))
+  (js/Promise.resolve))
 
 (defn set-icon-and-popup [tab-id]
   (js/chrome.action.setIcon
@@ -56,11 +57,14 @@
     ; set icon and popup
     (gobj/getValueByKeys message "fulcro-inspect-fulcro-detected")
     (let [tab-id (gobj/getValueByKeys port "sender" "tab" "id")]
-      (set-icon-and-popup tab-id))))
+      (set-icon-and-popup tab-id)))
+  (js/Promise.resolve))
 
 (defn add-listener []
-  (js/chrome.runtime.onMessage.addListener (fn [msg sender respond]
-                                             (js/console.log "Content script message" msg)))
+  (js/chrome.runtime.onMessage.addListener (fn [msg _sender _respond]
+                                             (js/console.log "Content script message" msg)
+                                             ;; respect api contract, call the callback
+                                             (js/Promise.resolve)))
   (js/chrome.runtime.onConnect.addListener
     (fn [port]
       (js/console.log "Connected!" (.-name port ))

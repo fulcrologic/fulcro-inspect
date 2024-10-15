@@ -34,6 +34,7 @@
     [fulcro.inspect.ui.transactions :as transactions]
     [goog.functions :refer [debounce]]
     [goog.object :as gobj]
+    [shadow.cljs.modern :refer [js-await]]
     [taoensso.encore :as enc]
     [taoensso.timbre :as log]))
 
@@ -276,7 +277,8 @@
         (put! message-handler-ch
           {:port       port
            :event      msg
-           :responses* responses*})))
+           :responses* responses*})
+        (js/Promise.resolve)))
     (go
       (loop []
         (when-let [msg (<! message-handler-ch)]
@@ -344,12 +346,11 @@
     (js/document.body.appendChild node)
     ;; Sending a message of any kind will wake up the service worker, otherwise our comms won't succeed because
     ;; it will register for our initial comms AFTER we've sent them.
-    ;; TASK: We must handle the service worker going away gracefully...not sure how to do that yet.
-    (js/chrome.runtime.sendMessage #js {:ping true}
-      (fn []
-        (reset! port* (event-loop app responses*))
-        (post-message @port* :fulcro.inspect.client/check-client-version {})
-        (settings/load-settings app)))
+    ;; TASK: We must handle the service worker going away gracefully...not sure how to do that yet. 
+    (js-await [_ (js/chrome.runtime.sendMessage #js {:ping true})]
+              (reset! port* (event-loop app responses*))
+              (post-message @port* :fulcro.inspect.client/check-client-version {})
+              (settings/load-settings app))
     (app/mount! app GlobalRoot node)
     app))
 

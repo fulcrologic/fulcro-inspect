@@ -31,7 +31,8 @@
           :else
           (when-let [ch (some->> (gobj/getValueByKeys msg "__fulcro-insect-msg-id")
                                  (get @active-messages*))]
-            (put! ch msg)))))
+            (put! ch msg)))
+        (js/Promise.resolve)))
     port))
 
 (defn event-loop []
