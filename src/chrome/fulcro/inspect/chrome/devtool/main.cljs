@@ -56,6 +56,7 @@
 (def current-tab-id js/chrome.devtools.inspectedWindow.tabId)
 
 (defn post-message [port type data]
+  (log/info "Posting message" type data)
   (.postMessage port #js {:fulcro-inspect-devtool-message (encode/write {:type type :data data :timestamp (js/Date.)})
                           :tab-id                         current-tab-id}))
 
@@ -164,9 +165,9 @@
 (defn- -fill-last-entry!
   []
   (enc/if-let [app       @global-inspector*
-               state-map (app/current-state app)
-               app-uuid  (h/current-app-uuid state-map)
-               state-id  (hist/latest-state-id app app-uuid)]
+               state-map (log/spy :info (app/current-state app))
+               app-uuid  (log/spy :info (h/current-app-uuid state-map))
+               state-id  (log/spy :info (hist/latest-state-id app app-uuid))]
     (fp/transact! app [(hist/remote-fetch-history-step {:id state-id})])
     (log/error "Something was nil")))
 
@@ -274,6 +275,7 @@
   (let [port (js/chrome.runtime.connect #js {:name "fulcro-inspect-devtool"})]
     (.addListener (.-onMessage port)
       (fn [msg]
+        (log/info "Devtool received message on port" msg)
         (put! message-handler-ch
           {:port       port
            :event      msg
@@ -316,14 +318,17 @@
 (defn make-network [port* parser responses*]
   (mock-net/mock-http-server
     {:parser (fn [edn]
+               (log/info edn)
                (go
-                 (parser
-                   {:send-message (fn [type data]
-                                    (or
-                                      (?handle-local-message responses* type data)
-                                      (post-message @port* type data)))
-                    :responses*   responses*}
-                   edn)))}))
+                 (log/spy :info
+                   (async/<!
+                     (parser
+                       {:send-message (fn [type data]
+                                        (or
+                                          (?handle-local-message responses* type data)
+                                          (post-message @port* type data)))
+                        :responses*   responses*}
+                       edn)))))}))
 
 (defn start-global-inspector [options]
   (let [port*      (atom nil)
@@ -339,7 +344,6 @@
                       {::hist/db-hash-index (atom {})}
 
                       :remotes {:remote
-                                ;; TASK: Proper creation of remote
                                 (make-network port* (ui-parser/parser) responses*)}})
         node       (js/document.createElement "div")]
     (js/document.body.appendChild node)
