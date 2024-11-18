@@ -17,8 +17,8 @@
 (comp/defsc Inspector
   [this
    {::keys   [app-state tab client-connection-id
-              db-explorer element network transactions
-              i18n oge settings]
+              db-explorer #_element network transactions
+              #_i18n oge settings]
     :ui/keys [more-open?]} _ css]
   {:initial-state
    (fn [state]
@@ -29,8 +29,8 @@
       ::app-state            (-> (comp/get-initial-state data-history/DataHistory state)
                                (assoc-in [::data-history/watcher ::data-watcher/root-data ::data-viewer/expanded]
                                  {[] true}))
-      ::element              (comp/get-initial-state element/Panel nil)
-      ::i18n                 (comp/get-initial-state i18n/TranslationsViewer nil)
+      ;::element              (comp/get-initial-state element/Panel nil)
+      ;::i18n                 (comp/get-initial-state i18n/TranslationsViewer nil)
       ::network              (comp/get-initial-state network/NetworkHistory nil)
       ::oge                  (comp/get-initial-state oge/OgeView {})
       ::transactions         (comp/get-initial-state transactions/TransactionList [])
@@ -45,9 +45,9 @@
     {[:fulcro.inspect.core/floating-panel "main"] [:ui/dock-side]}
     {::app-state (comp/get-query data-history/DataHistory)}
     {::db-explorer (comp/get-query db-explorer/DBExplorer)}
-    {::element (comp/get-query element/Panel)}
+    ;{::element (comp/get-query element/Panel)}
     {::network (comp/get-query network/NetworkHistory)}
-    {::i18n (comp/get-query i18n/TranslationsViewer)}
+    ;{::i18n (comp/get-query i18n/TranslationsViewer)}
     {::transactions (comp/get-query transactions/TransactionList)}
     {::oge (comp/get-query oge/OgeView)}
     {::settings (comp/get-query settings/Settings)}]
@@ -107,7 +107,7 @@
 
    :css-include
    [data-history/DataHistory network/NetworkHistory transactions/TransactionList
-    element/Panel i18n/TranslationsViewer oge/OgeView db-explorer/DBExplorer]}
+    #_element/Panel #_i18n/TranslationsViewer oge/OgeView db-explorer/DBExplorer]}
 
   (let [tab-item (fn [{:keys [title html-title disabled? page]}]
                    (dom/div #js {:className (cond-> (:tab css)
@@ -121,11 +121,11 @@
       (dom/div :.tabs
         (tab-item {:title "DB" :page ::page-db})
         (tab-item {:title "DB Explorer" :page ::page-db-explorer})
-        (tab-item {:title "Element" :page ::page-element})
+        ;(tab-item {:title "Element" :page ::page-element})
         (tab-item {:title "Transactions" :page ::page-transactions})
         (tab-item {:title "Network" :page ::page-network})
         (tab-item {:title "EQL" :page ::page-oge})
-        (tab-item {:title "i18n" :page ::page-i18n})
+        ;(tab-item {:title "i18n" :page ::page-i18n})
         (tab-item {:title "Settings" :page ::page-settings})
         (dom/div :.flex)
         #_(dom/div #js {:className (:more css)
@@ -145,8 +145,7 @@
           ::page-db-explorer
           (db-explorer/ui-db-explorer db-explorer)
 
-          ::page-element
-          (element/panel element)
+          #_#_::page-element (element/panel element)
 
           ::page-transactions
           (transactions/transaction-list transactions)
@@ -157,8 +156,7 @@
           ::page-oge
           (oge/oge-view oge)
 
-          ::page-i18n
-          (i18n/translations-viewer i18n)
+          #_#_::page-i18n (i18n/translations-viewer i18n)
 
           ::page-settings
           (settings/ui-settings settings)
