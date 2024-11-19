@@ -12,13 +12,13 @@
   "repository": "https://github.com:/fulcrologic/fulcro-inspect.git",
   "dependencies": {
     "cors": "^2.8.5",
-    "electron-settings": "^3.2.0",
-    "express": "^4.16.3",
+    "electron-settings": "^4.0.4",
+    "express": "^4.21.1",
     "express-ws": "^4.0.0"
   },
   "devDependencies": {
-    "electron": "^6.0.12",
-    "electron-builder": "^21.2.0"
+    "electron": "^32.2.5",
+    "electron-builder": "^25.1.8"
   },
   "scripts": {
     "postinstall": "install-app-deps",

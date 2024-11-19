@@ -16,8 +16,7 @@
   com.fulcrologic/fulcro-i18n                     {:mvn/version "1.1.2"}
   com.fulcrologic/statecharts                     {:mvn/version "1.2.5-SNAPSHOT"}
   com.google.javascript/closure-compiler-unshaded {:mvn/version "v20240317"}
-  com.taoensso/encore                             {:mvn/version "3.112.0"}
-  com.taoensso/timbre                             {:mvn/version "6.5.0"}
+  com.taoensso/timbre                             {:mvn/version "4.10.0"}
   com.taoensso/sente                              {:mvn/version "1.15.0"}
   com.wsscode/pathom                              {:mvn/version "2.4.0"}
   devcards/devcards                               {:mvn/version "0.2.4"}

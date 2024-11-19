@@ -5,12 +5,13 @@
     [com.fulcrologic.fulcro-css.localized-dom :as dom]
     [com.fulcrologic.fulcro-i18n.i18n :as fulcro-i18n]
     [com.fulcrologic.fulcro.algorithms.normalize :as fnorm]
+    [com.fulcrologic.fulcro.algorithms.tx-processing :as txn]
     [com.fulcrologic.fulcro.application :as app]
     [com.fulcrologic.fulcro.application :as fulcro]
     [com.fulcrologic.fulcro.components :as fp]
     [com.fulcrologic.fulcro.mutations :as fm]
     [com.wsscode.common.async-cljs :refer [<?maybe]]
-    [com.wsscode.pathom.fulcro.network :as pfn]
+    [edn-query-language.core :as eql]
     [fulcro.inspect.helpers :as h]
     [fulcro.inspect.lib.diff :as diff]
     [fulcro.inspect.lib.history :as hist]
@@ -31,12 +32,12 @@
     [fulcro.inspect.ui.transactions :as transactions]
     [goog.functions :refer [debounce]]
     [goog.object :as gobj]
-    [taoensso.encore :as enc]))
+    [taoensso.encore :as enc]
+    [taoensso.timbre :as log]))
 
 (declare fill-last-entry!)
 
-(defonce electron (js/require "electron"))
-(def ipcRenderer (gobj/get electron "ipcRenderer"))
+(def ipcRenderer js/window.ipcRenderer)
 
 (fp/defsc GlobalRoot [this {:ui/keys [root]}]
   {:initial-state (fn [params] {:ui/root (fp/get-initial-state multi-inspector/MultiInspector params)})
@@ -56,6 +57,8 @@
 
 ;; LANDMARK: This is how we talk back to the node server, which can send the websocket message
 (defn post-message [type data]
+  (log/info "render -> client" type)
+  (log/info "method" (js/Object.getOwnPropertyNames ipcRenderer))
   (.send ipcRenderer "event"
     #js {:fulcro-inspect-devtool-message (encode/write {:type type :data data :timestamp (js/Date.)})
          :client-connection-id           (encode/write (:fulcro.inspect.core/client-connection-id data))
@@ -110,12 +113,6 @@
                                        :content  (get-in initial-state path)})))))
                         (assoc-in [::inspector/app-state ::data-history/snapshots] (storage/tget [::data-history/snapshots app-id] []))
                         (assoc-in [::inspector/network ::network/history-id] [app-uuid-key app-uuid])
-                        (assoc-in [::inspector/element ::element/panel-id] [app-uuid-key app-uuid])
-                        (assoc-in [::inspector/i18n ::i18n/id] [app-uuid-key app-uuid])
-                        (assoc-in [::inspector/i18n ::i18n/current-locale] (-> (get-in initial-state (-> initial-state ::fulcro-i18n/current-locale))
-                                                                             ::fulcro-i18n/locale))
-                        (assoc-in [::inspector/i18n ::i18n/locales] (->> initial-state ::fulcro-i18n/locale-by-id vals vec
-                                                                      (mapv #(vector (::fulcro-i18n/locale %) (:ui/locale-name %)))))
                         (assoc-in [::inspector/transactions ::transactions/tx-list-id] [app-uuid-key app-uuid])
                         (assoc-in [::inspector/oge] (fp/get-initial-state multi-oge/OgeView {:app-uuid app-uuid
                                                                                              :remotes  remotes})))]
@@ -188,12 +185,8 @@
 
     (fill-last-entry!)
 
-    (fp/transact! app
-      [(db-explorer/set-current-state step) :current-state]
-      {:ref [::db-explorer/id [app-uuid-key app-uuid]]})
-    (fp/transact! app
-      [(data-history/set-content step) ::data-history/history]
-      {:ref [::data-history/history-id [app-uuid-key app-uuid]]})))
+    (fp/transact! app [(db-explorer/set-current-state step)] {:ref [::db-explorer/id [app-uuid-key app-uuid]]})
+    (fp/transact! app [(data-history/set-content step)] {:ref [::data-history/history-id [app-uuid-key app-uuid]]})))
 
 (defn new-client-tx [{:fulcro.inspect.core/keys   [app-uuid]
                       :fulcro.inspect.client/keys [tx]}]
@@ -204,12 +197,12 @@
                     :fulcro.history/db-before (hist/history-step inspector app-uuid db-before-id)
                     :fulcro.history/db-after (hist/history-step inspector app-uuid db-after-id))]
     (fp/transact! inspector
-      [`(fulcro.inspect.ui.transactions/add-tx ~tx)]
+      [(fulcro.inspect.ui.transactions/add-tx tx)]
       {:ref [:fulcro.inspect.ui.transactions/tx-list-id [app-uuid-key app-uuid]]})))
 
 (defn set-active-app [{:fulcro.inspect.core/keys [app-uuid]}]
   (let [inspector @global-inspector*]
-    (fp/transact! inspector [`(multi-inspector/set-app {::inspector/id ~app-uuid})]
+    (fp/transact! inspector [(multi-inspector/set-app {::inspector/id app-uuid})]
       {:ref [::multi-inspector/multi-inspector "main"]})))
 
 (defn notify-stale-app []
@@ -233,10 +226,11 @@
 
 ;; LANDMARK: incoming electron app messages
 (defn handle-remote-message [_ event]
+  (log/info "Renderer receieved message " event)
   (enc/when-let [{:keys [type data]} (event-data event)
                  client-id (client-connection-id event)]
     (let [data (assoc data :fulcro.inspect.core/client-connection-id client-id)]
-      (case type
+      (case (log/spy :info type)
         :fulcro.inspect.client/init-app
         (start-app data)
 
@@ -293,7 +287,7 @@
 
 (defn event-loop! [_app responses*]
   (.on ipcRenderer "event"
-    (fn [_ event]
+    (fn [event]
       (or
         (handle-remote-message {:responses* responses*} event)
         (handle-local-message {:responses* responses*} event)))))
@@ -301,29 +295,29 @@
 (defn make-network [parser responses*]
   (let [parser-env {:send-message post-message
                     :responses*   responses*}]
-    (pfn/fn-network
-      (fn [_this edn ok error]
-        (go
-          (try
-            (ok (<! (parser parser-env edn)))
-            (catch :default e
-              (error e)))))
-      false)))
+    {:transmit! (fn transmit! [_ {:keys [::txn/ast ::txn/result-handler ::txn/update-handler]}]
+                  (go
+                    (try
+                      (let [edn  (log/spy :info (eql/ast->query ast))
+                            body (log/spy :info (<! (parser parser-env edn)))]
+                        (result-handler {:status-code 200 :body body}))
+                      (catch :default e
+                        (log/error e "Handler failed")
+                        (result-handler {:status-code 500 :body {}})))))}))
 
 (defn start-global-inspector [_options]
   (let [responses* (atom {})
-        app        (fulcro/new-fulcro-client ; TASK: Fix network for electron!
-                     :started-callback
-                     (fn [app]
-                       (event-loop! app responses*)
-                       (settings/load-settings app))
+        app        (app/fulcro-app {:client-did-mount
+                                    (fn [app]
+                                      (event-loop! app responses*)
+                                      (settings/load-settings app))
 
-                     :shared
-                     {::hist/db-hash-index               (atom {})
-                      :fulcro.inspect.renderer/electron? true}
+                                    :shared
+                                    {::hist/db-hash-index               (atom {})
+                                     :fulcro.inspect.renderer/electron? true}
 
-                     :networking
-                     (make-network (ui-parser/parser) responses*))
+                                    :remotes {:remote
+                                              (make-network (ui-parser/parser) responses*)}})
         node       (js/document.createElement "div")]
     (js/document.body.appendChild node)
     (reset! global-inspector* app)

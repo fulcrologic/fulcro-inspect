@@ -1,6 +1,6 @@
 {:deps   true
 
- :http   {:host "localhost"
+ :http   {:host "127.0.0.1"
           :port 9632}
 
  :nrepl  {:port 63104}

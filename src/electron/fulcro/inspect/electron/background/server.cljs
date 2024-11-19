@@ -45,8 +45,14 @@
 (defn set-setting! [k v]
   (.set settings (str k) v))
 (defn get-setting [k default]
-  (let [result (.get settings (str k))]
-    (if (nil? result) default result)))
+  (let [c (async/chan)]
+    (-> (.get settings (str k))
+      (.then
+        (fn [result]
+          (async/go
+            (async/>! c (if (nil? result) default result))
+            (async/close! c)))))
+    c))
 
 (def default-port 8237)
 
@@ -59,9 +65,9 @@
 (def express-ws (nodejs/require "express-ws"))
 (def ws (nodejs/require "ws"))
 (def cors (nodejs/require "cors"))
-(def body-parser (nodejs/require "body-parser"))
+(def ^js body-parser (nodejs/require "body-parser"))
 
-(defn routes [express-app {:keys [ajax-post-fn ajax-get-or-ws-handshake-fn]}]
+(defn routes [^js express-app {:keys [ajax-post-fn ajax-get-or-ws-handshake-fn]}]
   (doto express-app
     (.use (cors))
     (.ws "/chsk"
@@ -71,13 +77,13 @@
            :websocket  ws})))
     (.get "/chsk" ajax-get-or-ws-handshake-fn)
     (.post "/chsk" ajax-post-fn)
-    (.use (fn [req res next]
+    (.use (fn [^js req res next]
             (log/warn "Unhandled request: %s" (.-originalUrl req))
             (next)))))
 
-(defn wrap-defaults [express-app routes ch-server]
+(defn wrap-defaults [^js express-app routes ch-server]
   (doto express-app
-    (.use (fn [req res next]
+    (.use (fn [^js req res next]
             (log/trace "Request: %s" (.-originalUrl req))
             (next)))
     (.use (.urlencoded body-parser #js {:extended false}))
@@ -85,8 +91,8 @@
 
 (defn start-web-server! [port]
   (log/info "Starting express...")
-  (let [express-app       (express)
-        express-ws-server (express-ws express-app)]
+  (let [^js express-app       (express)
+        ^js express-ws-server (express-ws express-app)]
     (wrap-defaults express-app routes @channel-socket-server)
     (let [http-server (.listen express-app port)]
       (reset! server-atom
@@ -107,9 +113,8 @@
 
 ;; LANDMARK: ws-client message -> renderer
 (defn forward-client-message-to-renderer! [msg client-id app-uuid]
-  (log/trace "Inspect client->renderer msg-type:" (:type msg))
-  (log/trace "Inspect client->renderer message:" msg)
-  (log/trace "Inspect client->renderer:" {:client-id client-id :app-uuid app-uuid})
+  (log/debug "Inspect client->renderer msg-type:" (:type msg))
+  (log/debug "Inspect client->renderer:" {:client-id client-id :app-uuid app-uuid})
   (try
     (if @content-atom
       (.send @content-atom "event"
@@ -157,7 +162,7 @@
         (log/trace "-> with event data:" event-data)
         (case event-type
           :fulcro.inspect/message
-          (let [app-uuid (-> event-data :data :fulcro.inspect.core/app-uuid)]
+          (let [app-uuid (log/spy :debug (-> event-data :data :fulcro.inspect.core/app-uuid))]
             (?record-app-uuid-mapping! app-uuid client-id)
             (forward-client-message-to-renderer! event-data client-id app-uuid))
           :chsk/uidport-close
@@ -169,11 +174,13 @@
           #_else
           (log/debug "Unsupported event:" event "from client:" client-id))))
     (recur))
-  (when (= ::default (get-setting :setting/websocket-port ::default))
-    (set-setting! :setting/websocket-port default-port))
-  (let [port (get-setting :setting/websocket-port default-port)]
-    (log/info "Fulcro Inspect Listening on port " port)
-    (reset! server-atom (start-web-server! port))))
+  (async/go
+    (let [saved-port (async/<! (get-setting :setting/websocket-port ::default))
+          port       (async/<! (get-setting :setting/websocket-port default-port))]
+      (when (= ::default saved-port)
+        (set-setting! :setting/websocket-port default-port))
+      (log/info "Fulcro Inspect Listening on port " port)
+      (reset! server-atom (start-web-server! port)))))
 
 (defn restart! []
   (log/info "Stopping websockets.")
@@ -184,8 +191,8 @@
   (start-ws!))
 
 (defn forward-renderer-message-to-client! [{:as msg :keys [app-uuid fulcro-inspect-devtool-message]}]
-  (log/trace "renderer->client message:" msg)
-  (log/trace "renderer->client devtool-message type:" (:type fulcro-inspect-devtool-message))
+  (log/debug "renderer->client message:" msg)
+  (log/debug "renderer->client devtool-message type:" (:type fulcro-inspect-devtool-message))
   (log/trace "renderer->client devtool-message:" fulcro-inspect-devtool-message)
   (if-not app-uuid
     (log/warn "Unable to find app-uuid in message:" msg)
@@ -213,17 +220,21 @@
 
 (defn handle-load-settings [{:keys [fulcro-inspect-devtool-message]}]
   (when (= :fulcro.inspect.client/load-settings (:type fulcro-inspect-devtool-message))
-    (let [msg-data (:data fulcro-inspect-devtool-message)
-          msg-id   (:fulcro.inspect.ui-parser/msg-id msg-data)
-          query    (:query msg-data)
-          settings (into {}
-                     (remove (comp #{::not-found} second))
-                     (for [k query]
-                       [k (get-setting k ::not-found)]))
-          response {:type :fulcro.inspect.client/message-response
-                    :data {:fulcro.inspect.ui-parser/msg-id       msg-id
-                           :fulcro.inspect.ui-parser/msg-response settings}}]
-      (send-message-to-renderer! response))
+    (async/go
+      (let [msg-data (:data fulcro-inspect-devtool-message)
+            msg-id   (:fulcro.inspect.ui-parser/msg-id msg-data)
+            query    (:query msg-data)
+            vs       (async/<! (async/reduce
+                                 (fn [acc v]
+                                   (conj acc v))
+                                 []
+                                 (async/map identity
+                                   (mapv #(get-setting % ::not-found) query))))
+            settings (zipmap (log/spy :info query) (log/spy :info vs))
+            response {:type :fulcro.inspect.client/message-response
+                      :data {:fulcro.inspect.ui-parser/msg-id       msg-id
+                             :fulcro.inspect.ui-parser/msg-response settings}}]
+        (send-message-to-renderer! response)))
     :ok))
 
 (defn parse-message [message]
@@ -233,8 +244,9 @@
 
 (defn start!
   "Called on overall Inspect App startup (once)"
-  [web-content]
+  [^js web-content]
   (set-setting! "ensure_settings_persisted" true)
+  (log/info "Setting web content to" web-content)
   (reset! content-atom web-content)
   (start-ws!)
   (.on web-content "dom-ready"
@@ -247,6 +259,7 @@
   (.on ipcMain "event"
     ;; LANDMARK: Hook up of incoming messages from Electron renderer
     (fn handle-renderer-messages [_ message]
+      (log/info "Server received message from renderer")
       (let [msg (parse-message message)]
         (or
           (handle-save-settings msg)
