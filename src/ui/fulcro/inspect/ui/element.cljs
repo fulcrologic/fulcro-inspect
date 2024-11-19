@@ -53,7 +53,8 @@
     (h/remote-mutation env 'pick-element)))
 
 (fp/defsc Panel [this props]
-  {:initial-state (fn [_] {::panel-id (random-uuid)})
+  {:initial-state (fn [_] {::panel-id (random-uuid)
+                           ::details (fp/get-initial-state Details)})
    :ident         ::panel-id
    :query         [::panel-id :ui/picking?
                    {::details (fp/get-query Details)}]

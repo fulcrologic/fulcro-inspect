@@ -1349,6 +1349,11 @@ electron@^23.1.2:
     "@types/node" "^16.11.26"
     extract-zip "^2.0.1"
 
+elkjs@^0.9.3:
+  version "0.9.3"
+  resolved "https://registry.npmjs.org/elkjs/-/elkjs-0.9.3.tgz"
+  integrity sha512-f/ZeWvW/BCXbhGEf1Ujp29EASo/lk1FDnETgNKwJrsVvGZhUWCZyg3xLJjAsxfOmt8KjswHmI5EwCQcPMpOYhQ==
+
 elliptic@^6.0.0:
   version "6.5.2"
   resolved "https://registry.npmjs.org/elliptic/-/elliptic-6.5.2.tgz"

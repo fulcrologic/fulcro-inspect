@@ -12,6 +12,7 @@
     [com.fulcrologic.fulcro.components :as fp]
     [com.fulcrologic.fulcro.mutations :as fm]
     [com.fulcrologic.fulcro.networking.mock-server-remote :as mock-net]
+    [com.fulcrologic.statecharts.integration.fulcro :as scf]
     [com.wsscode.common.async-cljs :refer [<?maybe]]
     [com.wsscode.pathom.core :as p]
     [fulcro.inspect.helpers :as h]
@@ -31,6 +32,7 @@
     [fulcro.inspect.ui.multi-oge :as multi-oge]
     [fulcro.inspect.ui.network :as network]
     [fulcro.inspect.ui.settings :as settings]
+    [fulcro.inspect.ui.statecharts :as statecharts]
     [fulcro.inspect.ui.transactions :as transactions]
     [goog.functions :refer [debounce]]
     [goog.object :as gobj]
@@ -108,13 +110,14 @@
                                        :content  (get-in initial-state path)})))))
                         (assoc-in [::inspector/app-state ::data-history/snapshots] (storage/tget [::data-history/snapshots app-id] []))
                         (assoc-in [::inspector/network ::network/history-id] [app-uuid-key app-uuid])
-                        (assoc-in [::inspector/element ::element/panel-id] [app-uuid-key app-uuid])
-                        (assoc-in [::inspector/i18n ::i18n/id] [app-uuid-key app-uuid])
-                        (assoc-in [::inspector/i18n ::i18n/current-locale] (-> (get-in initial-state (-> initial-state ::fulcro-i18n/current-locale))
-                                                                             ::fulcro-i18n/locale))
-                        (assoc-in [::inspector/i18n ::i18n/locales] (->> initial-state ::fulcro-i18n/locale-by-id vals vec
-                                                                      (mapv #(vector (::fulcro-i18n/locale %) (:ui/locale-name %)))))
+                        #_(assoc-in [::inspector/element ::element/panel-id] [app-uuid-key app-uuid])
+                        #_#_#_(assoc-in [::inspector/i18n ::i18n/id] [app-uuid-key app-uuid])
+                                (assoc-in [::inspector/i18n ::i18n/current-locale] (-> (get-in initial-state (-> initial-state ::fulcro-i18n/current-locale))
+                                                                                     ::fulcro-i18n/locale))
+                                (assoc-in [::inspector/i18n ::i18n/locales] (->> initial-state ::fulcro-i18n/locale-by-id vals vec
+                                                                              (mapv #(vector (::fulcro-i18n/locale %) (:ui/locale-name %)))))
                         (assoc-in [::inspector/transactions ::transactions/tx-list-id] [app-uuid-key app-uuid])
+                        (assoc ::inspector/statecharts {::statecharts/id [app-uuid-key app-uuid]})
                         (assoc-in [::inspector/oge] (fp/get-initial-state multi-oge/OgeView {:app-uuid app-uuid
                                                                                              :remotes  remotes})))]
 
@@ -348,10 +351,11 @@
     ;; it will register for our initial comms AFTER we've sent them.
     ;; TASK: We must handle the service worker going away gracefully...not sure how to do that yet.
     (js-await [_ (js/chrome.runtime.sendMessage #js {:ping true})]
-              (reset! port* (event-loop app responses*))
-              (post-message @port* :fulcro.inspect.client/check-client-version {})
-              (settings/load-settings app))
+      (reset! port* (event-loop app responses*))
+      (post-message @port* :fulcro.inspect.client/check-client-version {})
+      (settings/load-settings app))
     (app/mount! app GlobalRoot node)
+    (scf/install-fulcro-statecharts! app)
     app))
 
 (defn global-inspector

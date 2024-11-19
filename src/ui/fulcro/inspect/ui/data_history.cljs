@@ -193,7 +193,7 @@
                      ::show-snapshots?   true
                      ::watcher           (fp/get-initial-state watcher/DataWatcher (dissoc content :fulcro.inspect.client/state-hash))
                      ::snapshots         []})
-   :ident         [::history-id ::history-id]
+   :ident         ::history-id
    :query         [::search ::history-id ::history ::current-index ::show-dom-preview? ::show-snapshots?
                    {::watcher (fp/get-query watcher/DataWatcher)}
                    {::snapshots (fp/get-query Snapshot)}]
@@ -221,11 +221,11 @@
         app-state (-> watcher ::watcher/root-data :fulcro.inspect.ui.data-viewer/content)]
     (dom/div :.container
       (ui/toolbar {:className (:toolbar css)}
-       #_(ui/toolbar-action {} ; no longer supported
-          (dom/input {:title    "Show DOM preview."
-                      :checked  show-dom-preview?
-                      :onChange #(fm/toggle! this ::show-dom-preview?)
-                      :type     "checkbox"}))
+        #_(ui/toolbar-action {} ; no longer supported
+            (dom/input {:title    "Show DOM preview."
+                        :checked  show-dom-preview?
+                        :onChange #(fm/toggle! this ::show-dom-preview?)
+                        :type     "checkbox"}))
 
         (ui/toolbar-action {:disabled (= 0 current-index)
                             :onClick  #(fp/transact! this `[(fetch-and-show-history ~{::current-index (dec current-index)})])}

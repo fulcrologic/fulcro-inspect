@@ -1,6 +1,7 @@
 (ns fulcro.inspect.electron.renderer.main
   (:require
     [cljs.core.async :refer [<! go put!]]
+    [com.fulcrologic.fulcro-css.css :as css]
     [com.fulcrologic.fulcro-css.css-injection :as cssi]
     [com.fulcrologic.fulcro-css.localized-dom :as dom]
     [com.fulcrologic.fulcro-i18n.i18n :as fulcro-i18n]
@@ -10,6 +11,7 @@
     [com.fulcrologic.fulcro.application :as fulcro]
     [com.fulcrologic.fulcro.components :as fp]
     [com.fulcrologic.fulcro.mutations :as fm]
+    [com.fulcrologic.statecharts.integration.fulcro :as scf]
     [com.wsscode.common.async-cljs :refer [<?maybe]]
     [edn-query-language.core :as eql]
     [fulcro.inspect.helpers :as h]
@@ -29,6 +31,7 @@
     [fulcro.inspect.ui.multi-oge :as multi-oge]
     [fulcro.inspect.ui.network :as network]
     [fulcro.inspect.ui.settings :as settings]
+    [fulcro.inspect.ui.statecharts :as statecharts]
     [fulcro.inspect.ui.transactions :as transactions]
     [goog.functions :refer [debounce]]
     [goog.object :as gobj]
@@ -114,6 +117,7 @@
                         (assoc-in [::inspector/app-state ::data-history/snapshots] (storage/tget [::data-history/snapshots app-id] []))
                         (assoc-in [::inspector/network ::network/history-id] [app-uuid-key app-uuid])
                         (assoc-in [::inspector/transactions ::transactions/tx-list-id] [app-uuid-key app-uuid])
+                        (assoc ::inspector/statecharts {::statecharts/id [app-uuid-key app-uuid]})
                         (assoc-in [::inspector/oge] (fp/get-initial-state multi-oge/OgeView {:app-uuid app-uuid
                                                                                              :remotes  remotes})))]
 
@@ -298,8 +302,8 @@
     {:transmit! (fn transmit! [_ {:keys [::txn/ast ::txn/result-handler ::txn/update-handler]}]
                   (go
                     (try
-                      (let [edn  (log/spy :info (eql/ast->query ast))
-                            body (log/spy :info (<! (parser parser-env edn)))]
+                      (let [edn  (eql/ast->query ast)
+                            body (<! (parser parser-env edn))]
                         (result-handler {:status-code 200 :body body}))
                       (catch :default e
                         (log/error e "Handler failed")
@@ -312,16 +316,22 @@
                                       (event-loop! app responses*)
                                       (settings/load-settings app))
 
+                                    :props-middleware (fp/wrap-update-extra-props
+                                                         (fn [cls extra-props]
+                                                           (merge extra-props (css/get-classnames cls))))
+
+
                                     :shared
                                     {::hist/db-hash-index               (atom {})
                                      :fulcro.inspect.renderer/electron? true}
 
-                                    :remotes {:remote
-                                              (make-network (ui-parser/parser) responses*)}})
+                                    :remotes          {:remote
+                                                       (make-network (ui-parser/parser) responses*)}})
         node       (js/document.createElement "div")]
     (js/document.body.appendChild node)
     (reset! global-inspector* app)
     (app/mount! app GlobalRoot node)
+    (scf/install-fulcro-statecharts! app)
     (reset! dom-node node)))
 
 (defn global-inspector

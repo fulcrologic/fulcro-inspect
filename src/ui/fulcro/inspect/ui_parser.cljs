@@ -32,6 +32,22 @@
                         :data    data
                         ::msg-id msg-id})))))))
 
+(defresolver 'statecharts
+  {::pc/output [{:statecharts [:fulcro.inspect.ui.statecharts/id
+                               {:statechart/available-sessions [:statechart/session-id
+                                                                :statechart/history
+                                                                :statechart/configuration
+                                                                {:statechart/definition [:statechart/registry-key
+                                                                                         :statechart/chart]}]}
+                               {:statechart/definitions [:statechart/registry-key
+                                                         :statechart/chart]}]}]}
+  (fn [{:keys [query] :as env} _]
+    (go-catch
+      (let [{:keys [target] :as params} (log/spy :info (-> env :ast :params))
+            response (async/<! (client-request env :fulcro.inspect.client/statechart-sessions
+                                 (assoc params :query query)))]
+        {:statecharts (assoc response (first target) (second target))}))))
+
 (defresolver 'settings
   {::pc/output [:fulcro.inspect/settings]}
   (fn [{:keys [query] :as env} _]

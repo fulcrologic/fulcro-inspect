@@ -90,7 +90,7 @@
     (routes ch-server)))
 
 (defn start-web-server! [port]
-  (log/info "Starting express...")
+  (log/trace "Starting express...")
   (let [^js express-app       (express)
         ^js express-ws-server (express-ws express-app)]
     (wrap-defaults express-app routes @channel-socket-server)
@@ -113,8 +113,8 @@
 
 ;; LANDMARK: ws-client message -> renderer
 (defn forward-client-message-to-renderer! [msg client-id app-uuid]
-  (log/debug "Inspect client->renderer msg-type:" (:type msg))
-  (log/debug "Inspect client->renderer:" {:client-id client-id :app-uuid app-uuid})
+  (log/trace "Inspect client->renderer msg-type:" (:type msg))
+  (log/trace "Inspect client->renderer:" {:client-id client-id :app-uuid app-uuid})
   (try
     (if @content-atom
       (.send @content-atom "event"
@@ -126,7 +126,7 @@
       (log/error e))))
 
 (defn disconnect-client! [client-id]
-  (log/debug "Attempting to disconnect client with id:" client-id)
+  (log/trace "Attempting to disconnect client with id:" client-id)
   (enc/when-let [app-uuid (get @client-id->app-uuid client-id)
                  message  {:type      :fulcro.inspect.client/dispose-app
                            :data      {:fulcro.inspect.core/app-uuid app-uuid}
@@ -137,7 +137,7 @@
 
 (defn ?record-app-uuid-mapping! [app-uuid client-id]
   (when (and (uuid? app-uuid) (not (contains? @app-uuid->client-id app-uuid)))
-    (log/debug "Saving app uuid client-id association: "
+    (log/trace "Saving app uuid client-id association: "
       {:client-id client-id
        :app-uuid  app-uuid})
     (swap! client-id->app-uuid assoc client-id app-uuid)
@@ -158,11 +158,11 @@
   (go-loop []
     (when-some [{:keys [client-id event]} (<! (:ch-recv @channel-socket-server))]
       (let [[event-type event-data] event]
-        (log/debug "Server received:" event-type)
+        (log/trace "Server received:" event-type)
         (log/trace "-> with event data:" event-data)
         (case event-type
           :fulcro.inspect/message
-          (let [app-uuid (log/spy :debug (-> event-data :data :fulcro.inspect.core/app-uuid))]
+          (let [app-uuid (log/spy :trace (-> event-data :data :fulcro.inspect.core/app-uuid))]
             (?record-app-uuid-mapping! app-uuid client-id)
             (forward-client-message-to-renderer! event-data client-id app-uuid))
           :chsk/uidport-close
@@ -172,7 +172,7 @@
           :chsk/ws-ping
           (log/trace "ws-ping from client:" client-id)
           #_else
-          (log/debug "Unsupported event:" event "from client:" client-id))))
+          (log/trace "Unsupported event:" event "from client:" client-id))))
     (recur))
   (async/go
     (let [saved-port (async/<! (get-setting :setting/websocket-port ::default))
@@ -191,19 +191,21 @@
   (start-ws!))
 
 (defn forward-renderer-message-to-client! [{:as msg :keys [app-uuid fulcro-inspect-devtool-message]}]
-  (log/debug "renderer->client message:" msg)
-  (log/debug "renderer->client devtool-message type:" (:type fulcro-inspect-devtool-message))
-  (log/trace "renderer->client devtool-message:" fulcro-inspect-devtool-message)
-  (if-not app-uuid
-    (log/warn "Unable to find app-uuid in message:" msg)
-    (let [client-id (some->> app-uuid
-                      (get @app-uuid->client-id)
-                      (log/spy :trace "client-id:"))]
-      (if-not client-id
-        (log/warn "Could not find app-uuid in registered apps:"
-          {:app-uuid app-uuid :app-uuid->client-id @app-uuid->client-id})
-        (let [{:keys [send-fn]} @channel-socket-server]
-          (send-fn client-id [:fulcro.inspect/event fulcro-inspect-devtool-message]))))))
+  (let [app-uuid (or app-uuid (get-in fulcro-inspect-devtool-message [:data :app-uuid]))]
+    (log/trace "renderer->client message:" msg)
+    (log/trace "renderer->client devtool-message type:" (:type fulcro-inspect-devtool-message))
+    (log/trace "renderer->client devtool-message:" fulcro-inspect-devtool-message)
+    (if-not app-uuid
+      (log/warn "Unable to find app-uuid in message:" msg)
+      (let [client-id (some->> app-uuid
+                        (get @app-uuid->client-id)
+                        (log/spy :trace "client-id:"))]
+        (if-not client-id
+          (log/warn "Could not find app-uuid in registered apps:"
+            {:app-uuid app-uuid :app-uuid->client-id @app-uuid->client-id})
+          (let [{:keys [send-fn]} @channel-socket-server]
+            (log/trace "Sending to application" fulcro-inspect-devtool-message)
+            (send-fn client-id [:fulcro.inspect/event fulcro-inspect-devtool-message])))))))
 
 (defn handle-save-settings [{:keys [fulcro-inspect-devtool-message]}]
   (when (= :fulcro.inspect.client/save-settings (:type fulcro-inspect-devtool-message))
@@ -230,7 +232,7 @@
                                  []
                                  (async/map identity
                                    (mapv #(get-setting % ::not-found) query))))
-            settings (zipmap (log/spy :info query) (log/spy :info vs))
+            settings (zipmap query vs)
             response {:type :fulcro.inspect.client/message-response
                       :data {:fulcro.inspect.ui-parser/msg-id       msg-id
                              :fulcro.inspect.ui-parser/msg-response settings}}]
@@ -259,7 +261,7 @@
   (.on ipcMain "event"
     ;; LANDMARK: Hook up of incoming messages from Electron renderer
     (fn handle-renderer-messages [_ message]
-      (log/info "Server received message from renderer")
+      (log/trace "Server received message from renderer")
       (let [msg (parse-message message)]
         (or
           (handle-save-settings msg)

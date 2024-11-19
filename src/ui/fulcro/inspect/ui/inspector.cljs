@@ -12,13 +12,14 @@
             [fulcro.inspect.ui.multi-oge :as oge]
             [fulcro.inspect.ui.network :as network]
             [fulcro.inspect.ui.settings :as settings]
+            [fulcro.inspect.ui.statecharts :refer [Statecharts ui-statecharts]]
             [fulcro.inspect.ui.transactions :as transactions]))
 
 (comp/defsc Inspector
   [this
    {::keys   [app-state tab client-connection-id
               db-explorer #_element network transactions
-              #_i18n oge settings]
+              #_i18n oge statecharts settings]
     :ui/keys [more-open?]} _ css]
   {:initial-state
    (fn [state]
@@ -31,10 +32,11 @@
                                  {[] true}))
       ;::element              (comp/get-initial-state element/Panel nil)
       ;::i18n                 (comp/get-initial-state i18n/TranslationsViewer nil)
+      ::db-explorer          (comp/get-initial-state db-explorer/DBExplorer {})
       ::network              (comp/get-initial-state network/NetworkHistory nil)
       ::oge                  (comp/get-initial-state oge/OgeView {})
       ::transactions         (comp/get-initial-state transactions/TransactionList [])
-      ::db-explorer          (comp/get-initial-state db-explorer/DBExplorer {})
+      ;::statecharts          (comp/get-initial-state Statecharts [])
       ::settings             (comp/get-initial-state settings/Settings {})
       :ui/more-open?         false})
 
@@ -50,6 +52,7 @@
     ;{::i18n (comp/get-query i18n/TranslationsViewer)}
     {::transactions (comp/get-query transactions/TransactionList)}
     {::oge (comp/get-query oge/OgeView)}
+    {::statecharts (comp/get-query Statecharts)}
     {::settings (comp/get-query settings/Settings)}]
 
    :css
@@ -110,12 +113,12 @@
     #_element/Panel #_i18n/TranslationsViewer oge/OgeView db-explorer/DBExplorer]}
 
   (let [tab-item (fn [{:keys [title html-title disabled? page]}]
-                   (dom/div #js {:className (cond-> (:tab css)
-                                              disabled? (str " " (:tab-disabled css))
-                                              (= tab page) (str " " (:tab-selected css)))
-                                 :title     html-title
-                                 :onClick   #(if-not disabled?
-                                               (mutations/set-value! this ::tab page))}
+                   (dom/div {:className (cond-> (:tab css)
+                                          disabled? (str " " (:tab-disabled css))
+                                          (= tab page) (str " " (:tab-selected css)))
+                             :title     html-title
+                             :onClick   #(if-not disabled?
+                                           (mutations/set-value! this ::tab page))}
                      title))]
     (dom/div :.container {:onClick #(if more-open? (mutations/set-value! this :ui/more-open? false))}
       (dom/div :.tabs
@@ -126,6 +129,7 @@
         (tab-item {:title "Network" :page ::page-network})
         (tab-item {:title "EQL" :page ::page-oge})
         ;(tab-item {:title "i18n" :page ::page-i18n})
+        (tab-item {:title "Statecharts" :page ::page-statecharts})
         (tab-item {:title "Settings" :page ::page-settings})
         (dom/div :.flex)
         #_(dom/div #js {:className (:more css)
@@ -157,6 +161,7 @@
           (oge/oge-view oge)
 
           #_#_::page-i18n (i18n/translations-viewer i18n)
+          ::page-statecharts (ui-statecharts statecharts)
 
           ::page-settings
           (settings/ui-settings settings)

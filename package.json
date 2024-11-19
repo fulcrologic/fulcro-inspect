@@ -5,6 +5,7 @@
   "main": "index.js",
   "directories": {},
   "dependencies": {
+    "elkjs": "^0.9.3",
     "codemirror": "^5.65.17",
     "codemirror-graphql": "^0.8.3",
     "d3": "^5.8.0",

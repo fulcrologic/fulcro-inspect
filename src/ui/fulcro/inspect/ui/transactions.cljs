@@ -290,6 +290,7 @@
    {::keys [tx-list active-tx tx-filter]}]
   {:initial-state  (fn [_] {::tx-list-id (random-uuid)
                             ::tx-list    []
+                            ::active-tx  nil
                             ::tx-filter  ""})
    :pre-merge      (fn [{:keys [current-normalized data-tree]}]
                      (merge {::tx-list-id (random-uuid)

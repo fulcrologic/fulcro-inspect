@@ -15,8 +15,7 @@
   (let [app-id (try (db.h/comp-app-uuid this) (catch :default _))
         remote (explorer->remote {::iex/id id})]
     (df/load this [::iex/id id] iex/IndexExplorer
-      {:refresh      [::explorer]
-       :marker       [::index-marker id]
+      {:marker       [::index-marker id]
        :update-query (fn [query]
                        (vary-meta query assoc :remote-data {:fulcro.inspect.core/app-uuid app-id
                                                             :fulcro.inspect.client/remote remote}))})))

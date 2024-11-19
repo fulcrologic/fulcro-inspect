@@ -45,14 +45,14 @@
         (dom/div :$margin-left-standard
           (if-not hide-websocket?
             (ui/row {:classes [:.align-center]}
-              (ui/label "Websocket Port:")
+              (ui/label {} "Websocket Port:")
               (ui/input {:value    (or websocket-port 0)
                          :type     "number"
                          :onChange #(fp/transact! this [(update-settings {:setting/websocket-port (js/parseInt (evt/target-value %))})])})
               (ui/primary-button {:onClick #(fp/transact! this [(save-settings {:setting/websocket-port websocket-port})])}
                 "Restart Websockets")))
           (ui/row {:classes [:.align-center]}
-            (ui/label
+            (ui/label {}
               (dom/input :$margin-right-small
                 {:checked  (or compact-keywords? false)
                  :type     "checkbox"
