@@ -20,6 +20,21 @@ Communication Worker <-> Dev Tools UI: serialized
 
 The Adapter is the inspect preload, which lives in the Fulcro primary repository.
 
+=== Dev Tool Network (remote)
+
+The dev tool is a Fulcro app. The actual communication from the dev tool happens via mutations and loads, just like any
+other Fulcro application. The magic all happens in the custom remote that is created in the tool itself. The remote
+is rather simple, it is a local Pathom processor that puts a `send-message` function in the `env`. But, the is slightly complicated
+by the fact that the communication itself could be going over a websocket or chrome devtool ports.
+
+Thus, the app/remote has to be created based on IF it is a Chrome plugin, or an electron app. Thus, there is slightly
+different code for starting the devtool, in two different namespaces and source folders.
+
+The startup for the chrome tool is in `f.i.c.devtool.main`. The one for Electron is `f.i.electron.renderer.main`.
+
+Because the remotes need to directly access certain details of the embedded environment, the code to handle a remote message
+is duplicated. Thus, if you need to support new messages in the tool, you must change both namespaces (see `handle-remote-message`).
+
 === Chrome vs Websocket Preload
 
 The preloads in Fulcro Inspect basically do the same thing: They start a core.async loop that waits for incoming messages from the Dev Tools UI (through the intermediaries).
@@ -65,16 +80,21 @@ The content script also adds a listener for `fulcro-inspect-remote-message` even
 .Communication FROM background worker
 [d2]
 -----
-BG -> Content Script : port (devtool-message)
+BG -> Content Script : port (type: devtool-message)
 Content Script -> Window Event
-Window Event -> Inspect Preload: handle-devtool-message
+Window Event -> Inspect Preload: (type: handle-devtool-message)
+Inspect Preload -> Fulcro App(s)
 -----
 
 .Communication To background worker
 [d2]
 -----
-Inspect Preload -> Window Event (fulcro-inspect-remote-message)
-Content Script -> BG: port (fulcro-inspect-remote-message)
+Fullcro App(s) -> post-message
+post-message -> Async Send Channel
+Async Send Channel -> Inspect Preload: (async read loop)
+Inspect Preload -> Window Event: (type: fulcro-inspect-remote-message)
+Window Event -> Content Script
+Content Script -> BG: port
 -----
 
 The background worker on chrome has a separate port that the devtool opens, and it communicates over that port.
@@ -91,8 +111,43 @@ Communication at the DevTool API level is done with a Fulcro Remote that posts m
 
 The background script talks to BOTH the content script on the web page, and the dev tools pane. It keeps track of the open ports (by name), and essentially is just a proxying service.
 
-
 == Electron
+
+=== Communication
+
+The Electron app has a slightly different set of mechanisms for communication. The Dev Tool code is shared from
+the Chrome-based tool, since Chrome is actually used as the rendering engine in Electron. The difference is in how
+messages are passed to/from the tool the Fulcro App.
+
+Electron has to use the network to talk to the application, which is running in an entirely different process. We
+use websockets for easy bi-directional communication. The security layers in Electron create the same kind of
+complexity as in the Chrome plugin, so the architecture is very similar.
+
+Communication from the Fulcro App still goes through a preload, but in this case the preload does not need
+an injected content script. Instead, it simply opens a websocket connection to a (hopefully-running) Fulcro Inspect
+server (running within Electron).
+
+.Communication FROM Electron App to Fulcro App
+[d2]
+-----
+Devtool -> ipcRenderer
+ipcRenderer -> ipcMain: event crosses security boundary (renderer -> server)
+ipcMain -> Inspect WS
+Inspect WS -> Fulcro App(s): handle-devtool-message
+-----
+
+.Communication from Fulcro to Electron
+[d2]
+-----
+Fullcro App(s) -> post-message
+post-message -> Async Send Channel
+Async Send Channel -> Inspect WS: (async read loop)
+Inspect WS -> Electron Server
+Electron Server -> ipcRenderer: (.send webContents event)
+ipcRenderer -> handle-remote-message
+-----
+
+=== Building
 
 Building MacOS releases is done as follows:
 

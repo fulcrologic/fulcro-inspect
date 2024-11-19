@@ -106,6 +106,7 @@
 ;; Real Comms Logic:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; LANDMARK: messages to renderer that are not targeted at an inspector
 (defn send-message-to-renderer! [msg]
   (when @content-atom
     (.send @content-atom "event"
@@ -258,8 +259,8 @@
                  :data {}}]
         (doseq [[client-id _] @client-id->app-uuid]
           (send-fn client-id [:fulcro.inspect/event msg])))))
+  ;; LANDMARK: Hook up of incoming messages from Electron renderer
   (.on ipcMain "event"
-    ;; LANDMARK: Hook up of incoming messages from Electron renderer
     (fn handle-renderer-messages [_ message]
       (log/trace "Server received message from renderer")
       (let [msg (parse-message message)]

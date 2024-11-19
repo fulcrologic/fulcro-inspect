@@ -4,6 +4,7 @@
             [com.fulcrologic.fulcro.algorithms.tempid :as tempid]
             [com.fulcrologic.fulcro.application :as app]
             [com.fulcrologic.fulcro.components :as fp]
+            [com.fulcrologic.fulcro.data-fetch :as df]
             [com.fulcrologic.fulcro.mutations :as mutations]
             [fulcro.inspect.helpers :as h]
             [fulcro.inspect.helpers.clipboard :as clip]
@@ -11,7 +12,8 @@
             [fulcro.inspect.ui.core :as ui]
             [fulcro.inspect.ui.effects :as effects]
             [fulcro.inspect.ui.events :as events]
-            [goog.object :as gobj]))
+            [goog.object :as gobj]
+            [taoensso.timbre :as log]))
 
 (declare DataViewer)
 
@@ -292,7 +294,8 @@
                             ::expanded {}}
                       current-normalized data-tree))
    :ident         [::id ::id]
-   :query         [::id ::content ::expanded ::elide-one? ::static?]
+   :query         [::id ::content ::expanded ::elide-one? ::static?
+                   [::app/active-remotes '_]]
    :css           [[:.container ui/css-code-font]
                    [:.nil {:color "#808080"}]
                    [:.string {:color "#c41a16"}]
@@ -359,8 +362,8 @@
                                       desired-state [id desired-state]
                                       allow-stale? [(:id last-step) (:value last-step)]
                                       :else [id {}])
-        data          (cond-> base-data
-                        (vector? path) (get-in path))]
+        data            (cond-> base-data
+                          (vector? path) (get-in path))]
     (dom/div :.container
       (when-not (or path raw?)
         (dom/h4 {:style {:marginTop    "2px"

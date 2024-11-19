@@ -16,8 +16,13 @@
   (let [{::keys [db-hash-index]} (comp/shared app-ish)]
     (some-> db-hash-index deref (get app-uuid))))
 
-(defn latest-state-id [app-ish app-uuid]
-  (-> (history-by-state-id app-ish app-uuid) keys last))
+(defn latest-state-id
+  ([this]
+   (let [state    (app/current-state this)
+         app-uuid (h/current-app-uuid state)]
+     (latest-state-id this app-uuid)))
+  ([app-ish app-uuid]
+   (-> (history-by-state-id app-ish app-uuid) keys last)))
 
 (defn db-index-add
   [db app-uuid {:keys [id value] :as history-step}]
