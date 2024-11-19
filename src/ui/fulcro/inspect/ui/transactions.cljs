@@ -1,6 +1,6 @@
 (ns fulcro.inspect.ui.transactions
   (:require
-    [clojure.data :as data]
+    [fulcro.inspect.lib.diff :as diff]
     [clojure.pprint :refer [pprint]]
     [clojure.string :as str]
     [com.fulcrologic.fulcro-css.css :as css]
@@ -11,8 +11,10 @@
     [com.fulcrologic.fulcro.dom.html-entities :as ent]
     [com.fulcrologic.fulcro.mutations :as mutations :refer-macros [defmutation]]
     [fulcro.inspect.helpers :as h]
+    [fulcro.inspect.lib.history :as hist]
     [fulcro.inspect.ui.core :as ui]
-    [fulcro.inspect.ui.data-viewer :as data-viewer]))
+    [fulcro.inspect.ui.data-viewer :as data-viewer]
+    [taoensso.timbre :as log]))
 
 (def tx-options :com.fulcrologic.fulcro.algorithms.tx-processing/options)
 
@@ -139,42 +141,62 @@
 (defn merge-current [{:keys [current-normalized data-tree]} k]
   (or (get data-tree k) (get current-normalized k)))
 
+(declare Transaction)
+
+(defmutation compute-diff [tx]
+  (action [{:keys [app state] :as env}]
+    (tap> tx)
+    (let [tx-ref    (fp/ident Transaction tx)
+          old-state (get-in tx [:ui/old-state-view ::data-viewer/content] {})
+          app-uuid  (h/current-app-uuid @state)
+          new-state (get-in tx [:ui/new-state-view ::data-viewer/content] {})
+          ;; TASK: The db versions for the transaction are incorrect
+          old       (hist/state-map-for-id app app-uuid (log/spy :info (:id old-state)))
+          new       (hist/state-map-for-id app app-uuid (log/spy :info (:id new-state)))
+          {::diff/keys [updates removals]} (log/spy :info (diff/diff new old))
+          env'      (assoc env :ref tx-ref)]
+      (when updates
+        (h/create-entity! env' data-viewer/DataViewer updates :set :ui/diff-add-view))
+      (when removals
+        (h/create-entity! env' data-viewer/DataViewer removals :set :ui/diff-rem-view))
+      (swap! state update-in tx-ref assoc :ui/diff-computed? true))))
+
+
 (fp/defsc Transaction
   [this {:keys                [ident-ref component]
          :fulcro.history/keys [network-sends]
          :ui/keys             [tx-view sends-view
                                old-state-view new-state-view
-                               diff-add-view diff-rem-view]}]
+                               diff-add-view diff-rem-view]
+         :as                  props}]
   {:initial-state
-   (fn [{:fulcro.history/keys [tx network-sends db-before db-after diff]
+   (fn [{:fulcro.history/keys [tx network-sends db-before db-after]
          :as                  transaction}]
-     (let [[add rem] diff]
-       (merge {::tx-id (random-uuid)}
-         transaction
-         {:ui/tx-view        (-> (fp/get-initial-state data-viewer/DataViewer tx)
-                               (assoc ::data-viewer/expanded {[] true}))
-          :ui/sends-view     (fp/get-initial-state data-viewer/DataViewer network-sends)
-          :ui/old-state-view (fp/get-initial-state data-viewer/DataViewer db-before)
-          :ui/new-state-view (fp/get-initial-state data-viewer/DataViewer db-after)
-          :ui/diff-add-view  (fp/get-initial-state data-viewer/DataViewer add)
-          :ui/diff-rem-view  (fp/get-initial-state data-viewer/DataViewer rem)
-          :ui/full-computed? true})))
+     (merge {::tx-id (random-uuid)}
+       transaction
+       {:ui/tx-view        (-> (fp/get-initial-state data-viewer/DataViewer tx)
+                             (assoc ::data-viewer/expanded {[] true}))
+        :ui/sends-view     (fp/get-initial-state data-viewer/DataViewer network-sends)
+        :ui/old-state-view (fp/get-initial-state data-viewer/DataViewer db-before)
+        :ui/new-state-view (fp/get-initial-state data-viewer/DataViewer db-after)
+        :ui/diff-add-view  (fp/get-initial-state data-viewer/DataViewer nil)
+        :ui/diff-rem-view  (fp/get-initial-state data-viewer/DataViewer nil)
+        :ui/full-computed? true}))
 
    :pre-merge
    (fn [{:keys [current-normalized data-tree] :as m}]
      (let [tx            (merge-current m :fulcro.history/tx)
            network-sends (merge-current m :fulcro.history/network-sends)
            db-before     (merge-current m :fulcro.history/db-before)
-           db-after      (merge-current m :fulcro.history/db-after)
-           [add rem] (data/diff db-after db-before)]
+           db-after      (merge-current m :fulcro.history/db-after)]
        (merge {::tx-id (random-uuid)}
          {:ui/tx-view        {::data-viewer/content  tx
                               ::data-viewer/expanded {[] true}}
           :ui/sends-view     {::data-viewer/content network-sends}
           :ui/old-state-view {::data-viewer/content db-before}
           :ui/new-state-view {::data-viewer/content db-after}
-          :ui/diff-add-view  {::data-viewer/content add}
-          :ui/diff-rem-view  {::data-viewer/content rem}
+          :ui/diff-add-view  {::data-viewer/content nil}
+          :ui/diff-rem-view  {::data-viewer/content nil}
           :ui/full-computed? true}
          current-normalized data-tree)))
 
@@ -214,10 +236,16 @@
           (data-viewer/data-viewer sends-view)))
 
       (ui/info {::ui/title "Diff added"}
-        (data-viewer/data-viewer diff-add-view {:raw? true}))
+        (if (::data-viewer/content diff-add-view)
+          (data-viewer/data-viewer diff-add-view {:raw? true})
+          (dom/button {:onClick (fn []
+                                  (fp/transact! this [(compute-diff props)]))} "Compute")))
 
       (ui/info {::ui/title "Diff removed"}
-        (data-viewer/data-viewer diff-rem-view {:raw? true}))
+        (if (::data-viewer/content diff-rem-view)
+          (data-viewer/data-viewer diff-rem-view {:raw? true})
+          (dom/button {:onClick (fn []
+                                  (fp/transact! this [(compute-diff props)]))} "Compute")))
 
       (if component
         (ui/info {::ui/title "Component"}
