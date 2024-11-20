@@ -11,10 +11,10 @@
  :deps
  {binaryage/devtools                              {:mvn/version "1.0.6"}
   com.cognitect/transit-cljs                      {:mvn/version "0.8.280"}
-  com.fulcrologic/fulcro                          {:mvn/version "3.7.9"}
+  com.fulcrologic/fulcro                          {:mvn/version "3.7.11-SNAPSHOT"}
   com.fulcrologic/fulcro-garden-css               {:mvn/version "3.0.9"}
   com.fulcrologic/fulcro-i18n                     {:mvn/version "1.1.2"}
-  com.fulcrologic/statecharts                     {:mvn/version "1.2.5-SNAPSHOT"}
+  com.fulcrologic/statecharts                     {:mvn/version "1.2.8-SNAPSHOT"}
   com.google.javascript/closure-compiler-unshaded {:mvn/version "v20240317"}
   com.taoensso/timbre                             {:mvn/version "4.10.0"}
   com.taoensso/sente                              {:mvn/version "1.15.0"}
