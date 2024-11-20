@@ -13,8 +13,7 @@
     [fulcro.inspect.helpers :as h]
     [fulcro.inspect.lib.history :as hist]
     [fulcro.inspect.ui.core :as ui]
-    [fulcro.inspect.ui.data-viewer :as data-viewer]
-    [taoensso.timbre :as log]))
+    [fulcro.inspect.ui.data-viewer :as data-viewer]))
 
 (def tx-options :com.fulcrologic.fulcro.algorithms.tx-processing/options)
 
@@ -145,20 +144,18 @@
 
 (defmutation compute-diff [tx]
   (action [{:keys [app state] :as env}]
-    (tap> tx)
     (let [tx-ref    (fp/ident Transaction tx)
           old-state (get-in tx [:ui/old-state-view ::data-viewer/content] {})
           app-uuid  (h/current-app-uuid @state)
           new-state (get-in tx [:ui/new-state-view ::data-viewer/content] {})
-          ;; TASK: The db versions for the transaction are incorrect
-          old       (hist/state-map-for-id app app-uuid (log/spy :info (:id old-state)))
-          new       (hist/state-map-for-id app app-uuid (log/spy :info (:id new-state)))
-          {::diff/keys [updates removals]} (log/spy :info (diff/diff new old))
+          old       (hist/state-map-for-id app app-uuid (:id old-state))
+          new       (hist/state-map-for-id app app-uuid (:id new-state))
+          {::diff/keys [updates removals]} (diff/diff old new)
           env'      (assoc env :ref tx-ref)]
       (when updates
-        (h/create-entity! env' data-viewer/DataViewer updates :set :ui/diff-add-view))
+        (h/create-entity! env' data-viewer/DataViewer updates :replace :ui/diff-add-view))
       (when removals
-        (h/create-entity! env' data-viewer/DataViewer removals :set :ui/diff-rem-view))
+        (h/create-entity! env' data-viewer/DataViewer removals :replace :ui/diff-rem-view))
       (swap! state update-in tx-ref assoc :ui/diff-computed? true))))
 
 

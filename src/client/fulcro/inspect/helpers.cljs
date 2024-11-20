@@ -7,7 +7,8 @@
     [com.fulcrologic.fulcro.algorithms.normalized-state :as fns]
     [com.fulcrologic.fulcro.components :as fp]
     [com.fulcrologic.fulcro.mutations :as mutations]
-    [fulcro.inspect.lib.local-storage :as storage]))
+    [fulcro.inspect.lib.local-storage :as storage]
+    [taoensso.timbre :as log]))
 
 (defn- om-ident? [x]
   (and (vector? x)

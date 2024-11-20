@@ -49,7 +49,6 @@
                        {:statechart/definitions (comp/get-query StatechartDefinition)}]
    :componentDidMount get-available-sessions
    :css               [[:.container {:padding "12px"}]]}
-  (tap> current-session)
   (dom/div :.container
     (ui/header {} "Statecharts")
     (dom/div :$margin-left-standard
