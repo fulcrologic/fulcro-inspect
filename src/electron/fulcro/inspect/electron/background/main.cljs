@@ -30,8 +30,8 @@
   (async/go
     (let [width   (async/<! (get-setting "BrowserWindow/width" 800))
           height  (async/<! (get-setting "BrowserWindow/height" 600))
-          x       (async/<! (get-setting "BrowserWindow/x" js/undefined))
-          y       (async/<! (get-setting "BrowserWindow/y" js/undefined))
+          x       (async/<! (get-setting "BrowserWindow/x" 0))
+          y       (async/<! (get-setting "BrowserWindow/y" 0))
           ^js win (electron/BrowserWindow.
                     #js {:width          width
                          :height         height

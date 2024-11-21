@@ -4,7 +4,8 @@
     [com.fulcrologic.fulcro.components :as comp]
     [com.fulcrologic.fulcro.components]
     [com.fulcrologic.fulcro.mutations :as fm]
-    [fulcro.inspect.helpers :as h]))
+    [fulcro.inspect.helpers :as h]
+    [taoensso.timbre :as log]))
 
 (def DB_HISTORY_BUFFER_SIZE 80)
 (def DB_HISTORY_BUFFER_WINDOW 20)

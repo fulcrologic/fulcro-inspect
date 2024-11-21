@@ -1,6 +1,5 @@
 (ns fulcro.inspect.ui.transactions
   (:require
-    [fulcro.inspect.lib.diff :as diff]
     [clojure.pprint :refer [pprint]]
     [clojure.string :as str]
     [com.fulcrologic.fulcro-css.css :as css]
@@ -11,9 +10,11 @@
     [com.fulcrologic.fulcro.dom.html-entities :as ent]
     [com.fulcrologic.fulcro.mutations :as mutations :refer-macros [defmutation]]
     [fulcro.inspect.helpers :as h]
+    [fulcro.inspect.lib.diff :as diff]
     [fulcro.inspect.lib.history :as hist]
     [fulcro.inspect.ui.core :as ui]
-    [fulcro.inspect.ui.data-viewer :as data-viewer]))
+    [fulcro.inspect.ui.data-viewer :as data-viewer]
+    [taoensso.timbre :as log]))
 
 (def tx-options :com.fulcrologic.fulcro.algorithms.tx-processing/options)
 
@@ -232,13 +233,13 @@
         (ui/info {::ui/title "Sends"}
           (data-viewer/data-viewer sends-view)))
 
-      (ui/info {::ui/title "Diff added"}
+      (ui/info {::ui/title "Data added/updated"}
         (if (::data-viewer/content diff-add-view)
           (data-viewer/data-viewer diff-add-view {:raw? true})
           (dom/button {:onClick (fn []
                                   (fp/transact! this [(compute-diff props)]))} "Compute")))
 
-      (ui/info {::ui/title "Diff removed"}
+      (ui/info {::ui/title "Data Removed"}
         (if (::data-viewer/content diff-rem-view)
           (data-viewer/data-viewer diff-rem-view {:raw? true})
           (dom/button {:onClick (fn []
@@ -336,7 +337,12 @@
    :css-include    [Transaction TransactionRow ui/CSS]
    :initLocalState (fn [this _]
                      {:select-tx (fn [tx]
-                                   (fp/transact! this [(select-tx tx)]))
+                                   (log/spy :info (keys tx))
+                                   (let [old-state-id (get-in tx [:fulcro.history/db-before :id])
+                                         new-state-id (get-in tx [:fulcro.history/db-after :id])]
+                                     (fp/transact! this [(select-tx tx)
+                                                         (hist/remote-fetch-history-step {:id new-state-id})
+                                                         (hist/remote-fetch-history-step {:id old-state-id})])))
                       :replay-tx (fn [{:keys [tx ident-ref]}]
                                    (fp/transact! this [(replay-tx {:tx tx :tx-ref ident-ref})]))})}
 

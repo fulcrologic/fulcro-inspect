@@ -115,8 +115,8 @@
 
 (defn update-client-db [{:fulcro.inspect.core/keys   [app-uuid]
                          :fulcro.inspect.client/keys [state-id]}]
-  (let [step {:id state-id}
-        app  @global-inspector*
+  (let [step        {:id state-id}
+        app         @global-inspector*
         current-max (hist/latest-state-id app app-uuid)]
     (hist/record-history-step! app app-uuid step)
 
@@ -275,5 +275,8 @@
             warn (js/console.warn warn)
             error (js/console.error error))
           true)
+
+        :fulcro.inspect.client/statechart-event
+        (fp/transact! @global-inspector* [(statecharts/update-session data)])
 
         (log/debug "Unknown message" type)))))

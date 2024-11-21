@@ -11,6 +11,7 @@
     [com.fulcrologic.fulcro.mutations :refer [defmutation]]
     [com.fulcrologic.fulcro.data-fetch :as df]
     [com.fulcrologic.statecharts.visualization.visualizer :as viz]
+    [com.fulcrologic.statecharts :as sc]
     [fulcro.inspect.helpers :as db.h]
     [fulcro.inspect.ui.core :as ui]
     [taoensso.timbre :as log]))
@@ -23,13 +24,18 @@
            :statechart/chart]})
 
 (defsc StatechartSession [this props]
-  {:ident :com.fulcrologic.statecharts/session-id
-   :query [:com.fulcrologic.statecharts/session-id
-           :com.fulcrologic.statecharts/history-value
-           :com.fulcrologic.statecharts/parent-session-id
-           :com.fulcrologic.statecharts/statechart-src
-           :com.fulcrologic.statecharts/configuration
-           {:com.fulcrologic.statecharts/statechart (comp/get-query StatechartDefinition)}]})
+  {:ident ::sc/session-id
+   :query [::sc/session-id
+           ::sc/history-value
+           ::sc/parent-session-id
+           ::sc/statechart-src
+           ::sc/configuration
+           {::sc/statechart (comp/get-query StatechartDefinition)}]})
+
+(defmutation update-session [{::sc/keys [session-id
+                                         configuration]}]
+  (action [{:keys [state]}]
+    (swap! state assoc-in [::sc/session-id session-id ::sc/configuration] configuration)))
 
 (defn get-available-sessions [this]
   (let [app-id (db.h/comp-app-uuid this)]
@@ -66,9 +72,6 @@
                            :key   (pr-str session-id)}
                 (str statechart-src "@" session-id)))
             available-sessions)))
-      (dom/div
-        (dom/pre
-          (str (:com.fulcrologic.statecharts/configuration current-session))))
       (when (and viz current-session)
         (viz/ui-visualizer viz {:chart (some-> current-session :com.fulcrologic.statecharts/statechart :statechart/chart)
                                 :current-configuration (:com.fulcrologic.statecharts/configuration current-session)})))))
