@@ -375,4 +375,4 @@
           (ui/focus-panel-content {}
             (transaction active-tx)))))))
 
-(def transaction-list (fp/factory TransactionList {:keyfn ::tx-list-id}))
+(def transaction-list (fp/factory TransactionList {:keyfn (comp str ::tx-list-id)}))

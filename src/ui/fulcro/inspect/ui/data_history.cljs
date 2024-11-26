@@ -245,7 +245,7 @@
                               #(fp/transact! this `[(reset-app ~{:target-state app-state})]))}
           (ui/icon {:title (if at-end? "Force app re-render" "Reset App To This State")} :settings_backup_restore))
 
-        (ui/toolbar-action {:onClick #(let [{:keys [id] :as content} (-> this app/current-state
+        #_(ui/toolbar-action {:onClick #(let [{:keys [id] :as content} (-> this app/current-state
                                                                        (h/get-in-path [::watcher/id (::watcher/id watcher)
                                                                                        ::watcher/root-data ::data-viewer/content]))
                                             state-map (hist/state-map-for-id this (h/comp-app-uuid this) id)]
@@ -265,7 +265,7 @@
                                                      :search search})])))
            :onChange    #(m/set-string! this ::search :event %)})
         (dom/div {:className (:flex ui/scss)})
-        (ui/toolbar-action {:disabled (not (seq snapshots))}
+        #_(ui/toolbar-action {:disabled (not (seq snapshots))}
           (ui/icon {:onClick #(fm/toggle! this ::show-snapshots?)
                     :title   (if (seq snapshots) "Toggle snapshots view." "Record a snapshot to enable the snapshots view.")}
             :wallpaper)))

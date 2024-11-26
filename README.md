@@ -2,30 +2,7 @@
 
 [![Clojars Project](https://img.shields.io/clojars/v/fulcrologic/fulcro-inspect.svg)](https://clojars.org/fulcrologic/fulcro-inspect)
 
-Latest Release: [![CircleCI](https://circleci.com/gh/fulcrologic/fulcro-inspect/tree/main.svg?style=svg)](https://circleci.com/gh/fulcrologic/fulcro-inspect/tree/main)
-
 Inspect Fulcro applications
-
-## Usage for Fulcro 2.x with Chrome
-
-Add the latest version of this library (see above) as a dependency:
-
-```
-[fulcrologic/fulcro-inspect "x.x.x"]
-```
-
-Add a preload to your compiler options:
-
-```clojure
-:compiler {...
-           :preloads        [fulcro.inspect.preload]}
-```
-
-The inspector will find the running Fulcro application, and be ready to inspect it!
-
-Next you have to install the Chrome Extension: https://chrome.google.com/webstore/detail/fulcro-inspect/meeijplnfjcihnhkpanepcaffklobaal
-
-Be sure to reload your page after installing it. Now you can see the Fulcro logo get colors when it detects a Fulcro app, from then open Fulcro Inspect tab on the Chrome Devtools and happy inspecting!
 
 ## Usage for Fulcro 3.x with Chrome
 

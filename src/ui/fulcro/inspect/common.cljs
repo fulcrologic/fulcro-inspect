@@ -29,7 +29,6 @@
     [fulcro.inspect.ui.transactions :as transactions]
     [goog.functions :refer [debounce]]
     [goog.object :as gobj]
-    [taoensso.encore :as enc]
     [taoensso.timbre :as log]))
 
 (defonce websockets? (volatile! false))
@@ -100,14 +99,15 @@
 (defonce last-step-filled (volatile! nil))
 (defn- -fill-last-entry!
   []
-  (enc/if-let [app       @global-inspector*
-               state-map (app/current-state app)
-               app-uuid  (h/current-app-uuid state-map)
-               state-id  (hist/latest-state-id app app-uuid)]
-    (when-not (= @last-step-filled state-id)
-      (vreset! last-step-filled state-id)
-      (fp/transact! app [(hist/remote-fetch-history-step {:id state-id})]))
-    (js/console.error "Something was nil")))
+  (let [app       @global-inspector*
+        state-map (app/current-state app)
+        app-uuid  (h/current-app-uuid state-map)
+        state-id  (hist/latest-state-id app app-uuid)]
+    (cond
+      (nil? state-id) (fp/transact! app [(hist/remote-fetch-history-step {})])
+      (not= @last-step-filled state-id) (do
+                                          (vreset! last-step-filled state-id)
+                                          (fp/transact! app [(hist/remote-fetch-history-step {:id state-id})])))))
 
 (def fill-last-entry!
   "Request the full state for the currently-selected application"
@@ -208,6 +208,7 @@
                         (assoc-in [::inspector/oge] (fp/get-initial-state multi-oge/OgeView {:app-uuid app-uuid
                                                                                              :remotes  remotes})))]
 
+    (tap> [:initial-history initial-history-step])
     (hist/record-history-step! inspector app-uuid initial-history-step)
     (fill-last-entry!)
 

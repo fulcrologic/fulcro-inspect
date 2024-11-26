@@ -40,4 +40,4 @@
    "matches":["<all_urls>"],
    "run_at":"document_idle"}],
  "manifest_version":3,
- "version":"4.0.0"}
+ "version":"4.0.0-alpha1"}

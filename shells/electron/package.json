@@ -1,6 +1,6 @@
 {
   "name": "fulcro-inspect-electron",
-  "version": "3.0.5",
+  "version": "4.0.0-alpha1",
   "description": "Electron Version of Fulcro Inspect",
   "homepage": "https://github.com/fulcrologic/fulcro-inspect",
   "main": "js/background/main.js",
@@ -52,7 +52,15 @@
       ]
     },
     "win": {
-      "target": "nsis",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "signAndEditExecutable": false,
       "icon": "build/icon.ico"
     },
     "nsis": {}

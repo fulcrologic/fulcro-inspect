@@ -91,7 +91,7 @@
   (remote [{:keys [state app] :as env}]
     (let [app-uuid (h/current-app-uuid @state)
           history  (when app-uuid (history-by-state-id app app-uuid))
-          base     (when history (best-populated-base history id))
+          base     (when (and id history) (best-populated-base history id))
           fake-ref [:ignored [:ignored app-uuid]]
           env      (cond-> (assoc env :ref fake-ref)
                      base (assoc-in [:ast :params :based-on] base))]

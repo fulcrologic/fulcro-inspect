@@ -36,7 +36,8 @@
                                   :compiler-options {:closure-output-charset "US-ASCII"}
                                   ;:devtools         {:devtools-url "http://localhost:9632"}
                                   :modules          {:main {:entries [fulcro.inspect.chrome.content-script.main]}}}
-          :chrome-devtool        {:target           :browser
+          :chrome-devtool        {:target           :esm
+                                  :runtime          :custom
                                   :output-dir       "shells/chrome/js/devtool"
                                   :asset-path       "js/devtool"
                                   :compiler-options {:closure-output-charset "US-ASCII"
