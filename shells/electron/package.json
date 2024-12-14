@@ -1,9 +1,9 @@
 {
   "name": "fulcro-inspect-electron",
-  "version": "4.0.0-alpha1",
+  "version": "4.0.1",
   "description": "Electron Version of Fulcro Inspect",
   "homepage": "https://github.com/fulcrologic/fulcro-inspect",
-  "main": "js/background/main.js",
+  "main": "app/main.js",
   "author": {
     "name": "Tony Kay",
     "email": "tony@fulcrologic.com"
@@ -13,12 +13,12 @@
   "dependencies": {
     "cors": "^2.8.5",
     "electron-settings": "^4.0.4",
-    "express": "^4.21.1",
-    "express-ws": "^4.0.0"
+    "express": "^4.21.2",
+    "express-ws": "5.0.2"
   },
   "devDependencies": {
-    "electron": "^32.2.5",
-    "electron-builder": "^25.1.8"
+    "electron": "33.2.1",
+    "electron-builder": "25.1.8"
   },
   "scripts": {
     "postinstall": "install-app-deps",

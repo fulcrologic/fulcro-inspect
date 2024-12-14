@@ -1,31 +1,18 @@
 (ns fulcro.inspect.chrome.devtool.main
   (:require
     [cljs.core.async :as async :refer [<! go put!]]
+    [com.fulcrologic.devtools.chrome.devtool :as dt]
     [com.fulcrologic.fulcro-css.css :as css]
     [com.fulcrologic.fulcro.application :as app]
-    [com.fulcrologic.fulcro.application]
     [com.fulcrologic.fulcro.components :as comp]
-    [com.fulcrologic.fulcro.components]
     [com.fulcrologic.fulcro.networking.mock-server-remote :as mock-net]
     [com.fulcrologic.statecharts.integration.fulcro :as scf]
-    [com.wsscode.common.async-cljs :refer [<?maybe]]
     [fulcro.inspect.common :as common :refer [GlobalRoot app-uuid-key global-inspector* websockets?]]
     [fulcro.inspect.lib.history :as hist]
     [fulcro.inspect.lib.local-storage :as storage]
-    [fulcro.inspect.remote.transit :as encode]
     [fulcro.inspect.ui-parser :as ui-parser]
-    [fulcro.inspect.ui.settings :as settings]
-    [shadow.cljs.modern :refer [js-await]]
+    [fulcro.inspect.api.tool-impl] ; ensure that API implementation is loaded
     [taoensso.timbre :as log]))
-
-(def current-tab-id js/chrome.devtools.inspectedWindow.tabId)
-
-;; LANDMARK: This is how we talk back to the content script
-(defn post-message [port type data]
-  (.postMessage port #js {:fulcro-inspect-devtool-message (encode/write {:type type :data data :timestamp (js/Date.)})
-                          :tab-id                         current-tab-id}))
-
-(defonce message-handler-ch (async/chan (async/dropping-buffer 1024)))
 
 (defn ?handle-local-message [responses* type data]
   (case type
@@ -46,26 +33,6 @@
       :ok)
     #_else nil))
 
-(defn event-loop [app responses*]
-  (let [port (js/chrome.runtime.connect #js {:name "fulcro-inspect-devtool"})]
-    (.addListener (.-onMessage port)
-      (fn [msg]
-        (put! message-handler-ch
-          {:port       port
-           :event      msg
-           :responses* responses*})
-        (js/Promise.resolve)))
-    (go
-      (loop []
-        (when-let [msg (<! message-handler-ch)]
-          (<?maybe (common/handle-remote-message msg))
-          (recur))))
-
-    (.postMessage port #js {:name "init" :tab-id current-tab-id})
-    (post-message port :fulcro.inspect.client/request-page-apps {})
-
-    port))
-
 (defn make-network [port* parser responses*]
   (mock-net/mock-http-server
     {:parser (fn [edn]
@@ -73,9 +40,7 @@
                  (async/<!
                    (parser
                      {:send-message (fn [type data]
-                                      (or
-                                        (?handle-local-message responses* type data)
-                                        (post-message @port* type data)))
+                                      (?handle-local-message responses* type data))
                       :responses*   responses*}
                      edn))))}))
 
@@ -91,18 +56,10 @@
                       {::hist/db-hash-index (atom {})}
 
                       :remotes          {:remote
-                                         (make-network port* (ui-parser/parser) responses*)}})
-        node       (js/document.createElement "div")]
-    (js/document.body.appendChild node)
-    ;; Sending a message of any kind will wake up the service worker, otherwise our comms won't succeed because
-    ;; it will register for our initial comms AFTER we've sent them.
-    ;; TASK: We must handle the service worker going away gracefully...not sure how to do that yet.
-    (js-await [_ (js/chrome.runtime.sendMessage #js {:ping true})]
-      (reset! port* (event-loop app responses*))
-      (post-message @port* :fulcro.inspect.client/check-client-version {})
-      (settings/load-settings app))
-    (app/mount! app GlobalRoot node)
+                                         (make-network port* (ui-parser/parser) responses*)}})]
+    (dt/add-devtool-remote! app)
     (scf/install-fulcro-statecharts! app)
+    (app/mount! app GlobalRoot "app")
     app))
 
 (defn global-inspector

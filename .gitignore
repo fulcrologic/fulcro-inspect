@@ -22,3 +22,5 @@ shells/chrome/js
 .cpcache
 shells/electron/js
 shells/electron/dist
+shells/electron/app/js
+shells/electron/app/public/js

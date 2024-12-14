@@ -1,7 +1,7 @@
 (ns fulcro.inspect.ui-parser
   (:require [cljs.core.async :as async]
             [cljs.spec.alpha :as s]
-            [com.wsscode.common.async-cljs :refer [go-catch <?]]
+            [com.wsscode.common.async-cljs :refer [<? go-catch]]
             [com.wsscode.pathom.connect :as pc]
             [com.wsscode.pathom.core :as p]
             [com.wsscode.pathom.profile :as pp]

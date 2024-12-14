@@ -5,69 +5,42 @@
 
  :nrepl  {:port 63104}
 
- :builds {:workspaces            {:target     :browser
-                                  :output-dir "resources/public/js/workspaces"
-                                  :asset-path "/js/workspaces"
-                                  :devtools   {:preloads           [devtools.preload fulcro.inspect.preload]
-                                               :http-root          "resources/public"
-                                               :http-port          8084
-                                               :http-resource-root "."
-                                               :devtools-url       "http://localhost:9632"}
-                                  :modules    {:main {:entries [fulcro.inspect.workspaces.main]}}}
-
-          ;; Build the core extension elements, the service worker and the content script that
-          ;; we inject into the page.
-          :chrome-background     {:target           :esm
-                                  :output-dir       "shells/chrome/js/extension"
-                                  :asset-path       "js/extension" ; ???
-                                  :runtime          :custom
-                                  :compiler-options {:closure-output-charset "US-ASCII"} ; ???
-                                  :devtools         {:devtools-url "http://localhost:9632"} ; ???
-                                  :source-map       true
-                                  :modules
-                                  {:shared
-                                   {:entries []}
-                                   :service-worker
-                                   {:init-fn    fulcro.inspect.chrome.background.main/init
-                                    :depends-on #{:shared}}}}
+ :builds {:chrome-background     {:target     :esm
+                                  :output-dir "shells/chrome/js/extension"
+                                  :asset-path "js/extension"
+                                  :runtime    :custom
+                                  :modules    {:service-worker {:init-fn com.fulcrologic.devtools.chrome.background-worker/init}}}
           :chrome-content-script {:target           :browser
                                   :output-dir       "shells/chrome/js/content-script"
                                   :asset-path       "js/content-script"
-                                  :compiler-options {:closure-output-charset "US-ASCII"}
-                                  ;:devtools         {:devtools-url "http://localhost:9632"}
-                                  :modules          {:main {:entries [fulcro.inspect.chrome.content-script.main]}}}
+                                  :compiler-options {:closure-output-charset "US-ASCII" }
+                                  :modules          {:main {:entries [com.fulcrologic.devtools.chrome.content-script]}}}
           :chrome-devtool        {:target           :esm
                                   :runtime          :custom
                                   :output-dir       "shells/chrome/js/devtool"
                                   :asset-path       "js/devtool"
-                                  :compiler-options {:closure-output-charset "US-ASCII"
-                                                     :source-map             true
-                                                     :optimizations          :simple}
-                                  :devtools         {:devtools-url "http://localhost:9632"}
+                                  :compiler-options {;:closure-output-charset "US-ASCII"
+                                                     :source-map true}
+                                  :dev              {:compiler-options {:external-config {:guardrails {:throw?                 false
+                                                                                                       :guardrails/compact?    true
+                                                                                                       :guardrails/stack-trace :none
+                                                                                                       :guardrails/trace?      true}}}}
+                                  ;:devtools         {:preloads [com.fulcrologic.fulcro.inspect.websocket-preload]}
                                   :modules          {:main {:entries [fulcro.inspect.chrome.devtool.main]}}}
 
-          :electron-main         {:target           :node-script
-                                  :main             fulcro.inspect.electron.background.main/init
-                                  :devtools         {:devtools-url "http://localhost:9632"
-                                                     :after-load   fulcro.inspect.electron.background.main/done}
-                                  :compiler-options {:optimizations :simple}
-                                  :output-to        "shells/electron/js/background/main.js"}
+          :electron-main         {:target           :npm-module
+                                  :runtime          :node
+                                  :entries          [com.fulcrologic.devtools.electron.api.preload
+                                                     fulcro.inspect.electron.background.main]
+                                  :output-dir       "shells/electron/app/js"}
 
-          :electron-renderer     {:target           :browser
-                                  :modules          {:main {:entries [fulcro.inspect.electron.renderer.main]}}
-                                  :devtools         {:devtools-url "http://localhost:9632"
-                                                     :after-load   fulcro.inspect.electron.renderer.main/start}
-                                  :compiler-options {:optimizations :simple}
-                                  :output-dir       "shells/electron/js/renderer"
-                                  :asset-path       "js/renderer"}
-
-          :test-dev              {:target    :browser-test
-                                  :test-dir  "resources/public/js/test"
-                                  :ns-regexp "-spec$"
-                                  :devtools  {:http-port          8021
-                                              :http-resource-root "public"
-                                              :http-root          "resources/public/js/test"}}
-
-          :test-ci               {:target    :karma
-                                  :output-to "target/ci.js"
-                                  :ns-regexp "-spec$"}}}
+          :electron-renderer     {:target     :browser
+                                  :modules    {:app {:init-fn fulcro.inspect.electron.renderer.main/start}}
+                                  :devtools   {:devtools-url "http://localhost:9632"
+                                               :after-load   fulcro.inspect.electron.renderer.main/refresh}
+                                  :dev        {:compiler-options {:external-config {:guardrails {:throw?                 false
+                                                                                                 :guardrails/compact?    true
+                                                                                                 :guardrails/stack-trace :none
+                                                                                                 :guardrails/trace?      true}}}}
+                                  :output-dir "shells/electron/app/public/js"
+                                  :asset-path "js"}}}
