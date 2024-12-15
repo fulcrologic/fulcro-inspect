@@ -1,44 +1,43 @@
 (ns fulcro.inspect.lib.history
   (:require
-    [com.fulcrologic.fulcro.data-fetch :as df]
-    [com.fulcrologic.fulcro.raw.application :as app]
-    [com.fulcrologic.fulcro.raw.components :as comp]
-    [com.fulcrologic.fulcro.mutations :as fm]
     [com.fulcrologic.devtools.devtool-io :as devt]
+    [com.fulcrologic.fulcro.mutations :as fm]
+    [com.fulcrologic.fulcro.raw.application :as rapp]
+    [com.fulcrologic.fulcro.application :as app]
+    [com.fulcrologic.fulcro.raw.components :as comp]
     [fulcro.inspect.helpers :as h]
     [fulcro.inspect.lib.diff :as diff]
-    [taoensso.encore :as enc]
-    [taoensso.timbre :as log]))
+    [taoensso.encore :as enc]))
 
 (def DB_HISTORY_BUFFER_SIZE 80)
 (def DB_HISTORY_BUFFER_WINDOW 20)
 
 (comp/defnc HistoryStep
+  [::app/id
+   :history/based-on                                ; if there is a diff, this is the version that it is based on
+   :history/diff                                    ; the diff from based-on to version
+   :history/version
+   :history/value]
   {:ident (fn [_ {::app/keys    [id]
-                  :history/keys [version]}] [:history/id [id version]])
-   :query [::app/id
-           :history/based-on                                ; if there is a diff, this is the version that it is based on
-           :history/diff                                    ; the diff from based-on to version
-           :history/version
-           :history/value]})
+                  :history/keys [version]}] [:history/id [id version]]) })
 
 ;; This query is used to fetch a diff, and a post-mutation to the load should be used to fix it to a HistoryStep
 (comp/defnc HistoryDiff
+  [::app/id
+   :history/based-on                                ; if there is a diff, this is the version that it is based on
+   :history/diff                                    ; the diff from based-on to version
+   :history/version]
   {:ident (fn [_ {::app/keys    [id]
-                  :history/keys [version]}] [:history/id [id version]])
-   :query [::app/id
-           :history/based-on                                ; if there is a diff, this is the version that it is based on
-           :history/diff                                    ; the diff from based-on to version
-           :history/version]})
+                  :history/keys [version]}] [:history/id [id version]]) })
 
 (defn latest-state-version
   "The newest version of history known for the currently selected target app"
   ([this]
-   (let [state    (app/current-state this)
+   (let [state    (rapp/current-state this)
          app-uuid (h/current-app-uuid state)]
      (latest-state-version this app-uuid)))
   ([this app-uuid]
-   (let [state   (app/current-state this)
+   (let [state   (rapp/current-state this)
          history (get state :history/id)]
      (reduce (fn [acc [id version]]
                (if (= id app-uuid)
@@ -68,7 +67,7 @@
   [app-ish app-uuid version]
   (try
     (if (int? version)
-      (let [state-map (app/current-state app-ish)]
+      (let [state-map (rapp/current-state app-ish)]
         (get-in state-map [:history/id [app-uuid version] :history/value] {}))
       {})
     (catch :default _
@@ -77,7 +76,7 @@
 (defn history-step
   "Return a history step (map w/id and value) for the given state id."
   [app-ish app-uuid version]
-  (get-in (app/current-state app-ish) [:history/id [app-uuid version]]))
+  (get-in (rapp/current-state app-ish) [:history/id [app-uuid version]]))
 
 (fm/defmutation clear-history [{::app/keys [id]}]
   (action [{:keys [state]}]
@@ -86,11 +85,11 @@
 (defn closest-populated-history-step
   "Find a history step that has a populated value, "
   ([this min-version]
-   (let [state    (app/current-state this)
+   (let [state    (rapp/current-state this)
          app-uuid (h/current-app-uuid state)]
      (closest-populated-history-step this app-uuid min-version)))
   ([this app-uuid min-version]
-   (let [state        (app/current-state this)
+   (let [state        (rapp/current-state this)
          best-version (reduce-kv
                         (fn [found-version [id version] {:history/keys [value]}]
                           (if (and (= id app-uuid) value (>= version found-version))
@@ -112,7 +111,7 @@
 (defn fetch-history-step!
   "Fetch a history step for the currently-selected app"
   ([this version]
-   (let [app-uuid (h/current-app-uuid (app/current-state this))] (fetch-history-step! this app-uuid version)))
+   (let [app-uuid (h/current-app-uuid (rapp/current-state this))] (fetch-history-step! this app-uuid version)))
   ([this app-uuid version-to-load]
    (let [{:history/keys [version value]} (closest-populated-history-step this app-uuid version-to-load)]
      (when-not (empty? value)
