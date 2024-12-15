@@ -149,14 +149,14 @@
           old-state (get-in tx [:ui/old-state-view ::data-viewer/content] {})
           app-uuid  (h/current-app-uuid @state)
           new-state (get-in tx [:ui/new-state-view ::data-viewer/content] {})
-          old       (hist/state-map-for-id app app-uuid (:id old-state))
-          new       (hist/state-map-for-id app app-uuid (:id new-state))
+          old       (hist/version-of-state-map app app-uuid (:id old-state))
+          new       (hist/version-of-state-map app app-uuid (:id new-state))
           {::diff/keys [updates removals]} (diff/diff old new)
           env'      (assoc env :ref tx-ref)]
       (when updates
-        (h/create-entity! env' data-viewer/DataViewer updates :replace :ui/diff-add-view))
+        (h/create-entity! env' data-viewer/DataViewer {:content updates} :replace :ui/diff-add-view))
       (when removals
-        (h/create-entity! env' data-viewer/DataViewer removals :replace :ui/diff-rem-view))
+        (h/create-entity! env' data-viewer/DataViewer {:content removals} :replace :ui/diff-rem-view))
       (swap! state update-in tx-ref assoc :ui/diff-computed? true))))
 
 
@@ -172,11 +172,11 @@
          :as                  transaction}]
      (merge {::tx-id (random-uuid)}
        transaction
-       {:ui/tx-view        (-> (fp/get-initial-state data-viewer/DataViewer tx)
+       {:ui/tx-view        (-> (fp/get-initial-state data-viewer/DataViewer {:content tx})
                              (assoc ::data-viewer/expanded {[] true}))
-        :ui/sends-view     (fp/get-initial-state data-viewer/DataViewer network-sends)
-        :ui/old-state-view (fp/get-initial-state data-viewer/DataViewer db-before)
-        :ui/new-state-view (fp/get-initial-state data-viewer/DataViewer db-after)
+        :ui/sends-view     (fp/get-initial-state data-viewer/DataViewer {:content network-sends})
+        :ui/old-state-view (fp/get-initial-state data-viewer/DataViewer {:content db-before})
+        :ui/new-state-view (fp/get-initial-state data-viewer/DataViewer {:content db-after})
         :ui/diff-add-view  (fp/get-initial-state data-viewer/DataViewer nil)
         :ui/diff-rem-view  (fp/get-initial-state data-viewer/DataViewer nil)
         :ui/full-computed? true}))
@@ -336,13 +336,7 @@
                                      :overflow "auto"}]]
    :css-include    [Transaction TransactionRow ui/CSS]
    :initLocalState (fn [this _]
-                     {:select-tx (fn [tx]
-                                   (log/spy :info (keys tx))
-                                   (let [old-state-id (get-in tx [:fulcro.history/db-before :id])
-                                         new-state-id (get-in tx [:fulcro.history/db-after :id])]
-                                     (fp/transact! this [(select-tx tx)
-                                                         (hist/remote-fetch-history-step {:id new-state-id})
-                                                         (hist/remote-fetch-history-step {:id old-state-id})])))
+                     {:select-tx (fn [tx] (fp/transact! this [(select-tx tx)]))
                       :replay-tx (fn [{:keys [tx ident-ref]}]
                                    (fp/transact! this [(replay-tx {:tx tx :tx-ref ident-ref})]))})}
 

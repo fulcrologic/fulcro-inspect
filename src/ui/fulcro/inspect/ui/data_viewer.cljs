@@ -12,8 +12,7 @@
             [fulcro.inspect.ui.core :as ui]
             [fulcro.inspect.ui.effects :as effects]
             [fulcro.inspect.ui.events :as events]
-            [goog.object :as gobj]
-            [taoensso.timbre :as log]))
+            [goog.object :as gobj]))
 
 (declare DataViewer)
 
@@ -72,21 +71,21 @@
 
 (defn render-ordered-list [{:keys [css path path-action linkable?] :as input} content]
   (for [[x i] (map vector content (range))]
-    (dom/div #js {:key i :className (:list-item css)}
-      (dom/div #js {:className (:list-item-index css)}
+    (dom/div {:key i :className (:list-item css)}
+      (dom/div {:className (:list-item-index css)}
         (if (and linkable? path-action)
-          (dom/div #js {:className (:path-action css)
-                        :onClick   #(path-action (conj path i))}
+          (dom/div {:className (:path-action css)
+                    :onClick   #(path-action (conj path i))}
             (str i))
           (str i)))
       (render-data (update input :path conj i) x))))
 
 (defn render-sequential [{:keys [css search expanded path toggle open-close static?] :as input} content]
-  (dom/div #js {:className (:data-row css)}
+  (dom/div {:className (:data-row css)}
     (if (and (not static?) (> (count content) vec-max-inline))
-      (dom/div #js {:className   (:toggle-button css)
-                    :onMouseDown events/stop-event
-                    :onClick     #(toggle % path)}
+      (dom/div {:className   (:toggle-button css)
+                :onMouseDown events/stop-event
+                :onClick     #(toggle % path)}
         (if (expanded path)
           ui/arrow-down
           ui/arrow-right)
@@ -100,17 +99,17 @@
 
     (cond
       (expanded path)
-      (dom/div #js {:className (:list-container css)}
+      (dom/div {:className (:list-container css)}
         (render-ordered-list input content))
 
       :else
-      (dom/div #js {:className (:list-inline css)}
+      (dom/div {:className (:list-inline css)}
         (first open-close)
         (for [[x i] (map vector (take sequential-max-inline content) (range))]
-          (dom/div #js {:key i :className (:list-inline-item css)}
+          (dom/div {:key i :className (:list-inline-item css)}
             (render-data (update input :path conj i) x)))
         (if (> (count content) sequential-max-inline)
-          (dom/div #js {:className (:list-inline-item css)} "..."))
+          (dom/div {:className (:list-inline-item css)} "..."))
         (second open-close)))))
 
 (defn render-vector [input content]
@@ -123,18 +122,18 @@
   (render-sequential (assoc input :open-close ["#{" "}"]) content))
 
 (defn render-map [{:keys [css search expanded path toggle path-action elide-one? static?] :as input} content]
-  (dom/div #js {:className (:data-row css)}
+  (dom/div {:className (:data-row css)}
     (if (and (not static?)
           (or (not elide-one?)
             (> 1 (count content))))
-      (dom/div #js {:onMouseDown events/stop-event
-                    :onClick     #(if (events/shift-key? %)
-                                    (do
-                                      (events/stop-event %)
-                                      (clip/copy-to-clipboard (pprint-str content))
-                                      (effects/animate-text-out (gobj/get % "target") "Copied"))
-                                    (toggle % path))
-                    :className   (:toggle-button css)}
+      (dom/div {:onMouseDown events/stop-event
+                :onClick     #(if (events/shift-key? %)
+                                (do
+                                  (events/stop-event %)
+                                  (clip/copy-to-clipboard (pprint-str content))
+                                  (effects/animate-text-out (gobj/get % "target") "Copied"))
+                                (toggle % path))
+                :className   (:toggle-button css)}
         (if (expanded path)
           ui/arrow-down
           ui/arrow-right)
@@ -151,50 +150,50 @@
 
       (expanded path)
       (if (every? keyable? (keys content))
-        (dom/div #js {:className (:map-container css)}
+        (dom/div {:className (:map-container css)}
           (->> content
             (sort-by (comp str first))
             (mapv (fn [[k v]]
                     (if (expanded (conj path k))
-                      [(dom/div #js {:key (str k "-key")}
-                         (dom/div #js {:className (:list-item-index css)}
+                      [(dom/div {:key (str k "-key")}
+                         (dom/div {:className (:list-item-index css)}
                            (if path-action
-                             (dom/div #js {:className (:path-action css)
-                                           :onClick   #(path-action (conj path k))}
+                             (dom/div {:className (:path-action css)
+                                       :onClick   #(path-action (conj path k))}
                                (render-data input k))
                              (render-data input k))))
-                       (dom/div #js {:key (str k "-key-space")})
-                       (dom/div #js {:className (:map-expanded-item css)
-                                     :key       (str k "-value")} (render-data (update input :path conj k) v))]
-                      [(dom/div #js {:key (str k "-key")}
-                         (dom/div #js {:className (:list-item-index css)}
+                       (dom/div {:key (str k "-key-space")})
+                       (dom/div {:className (:map-expanded-item css)
+                                 :key       (str k "-value")} (render-data (update input :path conj k) v))]
+                      [(dom/div {:key (str k "-key")}
+                         (dom/div {:className (:list-item-index css)}
                            (if path-action
-                             (dom/div #js {:className (:path-action css)
-                                           :onClick   #(path-action (conj path k))}
+                             (dom/div {:className (:path-action css)
+                                       :onClick   #(path-action (conj path k))}
                                (render-data input k))
                              (render-data input k))))
-                       (dom/div #js {:key (str k "-value")} (render-data (update input :path conj k) v))])))
+                       (dom/div {:key (str k "-value")} (render-data (update input :path conj k) v))])))
             (apply concat)))
 
-        (dom/div #js {:className (:list-container css)}
+        (dom/div {:className (:list-container css)}
           (render-ordered-list input content)))
 
       (or (expanded (vec (butlast path)))
         (empty? path))
-      (dom/div #js {:className (:list-inline css)}
+      (dom/div {:className (:list-inline css)}
         "{"
         (->> content
           (sort-by (comp str first))
           (take map-max-inline)
           (mapv (fn [[k v]]
-                  [(dom/div #js {:className (:map-inline-key-item css) :key (str k "-key")} (render-data input k))
-                   (dom/div #js {:className (:map-inline-value-item css) :key (str k "-value")} (render-data (update input :path conj k) v))]))
+                  [(dom/div {:className (:map-inline-key-item css) :key (str k "-key")} (render-data input k))
+                   (dom/div {:className (:map-inline-value-item css) :key (str k "-value")} (render-data (update input :path conj k) v))]))
           (interpose ", ")
           (apply concat))
         (if (> (count content) map-max-inline)
           ", ")
         (if (> (count content) map-max-inline)
-          (dom/div #js {:className (:list-inline-item css)} "..."))
+          (dom/div {:className (:list-inline-item css)} "..."))
         "}")
 
       :else
@@ -243,27 +242,27 @@
   (let [input (update input :expanded #(or % {}))]
     (cond
       (nil? content)
-      (dom/div #js {:className (:nil css)} "nil")
+      (dom/div {:className (:nil css)} "nil")
 
       (string? content)
-      (dom/div #js {:className (:string css)} (highlight (pr-str content) search))
+      (dom/div {:className (:string css)} (highlight (pr-str content) search))
 
       (keyword? content)
-      (dom/div #js {:className (:keyword css)} (highlight (str content) search))
+      (dom/div {:className (:keyword css)} (highlight (str content) search))
 
       (symbol? content)
-      (dom/div #js {:className (:symbol css)} (highlight (str content) search))
+      (dom/div {:className (:symbol css)} (highlight (str content) search))
 
       (number? content)
-      (dom/div #js {:className (:number css)} (highlight (str content) search))
+      (dom/div {:className (:number css)} (highlight (str content) search))
 
       (boolean? content)
-      (dom/div #js {:className (:boolean css)} (highlight (str content) search))
+      (dom/div {:className (:boolean css)} (highlight (str content) search))
 
       (uuid? content)
-      (dom/div #js {:className (:uuid css)} "#uuid " (dom/span {:className (:string css)} (highlight
-                                                                                            (str "\"" content "\"")
-                                                                                            search)))
+      (dom/div {:className (:uuid css)} "#uuid " (dom/span {:className (:string css)} (highlight
+                                                                                        (str "\"" content "\"")
+                                                                                        search)))
 
       (map? content)
       (render-map input content)
@@ -278,23 +277,30 @@
       (render-set input content)
 
       :else
-      (dom/div #js {:className (:unknown css)} (highlight (str content) search)))))
+      (dom/div {:className (:unknown css)} (highlight (str content) search)))))
 
 (fp/defsc DataViewer
   [this
-   {::keys [content expanded elide-one? static?] :as props}
-   {:keys  [allow-stale? raw?]
-    ::keys [path-action search on-expand-change path]}
+   {::keys   [expanded elide-one? static?]
+    :ui/keys [history-step raw]
+    :as      props}
+   {::keys [path-action search on-expand-change path]}
    css]
-  {:initial-state (fn [content] {::id       (random-uuid)
-                                 ::content  content
-                                 ::expanded {}})
+  {:initial-state (fn [{:keys [history-step raw]}] {::id             (random-uuid)
+                                                    :ui/history-step history-step
+                                                    :ui/raw          raw
+                                                    ::expanded       {}})
    :pre-merge     (fn [{:keys [current-normalized data-tree]}]
                     (merge {::id       (random-uuid)
                             ::expanded {}}
                       current-normalized data-tree))
    :ident         [::id ::id]
-   :query         [::id ::content ::expanded ::elide-one? ::static?
+   :query         [::id
+                   {:ui/history-step (fp/get-query hist/HistoryStep)}
+                   :ui/raw
+                   ::expanded
+                   ::elide-one?
+                   ::static?
                    [::app/active-remotes '_]]
    :css           [[:.container ui/css-code-font]
                    [:.nil {:color "#808080"}]
@@ -353,46 +359,30 @@
                    [:.path-action {:cursor "pointer"}
                     [:&:hover
                      [:div {:text-decoration "underline"}]]]]}
-  (let [{:keys [id]} content
-        app-uuid      (h/current-app-uuid (fp/component->state-map this))
-        last-step     (hist/closest-populated-history-step this id)
-        desired-state (when-not raw? (hist/state-map-for-id this app-uuid id))
-        stale?        (not= (:id last-step) id)
-        [actual-revision base-data] (cond
-                                      desired-state [id desired-state]
-                                      allow-stale? [(:id last-step) (:value last-step)]
-                                      :else [id {}])
-        data            (cond-> base-data
-                          (vector? path) (get-in path))]
+  (let [{:history/keys [value version]} history-step
+        content (if raw raw (or value {}))
+        data    (cond-> content
+                  (vector? path) (get-in path))]
     (dom/div :.container
-      (when-not (or path raw?)
+      (when (and (not path) version)
         (dom/h4 {:style {:marginTop    "2px"
                          :marginBottom "2px"}}
-          (cond
-            (not stale?) (str "Revision " id)
-            (and stale? (not allow-stale?)) (str "Revision " id " has not been fetched from the application.")
-            :else (if (and (int? actual-revision) (int? id))
-                    (str "Stale Revision " actual-revision " (waiting on revision " id ")")
-                    ""))))
-      (if (and stale? (not allow-stale?) (not raw?))
-        (when-not path
-          (dom/button {:onClick #(fp/transact! this `[(hist/remote-fetch-history-step ~{:id id})])} "Fetch Now"))
-        (render-data {:expanded    expanded
-                      :static?     static?
-                      :search      search
-                      :elide-one?  elide-one?
-                      :toggle      #(do
-                                      (fp/transact! this [`(toggle {::path       ~%2
-                                                                    ::propagate? ~(or (.-altKey %)
-                                                                                    (.-metaKey %))})])
-                                      (if on-expand-change
-                                        (on-expand-change %2
-                                          (-> this (app/current-state)
-                                            (get-in (conj (fp/get-ident this) ::expanded))))))
-                      :css         css
-                      :path        []
-                      :path-action path-action}
-          (if raw? content data))))))
+          (str "Revision " version)))
+      (render-data {:expanded    expanded
+                    :static?     static?
+                    :search      search
+                    :elide-one?  elide-one?
+                    :toggle      #(do
+                                    (fp/transact! this [(toggle {::path       %2
+                                                                 ::propagate? (or (.-altKey %) (.-metaKey %))})])
+                                    (if on-expand-change
+                                      (on-expand-change %2
+                                        (-> this (app/current-state)
+                                          (get-in (conj (fp/get-ident this) ::expanded))))))
+                    :css         css
+                    :path        []
+                    :path-action path-action}
+        (if version content data)))))
 
 (defn all-subvecs [v]
   (:result
@@ -414,8 +404,6 @@
                                       acc
                                       (all-subvecs (butlast p)))
                                     acc)) old paths))
-        (paths-that-match [] (::content viewer) search)))))
+        (paths-that-match [] (:ui/content viewer) search)))))
 
-(let [factory (fp/factory DataViewer)]
-  (defn data-viewer [props & [computed]]
-    (factory (fp/computed props computed))))
+(def data-viewer (fp/computed-factory DataViewer))

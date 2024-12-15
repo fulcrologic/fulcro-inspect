@@ -29,9 +29,9 @@
       (when (get-in @state request-ref)                     ; prevent adding back a cleared request
         (when (get-in @state (conj request-ref :ui/request-edn-view))
           (if response-edn
-            (h/create-entity! env' data-viewer/DataViewer response-edn :replace :ui/response-edn-view))
+            (h/create-entity! env' data-viewer/DataViewer {:content response-edn} :replace :ui/response-edn-view))
           (if error
-            (h/create-entity! env' data-viewer/DataViewer error :replace :ui/error-view)))
+            (h/create-entity! env' data-viewer/DataViewer {:content error} :replace :ui/error-view)))
 
         (swap! state merge/merge-component Request (cond-> request
                                                      (not request-finished-at)
@@ -43,11 +43,11 @@
           req-ref (log/spy :info (fp/ident Request request))]
       (if-not (get-in @state (conj req-ref :ui/request-edn-view))
         (let [env' (assoc env :ref req-ref)]
-          (h/create-entity! env' data-viewer/DataViewer request-edn :replace :ui/request-edn-view)
+          (h/create-entity! env' data-viewer/DataViewer {:content request-edn} :replace :ui/request-edn-view)
           (if (log/spy :info response-edn)
-            (h/create-entity! env' data-viewer/DataViewer response-edn :replace :ui/response-edn-view))
+            (h/create-entity! env' data-viewer/DataViewer {:content response-edn} :replace :ui/response-edn-view))
           (if error
-            (h/create-entity! env' data-viewer/DataViewer error :replace :ui/error-view))))
+            (h/create-entity! env' data-viewer/DataViewer {:content error} :replace :ui/error-view))))
       (h/swap-entity! env assoc ::active-request req-ref))))
 
 (defmutation clear-requests [_]
@@ -118,7 +118,7 @@
                     (merge (cond-> {::request-id         (random-uuid)
                                     ::request-started-at (js/Date.)}
                              request-edn
-                             (assoc ::request-edn-row-view (fp/get-initial-state data-viewer/DataViewer request-edn))
+                             (assoc ::request-edn-row-view (fp/get-initial-state data-viewer/DataViewer {:content request-edn}))
 
                              request-started-at
                              (assoc ::request-started-at request-started-at))

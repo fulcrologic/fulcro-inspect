@@ -1,57 +1,32 @@
 (ns fulcro.inspect.ui.data-watcher
-  (:require [com.fulcrologic.fulcro-css.css :as css]
-            [com.fulcrologic.fulcro.components :as fp]
-            [com.fulcrologic.fulcro.dom :as dom]
-            [com.fulcrologic.fulcro.mutations :as mutations :refer-macros [defmutation]]
-            [fulcro.inspect.helpers :as db.h]
-            [fulcro.inspect.lib.local-storage :as storage]
-            [fulcro.inspect.ui.core :as ui]
-            [fulcro.inspect.ui.data-viewer :as f.data-viewer]
-            [fulcro.inspect.ui.helpers :as h]))
+  (:require
+    [com.fulcrologic.fulcro-css.css :as css]
+    [com.fulcrologic.fulcro.application :as app]
+    [com.fulcrologic.fulcro.components :as fp]
+    [com.fulcrologic.fulcro.dom :as dom]
+    [com.fulcrologic.fulcro.mutations :as mutations :refer-macros [defmutation]]
+    [fulcro.inspect.helpers :as db.h]
+    [fulcro.inspect.lib.local-storage :as storage]
+    [fulcro.inspect.ui.core :as ui]
+    [fulcro.inspect.ui.data-viewer :as f.data-viewer]
+    [fulcro.inspect.ui.helpers :as h]))
 
 (declare WatchPin)
-
-(defn update-watchers [state history-step watches]
-  (reduce
-    (fn [s watcher-ref]
-      (let [{::keys [data-viewer watch-path]} (get-in state watcher-ref)]
-        (assoc-in s (conj data-viewer ::f.data-viewer/content)
-          (assoc history-step :path watch-path))))
-    state
-    watches))
-
-(declare update-state)
-
-(defn update-state* [env history-step]
-  (let [{:keys [ref state]} env
-        watches     (get-in @state (conj ref ::watches))
-        content-ref (-> (get-in @state (conj ref ::root-data))
-                      (conj ::f.data-viewer/content))]
-    (swap! state (comp #(assoc-in % content-ref history-step)
-                   #(update-watchers % history-step watches)))))
-
-(defmutation update-state [new-state]
-  (action [env]
-    (update-state* env new-state)))
 
 (defmutation add-data-watch [{:keys [path]}]
   (action [{:keys [ref state] :as env}]
     (let [app-id (db.h/ref-app-id @state ref)]
-      (doseq [app-uuid (db.h/matching-apps @state app-id)
-              :let [ref     [::id [:fulcro.inspect.core/app-uuid app-uuid]]
-                    content (as-> (get-in @state (conj ref ::root-data)) <>
-                              (get-in @state (conj <> ::f.data-viewer/content)))]]
-        (db.h/create-entity! (assoc env :ref [::id [:fulcro.inspect.core/app-uuid app-uuid]])
-          WatchPin {:path path :content content}
+      (doseq [app-uuid (db.h/matching-apps @state app-id)]
+        (db.h/create-entity! (assoc env :ref [::id [::app/id app-uuid]])
+          WatchPin {:path path}
           :prepend ::watches))
-
       (storage/update! [::watches app-id] #(into [path] %)))))
 
 (defmutation remove-data-watch [{:keys [index path]}]
   (action [{:keys [ref state] :as env}]
     (let [app-id (db.h/ref-app-id @state ref)]
       (doseq [app-uuid (db.h/matching-apps @state app-id)
-              :let [ref       [::id [:fulcro.inspect.core/app-uuid app-uuid]]
+              :let [ref       [::id [::app/id app-uuid]]
                     watch-ref (get-in @state (conj ref ::watches index))
                     env'      (assoc env :ref ref)]]
         (swap! state db.h/deep-remove-ref watch-ref)
@@ -68,13 +43,14 @@
 (fp/defsc WatchPin
   [this {::keys   [watch-path data-viewer]
          :ui/keys [expanded?]}
-   {::keys               [delete-item]
+   {:keys                [root-data]
+    ::keys               [delete-item]
     ::f.data-viewer/keys [path-action on-expand-change]}]
-  {:initial-state (fn [{:keys [path content expanded]}]
+  {:initial-state (fn [{:keys [path expanded] :as params}]
                     {:ui/expanded? true
                      ::watch-id    (random-uuid)
                      ::watch-path  path
-                     ::data-viewer (assoc (fp/get-initial-state f.data-viewer/DataViewer content)
+                     ::data-viewer (assoc (fp/get-initial-state f.data-viewer/DataViewer {})
                                      ::f.data-viewer/expanded (or expanded {}))})
    :ident         [::watch-id ::watch-id]
    :query         [:ui/expanded? ::watch-id ::watch-path
@@ -94,57 +70,53 @@
                     [:&:hover {:text-decoration "line-through"}]]]
    :css-include   [f.data-viewer/DataViewer]}
   (let [css (css/get-classnames WatchPin)]
-    (dom/div #js {:className (:container css)}
-      (dom/div #js {:className (:toggle-row css)}
-        (dom/div #js {:className (:toggle-button css)
-                      :onClick   #(mutations/set-value! this :ui/expanded? (not expanded?))}
+    (dom/div {:className (:container css)}
+      (dom/div {:className (:toggle-row css)}
+        (dom/div {:className (:toggle-button css)
+                  :onClick   #(mutations/set-value! this :ui/expanded? (not expanded?))}
           (if expanded? ui/arrow-down ui/arrow-right))
-        (dom/div #js {:className (:path css)
-                      :onClick   #(if delete-item (delete-item %))}
+        (dom/div {:className (:path css)
+                  :onClick   #(if delete-item (delete-item %))}
           (pr-str watch-path)))
       (if expanded?
-        (f.data-viewer/data-viewer data-viewer
-          {:allow-stale?                    true
-           ::f.data-viewer/path             watch-path
+        (f.data-viewer/data-viewer
+          (assoc data-viewer :ui/raw (or root-data {}))
+          {::f.data-viewer/path             watch-path
            ::f.data-viewer/path-action      path-action
            ::f.data-viewer/on-expand-change on-expand-change})))))
 
-(def watch-pin (fp/factory WatchPin {:keyfn ::watch-id}))
+(def ui-watch-pin (fp/computed-factory WatchPin {:keyfn ::watch-id}))
 
 (fp/defsc DataWatcher
-  [this {::keys [root-data watches] :as props} {:keys [search]}]
-  {:initial-state (fn [state] {::id        (random-uuid)
-                               ::root-data (fp/get-initial-state f.data-viewer/DataViewer state)
-                               ::watches   []})
+  [this {::keys [root-data watches] :as props} {:keys [history-step search]}]
+  {:initial-state (fn [data-viewer-state] {::id        (random-uuid)
+                                           ::root-data (fp/get-initial-state f.data-viewer/DataViewer data-viewer-state)
+                                           ::watches   []})
    :ident         [::id ::id]
    :query         [::id
                    {::root-data (fp/get-query f.data-viewer/DataViewer)}
                    {::watches (fp/get-query WatchPin)}]
    :css-include   [f.data-viewer/DataViewer WatchPin]}
-  (let [content (::f.data-viewer/content root-data)]
-    (dom/div (h/props->html props)
-      (mapv (comp watch-pin
-              (fn [[x i]]
-                (-> (assoc x ::content content)
-                  (fp/computed {::delete-item
-                                (fn [_]
-                                  (fp/transact! this [`(remove-data-watch {:path  ~(::watch-path x)
-                                                                           :index ~i})]))
+  (dom/div (h/props->html props)
+    (map-indexed
+      (fn [idx watch]
+        (ui-watch-pin watch
+          {:root-data (:history/value history-step)
+           ::delete-item
+           (fn [_] (fp/transact! this [(remove-data-watch {:path  (::watch-path watch)
+                                                           :index idx})]))
 
-                                ::f.data-viewer/on-expand-change
-                                (fn [path expanded]
-                                  (fp/transact! this [`(update-watcher-expanded {:path     ~(::watch-path x)
-                                                                                 :expanded ~expanded})]))
+           ::f.data-viewer/on-expand-change
+           (fn [path expanded] (fp/transact! this [(update-watcher-expanded {:path     (::watch-path watch)
+                                                                             :expanded expanded})]))
 
-                                ::f.data-viewer/path-action
-                                #(fp/transact! this [`(add-data-watch {:path ~(vec (concat (::watch-path x) %))})])})))
-              vector)
-        watches
-        (range))
-      (f.data-viewer/data-viewer root-data
-        {:allow-stale?          true
-         ::f.data-viewer/search search
-         ::f.data-viewer/path-action
-                                #(fp/transact! this [`(add-data-watch {:path ~%})])}))))
+           ::f.data-viewer/path-action
+           #(fp/transact! this [(add-data-watch {:path (vec (concat (::watch-path watch) %))})])}))
+      watches)
 
-(def data-watcher (fp/factory DataWatcher))
+    (f.data-viewer/data-viewer
+      (assoc root-data :ui/history-step history-step)
+      {::f.data-viewer/search      search
+       ::f.data-viewer/path-action #(fp/transact! this [(add-data-watch {:path %})])})))
+
+(def ui-data-watcher (fp/computed-factory DataWatcher))

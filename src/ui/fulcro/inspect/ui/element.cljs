@@ -13,9 +13,9 @@
    :initial-state (fn [{::keys [props static-query query] :as params}]
                     (merge
                       {::detail-id         (random-uuid)
-                       ::props-view        (fp/get-initial-state data-viewer/DataViewer props)
-                       ::static-query-view (fp/get-initial-state data-viewer/DataViewer static-query)
-                       ::query-view        (fp/get-initial-state data-viewer/DataViewer query)}
+                       ::props-view        (fp/get-initial-state data-viewer/DataViewer {:content props})
+                       ::static-query-view (fp/get-initial-state data-viewer/DataViewer {:content static-query})
+                       ::query-view        (fp/get-initial-state data-viewer/DataViewer {:content query})}
                       params))
    :ident         ::detail-id
    :query         [::detail-id ::display-name ::ident
