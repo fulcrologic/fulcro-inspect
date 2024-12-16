@@ -199,13 +199,13 @@
                                                                      :remotes remotes})
                         (assoc ::inspector/name (dedupe-name app-uuid)) ; TODO
                         (assoc-in [::inspector/settings :ui/hide-websocket?] true)
-                        (assoc-in [::inspector/app-state :data-history/watcher ::data-watcher/watches]
-                          (->> (storage/get [::data-watcher/watches app-uuid] [])
+                        (assoc-in [::inspector/app-state :data-history/watcher :data-watcher/watches]
+                          (->> (storage/get [:data-watcher/watches app-uuid] [])
                             (mapv (fn [path]
                                     (fp/get-initial-state data-watcher/WatchPin
                                       {:path     path
                                        :id app-uuid
-                                       :expanded (storage/get [::data-watcher/watches-expanded app-uuid path] {})
+                                       :expanded (storage/get [:data-watcher/watches-expanded app-uuid path] {})
                                        :content  (get-in (:history/value initial-history-step) path)})))))
                         #_(assoc-in [::inspector/element ::element/panel-id] [app-uuid-key app-uuid])
                         #_#_#_(assoc-in [::inspector/i18n ::i18n/id] [app-uuid-key app-uuid])

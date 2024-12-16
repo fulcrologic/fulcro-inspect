@@ -44,16 +44,16 @@
           (recur t paths)))
       paths)))
 
-(mutations/defmutation toggle [{::keys [path propagate?]}]
+(mutations/defmutation toggle [{:keys [:data-viewer/path ::propagate?]}]
   (action [env]
     (let [{:keys [state ref]} env
-          open?   (get-in @state (conj ref ::expanded path))
+          open?   (get-in @state (conj ref :data-viewer/expanded path))
           content (get-in @state (concat ref [::content] path))
           toggled (not open?)
           paths   (cond-> {path toggled}
                     propagate? (into (map #(vector (into path %) toggled)) (children-expandable-paths
                                                                              content)))]
-      (swap! state update-in ref update ::expanded merge paths))))
+      (swap! state update-in ref update :data-viewer/expanded merge paths))))
 
 (defn keyable? [x]
   (or (nil? x)
@@ -281,26 +281,23 @@
 
 (fp/defsc DataViewer
   [this
-   {::keys   [expanded elide-one? static?]
-    :as      props}
-   {:keys [raw history-step]
-    ::keys [path-action search on-expand-change path]}
+   {:data-viewer/keys [expanded elide-one? static?] :as props}
+   {:keys             [raw history-step]
+    :data-viewer/keys [path-action search on-expand-change path]}
    css]
-  {:initial-state (fn [{:keys [history-step raw]}] {::id             (random-uuid)
-                                                    :ui/history-step history-step
-                                                    :ui/raw          raw
-                                                    ::expanded       {}})
+  {:initial-state (fn [{:keys [id]}] {:data-viewer/id       [:x id]
+                                      :data-viewer/expanded {}})
    :pre-merge     (fn [{:keys [current-normalized data-tree]}]
-                    (merge {::id       (random-uuid)
-                            ::expanded {}}
+                    (merge {:data-viewer/id       (random-uuid)
+                            :data-viewer/expanded {}}
                       current-normalized data-tree))
-   :ident         [::id ::id]
-   :query         [::id
+   :ident         :data-viewer/id
+   :query         [:data-viewer/id
                    {:ui/history-step (fp/get-query hist/HistoryStep)}
                    :ui/raw
-                   ::expanded
-                   ::elide-one?
-                   ::static?
+                   :data-viewer/expanded
+                   :data-viewer/elide-one?
+                   :data-viewer/static?
                    [::app/active-remotes '_]]
    :css           [[:.container ui/css-code-font]
                    [:.nil {:color "#808080"}]
@@ -373,16 +370,16 @@
                     :search      search
                     :elide-one?  elide-one?
                     :toggle      #(do
-                                    (fp/transact! this [(toggle {::path       %2
-                                                                 ::propagate? (or (.-altKey %) (.-metaKey %))})])
+                                    (fp/transact! this [(toggle {:data-viewer/path %2
+                                                                 ::propagate?      (or (.-altKey %) (.-metaKey %))})])
                                     (if on-expand-change
                                       (on-expand-change %2
                                         (-> this (app/current-state)
-                                          (get-in (conj (fp/get-ident this) ::expanded))))))
+                                          (get-in (conj (fp/get-ident this) :data-viewer/expanded))))))
                     :css         css
                     :path        []
                     :path-action path-action}
-        (if version content data)))))
+        data))))
 
 (defn all-subvecs [v]
   (:result
@@ -394,7 +391,7 @@
 (mutations/defmutation search-expand [{:keys [viewer search]}]
   (action [{:keys [state]}]
     (let [data-view-ident (fp/get-ident DataViewer viewer)
-          expanded-path   (conj data-view-ident ::expanded)]
+          expanded-path   (conj data-view-ident :data-viewer/expanded)]
       (swap! state update-in expanded-path
         (fn [old paths] (reduce (fn [acc p]
                                   (if (> (count p) 1)

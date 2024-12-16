@@ -173,7 +173,7 @@
      (merge {::tx-id (random-uuid)}
        transaction
        {:ui/tx-view        (-> (fp/get-initial-state data-viewer/DataViewer {:content tx})
-                             (assoc ::data-viewer/expanded {[] true}))
+                             (assoc :data-viewer/expanded {[] true}))
         :ui/sends-view     (fp/get-initial-state data-viewer/DataViewer {:content network-sends})
         :ui/old-state-view (fp/get-initial-state data-viewer/DataViewer {:content db-before})
         :ui/new-state-view (fp/get-initial-state data-viewer/DataViewer {:content db-after})
@@ -188,8 +188,8 @@
            db-before     (merge-current m :fulcro.history/db-before)
            db-after      (merge-current m :fulcro.history/db-after)]
        (merge {::tx-id (random-uuid)}
-         {:ui/tx-view        {::data-viewer/content  tx
-                              ::data-viewer/expanded {[] true}}
+         {:ui/tx-view        {::data-viewer/content tx
+                              :data-viewer/expanded {[] true}}
           :ui/sends-view     {::data-viewer/content network-sends}
           :ui/old-state-view {::data-viewer/content db-before}
           :ui/new-state-view {::data-viewer/content db-after}

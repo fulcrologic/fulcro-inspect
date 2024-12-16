@@ -174,10 +174,7 @@
 
 (defn ref-app-id
   [state ref]
-  (let [app-uuid (ref-app-uuid ref)]
-    (get-in state [:fulcro.inspect.ui.inspector/id
-                   app-uuid
-                   :fulcro.inspect.core/app-id])))
+  (ref-app-uuid ref))
 
 (defn ref-client-connection-id
   [state ref]

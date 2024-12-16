@@ -70,12 +70,12 @@
 
 (comp/defsc DataHistory
   [this {:keys [:data-history/search :data-history/history :data-history/watcher :data-history/current-index]} _ css]
-  {:initial-state (fn [{:keys [id]}]
+  {:initial-state (fn [{:keys [id] :as params}]
                     {:data-history/id            [:x id]
                      :data-history/search        ""
                      :data-history/history       []
                      :data-history/current-index 0
-                     :data-history/watcher       (comp/get-initial-state watcher/DataWatcher {})})
+                     :data-history/watcher       (comp/get-initial-state watcher/DataWatcher params)})
    :ident         :data-history/id
    :query         [:data-history/search :data-history/id
                    {:data-history/history (comp/get-query hist/HistoryStep)} ; to-many
@@ -145,6 +145,12 @@
       (dom/pre
         (with-out-str
           (pprint (dissoc (app/current-state this)
+                    :fulcro.inspect.ui.multi-inspector/multi-inspector
+                    :fulcro.inspect.ui.db-explorer/id
+                    :fulcro.inspect.ui.transactions/tx-list-id
+                    :fulcro.inspect.ui.multi-oge/id
+                    :fulcro.inspect.ui.inspector/id
+                    :oge/id
                     :history/id)))))))
 
 (def data-history (comp/factory DataHistory))
