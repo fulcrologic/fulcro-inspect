@@ -282,9 +282,9 @@
 (fp/defsc DataViewer
   [this
    {::keys   [expanded elide-one? static?]
-    :ui/keys [history-step raw]
     :as      props}
-   {::keys [path-action search on-expand-change path]}
+   {:keys [raw history-step]
+    ::keys [path-action search on-expand-change path]}
    css]
   {:initial-state (fn [{:keys [history-step raw]}] {::id             (random-uuid)
                                                     :ui/history-step history-step
@@ -406,4 +406,4 @@
                                     acc)) old paths))
         (paths-that-match [] (:ui/content viewer) search)))))
 
-(def data-viewer (fp/computed-factory DataViewer))
+(def ui-data-viewer (fp/computed-factory DataViewer))

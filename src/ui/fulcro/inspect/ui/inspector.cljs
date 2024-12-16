@@ -22,20 +22,20 @@
               #_i18n oge statecharts settings]
     :ui/keys [more-open?]} _ css]
   {:initial-state
-   (fn [state]
-     {::id                   (random-uuid)
+   (fn [{:keys [id] :as params}]
+     {::id                   [:x id]
       ::client-connection-id -1
       ::name                 ""
       ::tab                  ::page-db
-      ::app-state            (-> (comp/get-initial-state data-history/DataHistory state)
-                               (assoc-in [::data-history/watcher ::data-watcher/root-data ::data-viewer/expanded]
+      ::app-state            (-> (comp/get-initial-state data-history/DataHistory params)
+                               (assoc-in [:data-history/watcher ::data-watcher/root-data ::data-viewer/expanded]
                                  {[] true}))
       ;::element              (comp/get-initial-state element/Panel nil)
       ;::i18n                 (comp/get-initial-state i18n/TranslationsViewer nil)
-      ::db-explorer          (comp/get-initial-state db-explorer/DBExplorer {})
-      ::network              (comp/get-initial-state network/NetworkHistory nil)
-      ::oge                  (comp/get-initial-state oge/OgeView {})
-      ::transactions         (comp/get-initial-state transactions/TransactionList [])
+      ::db-explorer          (comp/get-initial-state db-explorer/DBExplorer params)
+      ::network              (comp/get-initial-state network/NetworkHistory params)
+      ::oge                  (comp/get-initial-state oge/OgeView params)
+      ::transactions         (comp/get-initial-state transactions/TransactionList params)
       ;::statecharts          (comp/get-initial-state Statecharts [])
       ::settings             (comp/get-initial-state settings/Settings {})
       :ui/more-open?         false})

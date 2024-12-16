@@ -244,4 +244,3 @@
     (get "main")
     :fulcro.inspect.ui.multi-inspector/current-app
     second))
-

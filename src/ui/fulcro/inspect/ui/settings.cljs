@@ -26,12 +26,12 @@
 (defsc Settings [this {:keys    [fulcro.inspect/settings]
                        :ui/keys [hide-websocket?]}
                  {:keys [close-settings!]}]
-  {:ident             (fn [] [::id :main])
-   :query             [::id :ui/hide-websocket?
+  {:ident             (fn [] [:component/id ::Settings])
+   :query             [:ui/hide-websocket?
                        {[:fulcro.inspect/settings '_]
                         [:setting/websocket-port :setting/compact-keywords?]}]
    :componentDidMount (fn [this] (load-settings this))
-   :initial-state     {::id :main}
+   :initial-state     {}
    :css               [[:.container {:padding "12px"}]]}
   (let [{:setting/keys [websocket-port compact-keywords?]} settings]
     (dom/div

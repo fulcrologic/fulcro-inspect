@@ -5,6 +5,7 @@
     [com.fulcrologic.fulcro.components :as fp]
     [com.fulcrologic.fulcro.dom :as dom]
     [com.fulcrologic.fulcro.mutations :as mutations :refer-macros [defmutation]]
+    [taoensso.timbre :as log]
     [fulcro.inspect.helpers :as db.h]
     [fulcro.inspect.lib.local-storage :as storage]
     [fulcro.inspect.ui.core :as ui]
@@ -46,9 +47,9 @@
    {:keys                [root-data]
     ::keys               [delete-item]
     ::f.data-viewer/keys [path-action on-expand-change]}]
-  {:initial-state (fn [{:keys [path expanded] :as params}]
+  {:initial-state (fn [{:keys [id path expanded] :as params}]
                     {:ui/expanded? true
-                     ::watch-id    (random-uuid)
+                     ::watch-id    [:x id]
                      ::watch-path  path
                      ::data-viewer (assoc (fp/get-initial-state f.data-viewer/DataViewer {})
                                      ::f.data-viewer/expanded (or expanded {}))})
@@ -79,7 +80,7 @@
                   :onClick   #(if delete-item (delete-item %))}
           (pr-str watch-path)))
       (if expanded?
-        (f.data-viewer/data-viewer
+        (f.data-viewer/ui-data-viewer
           (assoc data-viewer :ui/raw (or root-data {}))
           {::f.data-viewer/path             watch-path
            ::f.data-viewer/path-action      path-action
@@ -114,9 +115,9 @@
            #(fp/transact! this [(add-data-watch {:path (vec (concat (::watch-path watch) %))})])}))
       watches)
 
-    (f.data-viewer/data-viewer
-      (assoc root-data :ui/history-step history-step)
-      {::f.data-viewer/search      search
+    (f.data-viewer/ui-data-viewer root-data
+      {:history-step               (log/spy :info history-step)
+       ::f.data-viewer/search      search
        ::f.data-viewer/path-action #(fp/transact! this [(add-data-watch {:path %})])})))
 
 (def ui-data-watcher (fp/computed-factory DataWatcher))

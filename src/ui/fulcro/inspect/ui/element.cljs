@@ -33,11 +33,11 @@
       (ui/info {::ui/title "Ident"}
         (ui/ident {} ident))
       (ui/info {::ui/title "Props"}
-        (data-viewer/data-viewer props-view {:raw? true}))
+        (data-viewer/ui-data-viewer props-view {:raw? true}))
       (ui/info {::ui/title "Static (startup) Query"}
-        (data-viewer/data-viewer static-query-view {:raw? true}))
+        (data-viewer/ui-data-viewer static-query-view {:raw? true}))
       (ui/info {::ui/title "Current (dynamic) Query"}
-        (data-viewer/data-viewer query-view {:raw? true})))))
+        (data-viewer/ui-data-viewer query-view {:raw? true})))))
 
 (def details (fp/factory Details))
 

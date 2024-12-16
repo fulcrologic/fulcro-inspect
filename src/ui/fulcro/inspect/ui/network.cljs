@@ -184,8 +184,8 @@
 
 (fp/defsc NetworkHistory
   [this {::keys [requests active-request remotes]} _ css]
-  {:initial-state (fn [_]
-                    {::history-id (random-uuid)
+  {:initial-state (fn [{:keys [id]}]
+                    {::history-id [:x id]
                      ::remotes    #{}
                      ::requests   []})
    :ident         [::history-id ::history-id]

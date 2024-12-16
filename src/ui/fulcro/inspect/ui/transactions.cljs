@@ -231,17 +231,17 @@
 
       (if (seq network-sends)
         (ui/info {::ui/title "Sends"}
-          (data-viewer/data-viewer sends-view)))
+          (data-viewer/ui-data-viewer sends-view)))
 
       (ui/info {::ui/title "Data added/updated"}
         (if (::data-viewer/content diff-add-view)
-          (data-viewer/data-viewer diff-add-view {:raw? true})
+          (data-viewer/ui-data-viewer diff-add-view {:raw? true})
           (dom/button {:onClick (fn []
                                   (fp/transact! this [(compute-diff props)]))} "Compute")))
 
       (ui/info {::ui/title "Data Removed"}
         (if (::data-viewer/content diff-rem-view)
-          (data-viewer/data-viewer diff-rem-view {:raw? true})
+          (data-viewer/ui-data-viewer diff-rem-view {:raw? true})
           (dom/button {:onClick (fn []
                                   (fp/transact! this [(compute-diff props)]))} "Compute")))
 
@@ -251,10 +251,10 @@
             (str component))))
 
       (ui/info {::ui/title "State before"}
-        (data-viewer/data-viewer old-state-view {:allow-stale? false}))
+        (data-viewer/ui-data-viewer old-state-view {:allow-stale? false}))
 
       (ui/info {::ui/title "State after"}
-        (data-viewer/data-viewer new-state-view {:allow-stale? false})))))
+        (data-viewer/ui-data-viewer new-state-view {:allow-stale? false})))))
 
 (def transaction (fp/factory Transaction {:keyfn ::tx-id}))
 
@@ -314,16 +314,17 @@
 (fp/defsc TransactionList
   [this
    {::keys [tx-list active-tx tx-filter]}]
-  {:initial-state  (fn [_] {::tx-list-id (random-uuid)
-                            ::tx-list    []
-                            ::active-tx  nil
-                            ::tx-filter  ""})
+  {:initial-state  (fn [{:keys [id]}]
+                     {::tx-list-id [:x id]
+                      ::tx-list    []
+                      ::active-tx  nil
+                      ::tx-filter  ""})
    :pre-merge      (fn [{:keys [current-normalized data-tree]}]
                      (merge {::tx-list-id (random-uuid)
                              ::tx-list    []
                              ::tx-filter  ""}
                        current-normalized data-tree))
-   :ident          [::tx-list-id ::tx-list-id]
+   :ident          ::tx-list-id
    :query          [::tx-list-id ::tx-filter
                     {::active-tx (fp/get-query Transaction)}
                     {::tx-list (fp/get-query TransactionRow)}]

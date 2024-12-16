@@ -305,8 +305,8 @@
     (let [[_ app-uuid] id]
       (fc/transact! this
         [(fm/set-props
-            {:fulcro.inspect.ui.inspector/tab
-              :fulcro.inspect.ui.inspector/page-db})]
+           {:fulcro.inspect.ui.inspector/tab
+            :fulcro.inspect.ui.inspector/page-db})]
         {:ref [:fulcro.inspect.ui.inspector/id app-uuid]}))))
 
 (defn mode [{:as props :keys [current-state]}]
@@ -418,16 +418,18 @@
       (dom/div (str "Unrecognized mode " (pr-str explorer-mode))))))
 
 (defsc DBExplorer [this _]
-  {:ident         [::id ::id]
+  {:ident         ::id
    :query         [:ui/path :ui/history :ui/search-query :ui/search-results :ui/search-type
                    ::id :current-state
                    {[:fulcro.inspect/settings '_] [:setting/compact-keywords?]}]
-   :initial-state {:current-state     {}
-                   :ui/search-query   ""
-                   :ui/search-results []
-                   :ui/search-type    :search/by-value
-                   :ui/path           {:path []}
-                   :ui/history        []}
+   :initial-state (fn [{:keys [id]}]
+                    {::id               [:x id]
+                     :current-state     {}
+                     :ui/search-query   ""
+                     :ui/search-results []
+                     :ui/search-type    :search/by-value
+                     :ui/path           {:path []}
+                     :ui/history        []})
    :css           [[:.container {:display        "flex"
                                  :flex           "1"
                                  :flex-direction "column"

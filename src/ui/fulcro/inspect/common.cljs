@@ -113,22 +113,34 @@
   "Request the full state for the currently-selected application"
   (debounce -fill-last-entry! 5))
 
-(dres/defmutation update-client-db [env {:history/keys [version value] :as params}]
+(dres/defmutation send-started [env params]
+  {::pc/sym `tapi/send-started}
+  (log/info "Send started" params)
+  nil)
+
+(dres/defmutation send-finished [env params]
+  {::pc/sym `tapi/send-finished}
+  (log/info "Send finished" params)
+  nil)
+
+(dres/defmutation send-failed [env params]
+  {::pc/sym `tapi/send-failed}
+  (log/info "Send failed" params)
+  nil)
+
+(dres/defmutation optimistic-action [env params]
+  {::pc/sym `tapi/optimistic-action}
+  (log/info "Optimistic action" params)
+  nil)
+
+(dres/defmutation update-client-db [env {::app/keys    [id]
+                                         :history/keys [version value] :as history-step}]
   {::pc/sym `tapi/db-changed}
-  (let [app-uuid    (mk/target-id params)
-        step        {::app/id         app-uuid
-                     :history/version version
-                     :history/value   value}
-        app         @global-inspector*
-        current-max (hist/latest-state-version app app-uuid)]
-    (merge/merge-component! app hist/HistoryStep step
-      :append [::data-history/history-id [::app/id app-uuid] ::data-history/history])
-
-    (fill-last-entry!)
-
-    (fp/transact! app [(db-explorer/set-current-state step)] {:ref [::db-explorer/id [::app/id app-uuid]]})
-    (when (> version current-max)
-      (fp/transact! app [(data-history/set-content step)] {:ref [::data-history/history-id [::app/id app-uuid]]}))))
+  (let [app @global-inspector*]
+    (log/info "DB change" history-step)
+    (fp/transact! app [(hist/save-history-step history-step)])
+    #_(fp/transact! app [(db-explorer/set-current-state step)] {:ref [::db-explorer/id [::app/id app-uuid]]})
+    nil))
 
 (defn new-client-tx [{:fulcro.inspect.core/keys   [app-uuid]
                       :fulcro.inspect.client/keys [tx]}]
@@ -180,45 +192,34 @@
     (put! res-chan (::ui-parser/msg-response data))
     (log/error "Failed to respond locally to message:" type "with data:" data)))
 
-(defn start-app [{:fulcro.inspect.core/keys   [app-id app-uuid]
+(defn start-app [{app-uuid                    ::app/id
                   :fulcro.inspect.client/keys [initial-history-step remotes]}]
   (let [inspector     @global-inspector*
-        {initial-state :value} initial-history-step
-        element-id    [::app/id app-uuid]
-        new-inspector (-> (fp/get-initial-state inspector/Inspector initial-state)
-                        (assoc ::inspector/id app-uuid)
-                        (assoc :fulcro.inspect.core/app-id app-id)
-                        (assoc ::inspector/name (dedupe-name app-id))
+        new-inspector (-> (fp/get-initial-state inspector/Inspector {:id      app-uuid
+                                                                     :remotes remotes})
+                        (assoc ::inspector/name (dedupe-name app-uuid)) ; TODO
                         (assoc-in [::inspector/settings :ui/hide-websocket?] true)
-                        (assoc-in [::inspector/db-explorer ::db-explorer/id] [::app/id app-uuid])
-                        (assoc-in [::inspector/app-state ::data-history/history-id] [::app/id app-uuid])
-                        (assoc-in [::inspector/app-state ::data-history/watcher ::data-watcher/id] [::app/id app-uuid])
-                        (assoc-in [::inspector/app-state ::data-history/watcher ::data-watcher/watches]
-                          (->> (storage/get [::data-watcher/watches app-id] [])
+                        (assoc-in [::inspector/app-state :data-history/watcher ::data-watcher/watches]
+                          (->> (storage/get [::data-watcher/watches app-uuid] [])
                             (mapv (fn [path]
                                     (fp/get-initial-state data-watcher/WatchPin
                                       {:path     path
-                                       :expanded (storage/get [::data-watcher/watches-expanded app-id path] {})
-                                       :content  (get-in initial-state path)})))))
-                        (assoc-in [::inspector/network ::network/history-id] [::app/id app-uuid])
+                                       :id app-uuid
+                                       :expanded (storage/get [::data-watcher/watches-expanded app-uuid path] {})
+                                       :content  (get-in (:history/value initial-history-step) path)})))))
                         #_(assoc-in [::inspector/element ::element/panel-id] [app-uuid-key app-uuid])
                         #_#_#_(assoc-in [::inspector/i18n ::i18n/id] [app-uuid-key app-uuid])
                                 (assoc-in [::inspector/i18n ::i18n/current-locale] (-> (get-in initial-state (-> initial-state ::fulcro-i18n/current-locale))
                                                                                      ::fulcro-i18n/locale))
                                 (assoc-in [::inspector/i18n ::i18n/locales] (->> initial-state ::fulcro-i18n/locale-by-id vals vec
                                                                               (mapv #(vector (::fulcro-i18n/locale %) (:ui/locale-name %)))))
-                        (assoc-in [::inspector/transactions ::transactions/tx-list-id] [::app/id app-uuid])
-                        (assoc ::inspector/statecharts {::statecharts/id [::app/id app-uuid]})
-                        (assoc-in [::inspector/oge] (fp/get-initial-state multi-oge/OgeView {:app-uuid app-uuid
-                                                                                             :remotes  remotes})))]
-
-    ;(hist/record-history-step! inspector app-uuid initial-history-step)
-    (fill-last-entry!)
+                        )]
 
     (fp/transact! inspector [(multi-inspector/add-inspector new-inspector)]
       {:ref [::multi-inspector/multi-inspector "main"]})
+    (fp/transact! inspector [(hist/save-history-step initial-history-step)])
 
-    (when (= app-id @last-disposed-app*)
+    (when (= app-uuid @last-disposed-app*)
       (reset! last-disposed-app* nil)
       (fp/transact! inspector
         [(multi-inspector/set-app {::inspector/id app-uuid})]
@@ -229,10 +230,12 @@
       {:ref [::db-explorer/id [::app/id app-uuid]]})
     (fp/transact! inspector
       [(data-history/set-content initial-history-step)]
-      {:ref [::data-history/history-id [::app/id app-uuid]]})
+      {:ref [:data-history/id [::app/id app-uuid]]})
 
     new-inspector))
 
 (dres/defmutation app-started [env params]
   {::pc/sym `tapi/app-started}
-  (start-app params))
+  (log/info "App started: " params)
+  (start-app params)
+  nil)

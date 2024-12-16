@@ -15,14 +15,14 @@
 
 (fp/defsc OgeView
   [this {::keys [oges active]}]
-  {:initial-state (fn [{:keys [app-uuid remotes]}]
+  {:initial-state (fn [{:keys [id remotes]}]
                     (let [oges (mapv #(-> (fp/get-initial-state oge/Oge %)
-                                          (assoc :oge/id [:fulcro.inspect.core/app-uuid app-uuid %]))
+                                          (assoc :oge/id [:fulcro.inspect.core/app-uuid id %]))
                                  remotes)]
-                      {::id     [:fulcro.inspect.core/app-uuid app-uuid]
+                      {::id     [:x id]
                        ::active (first oges)
                        ::oges   oges}))
-   :ident         [::id ::id]
+   :ident         ::id
    :query         [::id
                    {::active (fp/get-query oge/Oge)}
                    {::oges (fp/get-query oge/Oge)}]
