@@ -169,7 +169,7 @@
         (with-out-str
           (pprint (dissoc (app/current-state this)
                     :fulcro.inspect.ui.multi-inspector/multi-inspector
-                    :fulcro.inspect.ui.db-explorer/id
+                    :db-explorer/id
                     :fulcro.inspect.ui.transactions/tx-list-id
                     :fulcro.inspect.ui.multi-oge/id
                     :fulcro.inspect.ui.inspector/id

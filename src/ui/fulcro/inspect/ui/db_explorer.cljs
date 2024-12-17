@@ -4,14 +4,17 @@
     [clojure.set :as set]
     [clojure.string :as str]
     [com.fulcrologic.fulcro-css.localized-dom :as dom :refer [a button div input label span]]
+    [com.fulcrologic.fulcro.application :as app]
     [com.fulcrologic.fulcro.components :as fc :refer [defsc]]
+    [com.fulcrologic.fulcro.dom.events :as evt]
     [com.fulcrologic.fulcro.mutations :as fm :refer [defmutation]]
+    [edn-query-language.core :as eql]
     [fulcro.inspect.helpers :as h]
     [fulcro.inspect.lib.history :as hist]
     [fulcro.inspect.ui.core :as ui]
     [fulcro.inspect.ui.data-watcher :as dw]
-    [edn-query-language.core :as eql]
-    [taoensso.encore :as enc]))
+    [taoensso.encore :as enc]
+    [taoensso.timbre :as log]))
 
 (defn re-pattern-insensitive [pattern]
   (re-pattern (str "(?i)" pattern)))
@@ -40,9 +43,9 @@
     (set-path!* env path)))
 
 (defn set-path! [this path]
-  (let [{::keys [id]} (fc/props this)
+  (let [{:keys [:db-explorer/id]} (fc/props this)
         ]
-    (fc/transact! this [(set-path {:path path})] {:ref [::id id]})))
+    (fc/transact! this [(set-path {:path path})] {:ref [:db-explorer/id id]})))
 
 (defmutation append-to-path [{:keys [sub-path]}]
   (action [{:as env :keys [state ref]}]
@@ -51,9 +54,9 @@
       {:path (get-in @state (conj ref :ui/path :path))})))
 
 (defn append-to-path! [this & sub-path]
-  (let [{::keys [id]} (fc/props this)]
+  (let [{:keys [:db-explorer/id]} (fc/props this)]
     (fc/transact! this [(append-to-path {:sub-path sub-path})]
-      {:ref [::id id]})))
+      {:ref [:db-explorer/id id]})))
 
 (defn settings-env [this]
   (-> this fc/props :fulcro.inspect/settings))
@@ -124,9 +127,8 @@
 
       :else (pr-str v))))
 
-(defn ui-entity-level [this]
-  (let [{:keys [current-state] :ui/keys [path]} (fc/props this)
-        {current-state :value} (hist/closest-populated-history-step this (:id current-state))
+(defn ui-entity-level [this current-state]
+  (let [{:ui/keys [path]} (fc/props this)
         entity       (get-in current-state (:path path))
         select-map   (fn [k] (append-to-path! this k))
         select-ident (fn [ident] (set-path! this ident))
@@ -140,14 +142,14 @@
           (ui/th {} "Value")))
 
       (if (map? entity)
-        (ui/tbody
+        (ui/tbody nil
           (for [[k v] (sort-by (comp str key) entity)]
             (ui/tr {:react-key (str "entity-key-" k)}
-              (ui/td (ui-db-key env k))
-              (ui/td (ui-db-value env v k)))))))))
+              (ui/td nil (ui-db-key env k))
+              (ui/td nil (ui-db-value env v k)))))))))
 
-(defn ui-table-level [this]
-  (let [{:keys [current-state] :ui/keys [path]} (fc/props this)
+(defn ui-table-level [this current-state]
+  (let [{:ui/keys [path]} (fc/props this)
         {current-state :value} (hist/closest-populated-history-step this (:id current-state))
         entity-ids   (keys (get-in current-state (:path path)))
         select-ident (fn [ident] (set-path! this ident))
@@ -157,17 +159,15 @@
       (ui/thead {}
         (ui/tr {}
           (ui/th {} "Entity ID")))
-      (ui/tbody
+      (ui/tbody nil
         (for [entity-id (sort-by str entity-ids)]
           (ui/tr {:react-key (str "table-key-" entity-id)}
             (ui/td {}
               (a {:href "#" :onClick #(append-to-path! this entity-id)}
                 (ui-db-key env entity-id)))))))))
 
-(defn ui-top-level [this]
-  (let [{:keys [current-state]} (fc/props this)
-        {current-state :value} (hist/closest-populated-history-step this (:id current-state))
-        top-keys       (set (keys current-state))
+(defn ui-top-level [this current-state]
+  (let [top-keys       (set (keys current-state))
         tables         (filter
                          (fn [k]
                            (let [v (get current-state k)]
@@ -248,10 +248,8 @@
                  paths))
     [] state))
 
-(defn search-for!* [{:as env :keys [app state ref]} {:keys [search-query search-type]}]
-  (let [props                  (get-in @state ref)
-        current-state          (:current-state props)
-        {current-state :value} (hist/closest-populated-history-step app (:id current-state))
+(defn search-for!* [{:as env :keys [app state ref]} {:keys [search-query search-type history/version]}]
+  (let [{current-state :history/value} (hist/closest-populated-history-step app version)
         internal-fulcro-tables #{:com.fulcrologic.fulcro.components/queries}
         searchable-state       (reduce dissoc current-state internal-fulcro-tables)]
     (h/swap-entity! env assoc :ui/search-results
@@ -271,14 +269,15 @@
     (h/swap-entity! env assoc :ui/path search-params)
     (search-for!* env search-params)))
 
-(defn search-for! [this search-query [shift-key? search-type]]
-  (let [{::keys [id]} (fc/props this)
+(defn search-for! [this search-query version [shift-key? search-type]]
+  (let [{:db-explorer/keys [id]} (fc/props this)
         invert-search-type {:search/by-id    :search/by-value
                             :search/by-value :search/by-id}]
-    (fc/transact! this [(search-for {:search-type  (cond-> search-type
-                                                     shift-key? invert-search-type)
-                                     :search-query search-query})]
-      {:ref [::id id]})))
+    (fc/transact! this [(search-for {:search-type     (cond-> search-type
+                                                        shift-key? invert-search-type)
+                                     :history/version version
+                                     :search-query    search-query})]
+      {:ref [:db-explorer/id id]})))
 
 (defn pop-history!* [env]
   (h/swap-entity! env update :ui/history (comp vec drop-last)))
@@ -295,13 +294,13 @@
         (h/swap-entity! env assoc :ui/search-type search-type)))))
 
 (defn pop-history! [this]
-  (let [{::keys [id]} (fc/props this)]
+  (let [{:keys [:db-explorer/id]} (fc/props this)]
     (fc/transact! this [(pop-history {})]
-      {:ref [::id id]})))
+      {:ref [:db-explorer/id id]})))
 
 (defn add-data-watch! [this path]
-  (let [{::keys [id]} (fc/props this)]
-    (fc/transact! this [(dw/add-data-watch {:path path})] {:ref [::id id]})
+  (let [{:keys [:db-explorer/id]} (fc/props this)]
+    (fc/transact! this [(dw/add-data-watch {:path path})] {:ref [:db-explorer/id id]})
     (let [[_ app-uuid] id]
       (fc/transact! this
         [(fm/set-props
@@ -318,7 +317,7 @@
         (table? (get-in current-state path))) :table
       :else :entity)))
 
-(defn ui-db-path [this]
+(defn ui-db-path [this current-state]
   (let [{:ui/keys [path] :as props} (fc/props this)
         {:keys [path search-query]} path
         env (settings-env this)]
@@ -356,7 +355,7 @@
                       :classes [:.primary :$margin-left-small]}
             "Add to DB Watches"))))))
 
-(defn ui-search-results [this]
+(defn ui-search-results [this current-state]
   (let [{:ui/keys [search-results path]} (fc/props this)
         {:keys [search-query]} path
         env (assoc (settings-env this)
@@ -367,7 +366,7 @@
           (ui/th {} "Path")
           (when (some :value search-results)
             (ui/th {} "Value"))))
-      (ui/tbody
+      (ui/tbody nil
         ;;TODO: render with folding
         (for [{:keys [path value]} (sort-by (comp str :path) search-results)]
           (ui/tr {:react-key (str "search-path-" path)}
@@ -377,7 +376,7 @@
               (ui/td {}
                 (pprint-highlighter value search-query)))))))))
 
-(defn ui-toolbar [this]
+(defn ui-toolbar [this version current-state]
   (let [{:ui/keys [history search-query search-type]} (fc/props this)]
     (ui/toolbar {:classes [:.details]}
       (ui/toolbar-action {:onClick  #(pop-history! this)
@@ -386,8 +385,8 @@
       (ui/input {:value       search-query
                  :placeholder "Search DB for:"
                  :onChange    #(fm/set-string! this :ui/search-query :event %)
-                 :onKeyDown   #(when (= 13 (.-keyCode %))
-                                 (search-for! this search-query
+                 :onKeyDown   #(when (evt/enter-key? %)
+                                 (search-for! this search-query version
                                    [(.-shiftKey %) search-type]))
                  :classes     [:$flex]
                  :style       {:paddingRight "20px"}})
@@ -408,22 +407,23 @@
                      :value :search/by-id)}
         "by ID"))))
 
-(defn ui-current-mode [this]
+(defn ui-current-mode [this value]
   (let [explorer-mode (mode (fc/props this))]
     (case explorer-mode
-      :top (ui-top-level this)
-      :search (ui-search-results this)
-      :table (ui-table-level this)
-      :entity (ui-entity-level this)
+      :top (ui-top-level this value)
+      :search (ui-search-results this value)
+      :table (ui-table-level this value)
+      :entity (ui-entity-level this value)
       (dom/div (str "Unrecognized mode " (pr-str explorer-mode))))))
 
-(defsc DBExplorer [this _]
-  {:ident         ::id
+(defsc DBExplorer [this {:keys [:db-explorer/id] :as props}]
+  {:ident         :db-explorer/id
    :query         [:ui/path :ui/history :ui/search-query :ui/search-results :ui/search-type
-                   ::id :current-state
+                   :db-explorer/id
+                   [:data-history/id '_]
                    {[:fulcro.inspect/settings '_] [:setting/compact-keywords?]}]
    :initial-state (fn [{:keys [id]}]
-                    {::id               [:x id]
+                    {:db-explorer/id    [:x id]
                      :current-state     {}
                      :ui/search-query   ""
                      :ui/search-results []
@@ -437,14 +437,19 @@
                    [:.content-container {:max-width "100%"
                                          :flex      "1"
                                          :overflow  "auto"}]]}
-  (try
-    (dom/div :.container
-      (ui-toolbar this)
-      (ui-db-path this)
-      (dom/div :.content-container
-        (ui-current-mode this)))
-    (catch :default e
-      (dom/div (str "Inspect rendering threw an exception. Start a new tab to try again. Report an issue. Exception:"
-                 (ex-message e))))))
+  (let [{:data-history/keys [history]} (get-in props [:data-history/id id])
+        step-ident      (last history)
+        history-version (last (last step-ident))
+        state-map       (app/current-state this)
+        {:history/keys [value]} (get-in state-map step-ident)]
+    (try
+      (dom/div :.container
+        (ui-toolbar this history-version value)
+        (ui-db-path this value)
+        (dom/div :.content-container
+          (ui-current-mode this value)))
+      (catch :default e
+        (dom/div (str "Inspect rendering threw an exception. Start a new tab to try again. Report an issue. Exception:"
+                   (ex-message e)))))))
 
 (def ui-db-explorer (fc/factory DBExplorer))

@@ -139,7 +139,7 @@
   (let [app @global-inspector*]
     (log/info "DB change" history-step)
     (fp/transact! app [(hist/save-history-step history-step)])
-    #_(fp/transact! app [(db-explorer/set-current-state step)] {:ref [::db-explorer/id [::app/id app-uuid]]})
+    #_(fp/transact! app [(db-explorer/set-current-state step)] {:ref [:db-explorer/id [::app/id app-uuid]]})
     nil))
 
 (defn new-client-tx [{:fulcro.inspect.core/keys   [app-uuid]
@@ -227,7 +227,7 @@
 
     (fp/transact! inspector
       [(db-explorer/set-current-state initial-history-step)]
-      {:ref [::db-explorer/id [::app/id app-uuid]]})
+      {:ref [:db-explorer/id [::app/id app-uuid]]})
     (fp/transact! inspector
       [(data-history/set-content initial-history-step)]
       {:ref [:data-history/id [::app/id app-uuid]]})

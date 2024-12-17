@@ -240,4 +240,5 @@
     :fulcro.inspect.ui.multi-inspector/multi-inspector
     (get "main")
     :fulcro.inspect.ui.multi-inspector/current-app
+    second
     second))

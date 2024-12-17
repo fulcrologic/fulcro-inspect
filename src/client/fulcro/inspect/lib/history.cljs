@@ -84,12 +84,14 @@
          app-uuid (h/current-app-uuid state)]
      (closest-populated-history-step this app-uuid min-version)))
   ([this app-uuid min-version]
+   (log/spy :info [app-uuid min-version])
    (let [state        (app/current-state this)
          best-version (reduce-kv
                         (fn [found-version [id version] {:history/keys [value]}]
-                          (if (and (= id app-uuid) value (>= version found-version))
-                            version
-                            found-version))
+                          (cond
+                            (and (= id app-uuid) value (= min-version version)) (reduced version)
+                            (and (= id app-uuid) value (<= version min-version)) version
+                            :else found-version))
                         0
                         (get state :history/id))]
      (history-step this app-uuid best-version))))
