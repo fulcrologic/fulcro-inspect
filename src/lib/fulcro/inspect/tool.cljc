@@ -5,10 +5,9 @@
     [com.fulcrologic.fulcro.inspect.tools :as tools]
     [com.fulcrologic.devtools.common.target :as ct]
     [com.fulcrologic.devtools.common.resolvers :as res]
-    [com.fulcrologic.fulcro.inspect.target-impl :refer [handle-inspect-event]]
+    [com.fulcrologic.fulcro.inspect.target-impl :refer [handle-inspect-event apps*]]
     [taoensso.timbre :as log]))
 
-(defonce apps* (atom {}))
 (defonce tool-connections (atom {}))
 
 (defn add-fulcro-inspect!

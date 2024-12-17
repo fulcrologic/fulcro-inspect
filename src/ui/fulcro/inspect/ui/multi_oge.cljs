@@ -32,4 +32,4 @@
                    :fulcro.inspect.core/app-uuid  (db.h/comp-app-uuid this)
                    ::oge/on-switch-remote         (partial select-remote this)}))
 
-(def oge-view (fp/factory OgeView {:keyfn ::id}))
+(def oge-view (fp/factory OgeView {:keyfn (comp str ::id)}))

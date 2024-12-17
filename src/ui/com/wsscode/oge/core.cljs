@@ -2,7 +2,13 @@
   (:require
     [cljs.reader :refer [read-string]]
     [cognitect.transit :as transit]
+    [com.fulcrologic.devtools.common.message-keys :as mk]
+    [com.fulcrologic.devtools.devtool-io :as dio]
     [com.fulcrologic.fulcro-css.localized-dom :as dom]
+    [com.fulcrologic.fulcro.application :as app]
+    [cljs.core.async :as async]
+    [com.fulcrologic.fulcro.components :as comp]
+    [com.fulcrologic.fulcro.algorithms.tx-processing :as txn]
     [com.fulcrologic.fulcro.components :as fp]
     [com.fulcrologic.fulcro.data-fetch :as fetch]
     [com.fulcrologic.fulcro.mutations :as mutations]
@@ -14,63 +20,40 @@
     [com.wsscode.pathom.core :as p]
     [com.wsscode.pathom.profile :as pp]
     [edn-query-language.core :as eql]
+    [fulcro.inspect.api.target-api :as target]
     [fulcro.inspect.helpers :as db.h]
     [fulcro.inspect.ui.core :as cui]
+    [taoensso.timbre :as log]
     [fulcro.inspect.ui.helpers :as h]))
 
 (mutations/defmutation clear-errors [_]
   (action [{:keys [state]}]
     (swap! state dissoc ::p/errors)))
 
-(mutations/defmutation normalize-result [{:keys [ref]}]
-  (action [{:keys [state]}]
-    (let [result' (cond-> (-> @state (get-in ref) :oge/result')
-                    (get @state ::p/errors) (assoc ::p/errors (->> (get @state ::p/errors)
-                                                                (into {} (map (fn [[k v]] [(vec (next k)) v]))))))
-          profile (some-> result' ::pp/profile)
-          result  (db.h/pprint (dissoc result' ::pp/profile))]
+(mutations/defmutation normalize-result [{:keys [result]}]
+  (action [{:keys [ref state]}]
+    (let [result  (db.h/pprint (if (map? result) (dissoc result ::pp/profile) result))
+          profile (when (map? result) ::pp/profile)]
       (swap! state update-in ref merge {:oge/result  result
                                         :oge/profile profile}))))
-
-(mutations/defmutation normalize-mutation-result [_]
-  (action [{:keys [ref state]}]
-    (let [result' (cond-> (-> @state (get-in ref) :oge/result')
-                    (get @state ::p/errors) (assoc ::p/errors (->> (get @state ::p/errors)
-                                                                (into {} (map (fn [[k v]] [(vec (next k)) v]))))))
-          result  (db.h/pprint (dissoc result' ::pp/profile))]
-      (swap! state update-in ref merge {:oge/result  result
-                                        :oge/profile nil}))))
 
 (defn transit-tagged-reader [tag value] (transit/tagged-value tag value))
 
 (defn oge-query [this string-expression]
   (let [{:oge/keys [remote] :as props} (fp/props this)
-        {:fulcro.inspect.core/keys [app-uuid]} (fp/get-computed props)
-        ident (fp/get-ident this)]
+        app-uuid (db.h/comp-app-uuid this)]
     (try
-      (let [eql       (read-string {:default transit-tagged-reader} string-expression)
-            {:keys [children]} (eql/query->ast eql)
-            mutation? (= :call (some-> children first :type))]
+      (let [eql (read-string {:default transit-tagged-reader} string-expression)
+            txn [(target/run-network-request {mk/target-id app-uuid
+                                              :remote      remote
+                                              :eql         eql})]
+            ast (log/spy :info (eql/query->ast txn))
+            {:keys [transmit!]} (app/get-remote (comp/any->app this) :devtool-remote)]
         (fp/transact! this [`(clear-errors {})])
-        (if mutation?
-          (fetch/load! this :oge/mutation-result nil {:target        (conj ident :oge/result')
-                                                      :post-mutation `normalize-mutation-result
-                                                      :marker        (keyword "oge-query" (p/ident-value* ident))
-                                                      :params        {:fulcro.inspect.core/app-uuid app-uuid
-                                                                      :fulcro.inspect.client/remote remote
-                                                                      :mutation                     eql}})
-          ;; TASK: This isn't working. it's calling the right thing, but ref isn't making it through or something
-          (fp/transact! this [(list `fetch/internal-load!
-                                {:target               (conj ident :oge/result')
-                                 :query                [{(list :>/oge {:fulcro.inspect.core/app-uuid app-uuid
-                                                                       :fulcro.inspect.client/remote remote
-                                                                       })
-                                                         eql}]
-                                 :marker               (keyword "oge-query" (p/ident-value* ident))
-                                 :post-mutation-params {:ref (fp/get-ident this)}
-                                 :post-mutation        `normalize-result})])))
-      ; for some reason the load marker was missing to refresh ui sometimes without the next line
-      (js/setTimeout #(fp/transact! this [:oge/id]) 10)
+        (transmit! {} {::txn/result-handler (fn [{:keys [body]}]
+                                              (log/info "Received " body)
+                                              (fp/transact! this [(normalize-result {:result (get body `target/run-network-request)})]))
+                       ::txn/ast            ast}))
       (catch :default e
         (js/console.error "Invalid EQL" e)))))
 
@@ -215,7 +198,7 @@
                                               "Shift-Enter" run-query
                                               "Cmd-J"       "ogeJoin"
                                               "Ctrl-Space"  "autocomplete"}}
-                       :onChange            #(mutations/set-value! this :oge/query %)})
+                       :onChange            #(mutations/set-value!! this :oge/query %)})
       (cui/drag-resize this {:attribute :query-width
                              :axis      "x"
                              :default   400

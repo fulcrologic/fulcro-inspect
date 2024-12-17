@@ -1,5 +1,6 @@
 (ns com.wsscode.oge.ui.codemirror
   (:require
+    [taoensso.timbre :as log]
     [cljs.reader :refer [read-string]]
     [cljs.spec.alpha :as s]
     [cljsjs.codemirror]
@@ -62,48 +63,51 @@
 (declare autocomplete)
 
 (fp/defsc Editor [this props]
-  {:componentDidMount (fn [this]
-                        (let [textarea   (gobj/get this "textNode")
-                              options    (-> this fp/props ::options (or {}) clj->js)
-                              process    (-> this fp/props ::process)
-                              codemirror (js/CodeMirror.fromTextArea textarea options)]
-                          (reset! oge-cache {})
+  {:componentDidMount    (fn [this]
+                           (let [textarea   (gobj/get this "textNode")
+                                 options    (-> this fp/props ::options (or {}) clj->js)
+                                 process    (-> this fp/props ::process)
+                                 codemirror (js/CodeMirror.fromTextArea textarea options)]
+                             (reset! oge-cache {})
 
-                          (try
-                            (.on codemirror "change" #(when (not= (gobj/get % "origin") "setValue")
-                                                        (js/clearTimeout (gobj/get this "editorHold"))
-                                                        (gobj/set this "editorHold"
-                                                          (js/setTimeout
-                                                            (fn []
-                                                              (gobj/set this "editorHold" false))
-                                                            800))
-                                                        (prop-call this :onChange (.getValue %))))
-                            (.setValue codemirror (-> this fp/props :value))
-                            (if process (process codemirror))
-                            (catch :default e (js/console.warn "Error setting up CodeMirror" e)))
-                          (gobj/set this "codemirror" codemirror)))}
+                             (try
+                               (.on codemirror "change" #(when (not= (gobj/get % "origin") "setValue")
+                                                           (js/clearTimeout (gobj/get this "editorHold"))
+                                                           (gobj/set this "editorHold"
+                                                             (js/setTimeout
+                                                               (fn []
+                                                                 (gobj/set this "editorHold" false))
+                                                               800))
+                                                           (prop-call this :onChange (.getValue %))))
+                               (.setValue codemirror (-> this fp/props :value))
+                               (if process (process codemirror))
+                               (catch :default e (js/console.warn "Error setting up CodeMirror" e)))
+                             (gobj/set this "codemirror" codemirror)))
 
-  :componentWillReceiveProps (fn [this {:keys     [value]
-                                        ::pc/keys [indexes]}]
-                               (let [cm        (gobj/get this "codemirror")
-                                     cur-index (gobj/getValueByKeys cm #js ["options" "ogeIndex"])]
-                                 (when (and cur-index (not= indexes @cur-index))
-                                   (reset! oge-cache {})
-                                   (reset! cur-index indexes)
-                                   (gobj/set (gobj/getValueByKeys cm #js ["options" "hintOptions"]) "hint" (partial autocomplete indexes)))
+   :componentDidUpdate   (fn [this]
+                           (let [{:keys     [value]
+                                  ::pc/keys [indexes]} (fp/props this)
+                                 cm         (gobj/get this "codemirror")
+                                 read-only? (-> this fp/props ::options ::readOnly)
+                                 cur-index  (gobj/getValueByKeys cm #js ["options" "ogeIndex"])]
+                             (when (and cur-index (not= indexes @cur-index))
+                               (reset! oge-cache {})
+                               (reset! cur-index indexes)
+                               (gobj/set (gobj/getValueByKeys cm #js ["options" "hintOptions"]) "hint" (partial autocomplete indexes)))
 
-                                 ; there is a race condition that happens when user types something, react updates state and try to update
-                                 ; the state back to the editor, which moves the cursor in the editor in weird ways. the workaround is to
-                                 ; stop accepting external values after a short period after user key strokes.
-                                 (if-not (gobj/get this "editorHold")
-                                   (let [cur-value (.getValue cm)]
-                                     (if (and cm value (not= value cur-value))
-                                       (.setValue cm value))))))
+                             ; there is a race condition that happens when user types something, react updates state and try to update
+                             ; the state back to the editor, which moves the cursor in the editor in weird ways. the workaround is to
+                             ; stop accepting external values after a short period after user key strokes.
+                             (if read-only?
+                               (.setValue cm value)
+                               (when-not (gobj/get this "editorHold")
+                                 (let [cur-value (.getValue cm)]
+                                   (if (and cm value (not= value cur-value))
+                                     (.setValue cm value)))))))
 
-  :componentWillUnmount (fn [this]
-                          (if-let [cm (gobj/get this "codemirror")]
-                            (.toTextArea cm)))
-
+   :componentWillUnmount (fn [this]
+                           (if-let [cm (gobj/get this "codemirror")]
+                             (.toTextArea cm)))}
   (dom/div (-> props (dissoc :value :onChange) (html-props))
     (js/React.createElement "textarea"
       #js {:ref          #(gobj/set this "textNode" %)
