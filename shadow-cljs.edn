@@ -1,4 +1,4 @@
-{:deps   true
+{:deps   {:aliases [:dev :test :tool]}
 
  :http   {:host "127.0.0.1"
           :port 9632}

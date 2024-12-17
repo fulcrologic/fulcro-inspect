@@ -1,6 +1,7 @@
 (ns fulcro.inspect.ui.data-watcher
   (:require
     [com.fulcrologic.fulcro-css.css :as css]
+    [com.fulcrologic.fulcro.algorithms.normalized-state :as fns]
     [com.fulcrologic.fulcro.application :as app]
     [com.fulcrologic.fulcro.components :as fp]
     [com.fulcrologic.fulcro.dom :as dom]
@@ -22,18 +23,13 @@
         :prepend :data-watcher/watches)
       (storage/update! [:data-watcher/watches app-id] #(into [path] %)))))
 
-(defmutation remove-data-watch [{:keys [index path]}]
+(defmutation remove-data-watch [{:keys [index]
+                                 :watch-pin/keys [path id]}]
   (action [{:keys [ref state] :as env}]
-    (let [app-id (db.h/ref-app-id @state ref)]
-      (doseq [app-uuid (db.h/matching-apps @state app-id)
-              :let [ref       [:data-watcher/id [:x app-uuid]]
-                    watch-ref (get-in @state (conj ref :data-watcher/watches index))
-                    env'      (assoc env :ref ref)]]
-        (swap! state db.h/deep-remove-ref watch-ref)
-        (db.h/swap-entity! env' update :data-watcher/watches #(db.h/vec-remove-index index %)))
-
-      (storage/remove! [:data-watcher/watches-expanded app-id path])
-      (storage/update! [:data-watcher/watches app-id] #(db.h/vec-remove-index index %)))))
+    (let [app-uuid (db.h/ref-app-id @state ref)]
+      (swap! state fns/remove-entity [:watch-pin/id id])
+      (storage/remove! [:data-watcher/watches-expanded app-uuid path])
+      (storage/update! [:data-watcher/watches app-uuid] #(db.h/vec-remove-index index %)))))
 
 (defmutation update-watcher-expanded [{:keys [path expanded]}]
   (action [{:keys [ref state]}]
@@ -89,13 +85,13 @@
 (def ui-watch-pin (fp/computed-factory WatchPin {:keyfn :watch-pin/id}))
 
 (fp/defsc DataWatcher
-  [this {:keys [::root-data :data-watcher/watches] :as props} {:keys [history-step search] :as computed}]
-  {:initial-state (fn [{:keys [id]}] {:data-watcher/id      [:x id]
-                                      ::root-data           (fp/get-initial-state f.data-viewer/DataViewer {:id (random-uuid)})
-                                      :data-watcher/watches []})
+  [this {:keys [:data-watcher/data-viewer :data-watcher/watches] :as props} {:keys [history-step search] :as computed}]
+  {:initial-state (fn [{:keys [id]}] {:data-watcher/id          [:x id]
+                                      :data-watcher/data-viewer (fp/get-initial-state f.data-viewer/DataViewer {:id (random-uuid)})
+                                      :data-watcher/watches     []})
    :ident         :data-watcher/id
    :query         [:data-watcher/id
-                   {::root-data (fp/get-query f.data-viewer/DataViewer)}
+                   {:data-watcher/data-viewer (fp/get-query f.data-viewer/DataViewer)}
                    {:data-watcher/watches (fp/get-query WatchPin)}]
    :css-include   [f.data-viewer/DataViewer WatchPin]}
   (dom/div (h/props->html props)
@@ -104,8 +100,8 @@
         (ui-watch-pin watch
           (merge computed
             {:watch-pin/delete-item
-             (fn [_] (fp/transact! this [(remove-data-watch {:path  (:watch-pin/path watch)
-                                                             :index idx})]))
+             (fn [_]
+               (fp/transact! this [(remove-data-watch (assoc watch :index idx))]))
 
              :data-viewer/on-expand-change
              (fn [path expanded] (fp/transact! this [(update-watcher-expanded {:path     (:watch-pin/path watch)
@@ -115,7 +111,7 @@
              #(fp/transact! this [(add-data-watch {:path (vec (concat (:watch-pin/path watch) %))})])})))
       watches)
 
-    (f.data-viewer/ui-data-viewer root-data
+    (f.data-viewer/ui-data-viewer data-viewer
       {:history-step            history-step
        :data-viewer/search      search
        :data-viewer/path-action #(fp/transact! this [(add-data-watch {:path %})])})))

@@ -28,7 +28,7 @@
       ::name                 ""
       ::tab                  ::page-db
       ::app-state            (-> (comp/get-initial-state data-history/DataHistory params)
-                               (assoc-in [:data-history/watcher ::data-watcher/root-data :data-viewer/expanded]
+                               (assoc-in [:data-history/watcher :data-watcher/data-viewer :data-viewer/expanded]
                                  {[] true}))
       ;::element              (comp/get-initial-state element/Panel nil)
       ;::i18n                 (comp/get-initial-state i18n/TranslationsViewer nil)

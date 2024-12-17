@@ -1,15 +1,16 @@
 (ns fulcro.inspect.ui.data-history
   (:require
+    [taoensso.timbre :as log]
     [cljs.pprint :refer [pprint]]
-    [com.fulcrologic.devtools.devtool-io :as devtool]
+    [com.fulcrologic.devtools.devtool-io :as dio]
     [com.fulcrologic.fulcro-css.localized-dom :as dom]
     [com.fulcrologic.fulcro.algorithms.normalized-state :as fns]
     [com.fulcrologic.fulcro.application :as app]
     [com.fulcrologic.fulcro.components :as comp]
-    [com.fulcrologic.fulcro.data-fetch :as df]
     [com.fulcrologic.fulcro.dom.events :as evt]
     [com.fulcrologic.fulcro.mutations :as m]
     [fulcro.inspect.helpers :as db.h]
+    [fulcro.inspect.api.target-api :as target]
     [fulcro.inspect.lib.history :as hist]
     [fulcro.inspect.ui.core :as ui]
     [fulcro.inspect.ui.data-viewer :as data-viewer]
@@ -59,25 +60,31 @@
   (remote [env]
     (db.h/remote-mutation env 'hide-dom-preview)))
 
-(m/defmutation reset-app [params]
+(m/defmutation reset-app [{:history/keys [version]}]
   (action [{:keys [state ref] :as env}]
-    (db.h/swap-entity! env assoc :data-history/current-index (-> (get-in @state ref) :data-history/history count dec)))
-  (refresh [_] [:data-history/current-index])
-  (remote [{:keys [ref] :as env}]
-    (-> env
-      (m/with-server-side-mutation 'reset-app)
-      (m/with-params (merge params {:fulcro.inspect.core/app-uuid (db.h/ref-app-uuid ref)})))))
+    (when version
+      (let [{:data-history/keys [history]} (get-in @state ref)
+            history-to-keep (vec (take-while (fn [[_ [_ v]]] (<= v version)) history))
+            end-index       (dec (count history-to-keep))]
+        (db.h/swap-entity! env
+          (fn [e]
+            (-> (log/spy :info e)
+              (assoc :data-history/history history-to-keep)
+              (assoc :data-history/current-index end-index))))))))
 
 (comp/defsc DataHistory
-  [this {:keys [:data-history/search :data-history/history :data-history/watcher :data-history/current-index]} _ css]
+  [this {:ui/keys           [render-history?]
+         :data-history/keys [search history watcher current-index]} _ css]
   {:initial-state (fn [{:keys [id] :as params}]
-                    {:data-history/id            [:x id]
+                    {:ui/render-history?         false
+                     :data-history/id            [:x id]
                      :data-history/search        ""
                      :data-history/history       []
                      :data-history/current-index 0
                      :data-history/watcher       (comp/get-initial-state watcher/DataWatcher params)})
    :ident         :data-history/id
-   :query         [:data-history/search :data-history/id
+   :query         [:ui/render-history?
+                   :data-history/search :data-history/id
                    {:data-history/history (comp/get-query hist/HistoryStep)} ; to-many
                    :data-history/current-index
                    {:data-history/watcher (comp/get-query watcher/DataWatcher)}]
@@ -93,12 +100,6 @@
                    [:.toolbar {:padding-left "4px"}]
                    [:.row-content {:display "flex"
                                    :flex    "1"}]
-                   [:.snapshots {:border-left "1px solid #a3a3a3"
-                                 :width       "220px"
-                                 :overflow    "auto"}]
-                   [:.snapshots-toggler {:background "#a3a3a3"
-                                         :cursor     "pointer"
-                                         :width      "1px"}]
                    [(gs/> :.snapshots (gs/div (gs/nth-child "odd"))) {:background "#f5f5f5"}]]
    :css-include   [ui/CSS watcher/DataWatcher]}
   (let [at-end? (= (dec (count history)) current-index)
@@ -106,21 +107,42 @@
          :or           {value {}}
          :as           history-step} (get history current-index)]
     (dom/div :.container
-
       (ui/toolbar {:className (:toolbar css)}
+        #_(dom/input
+            {:type     "checkbox"
+             :checked  (boolean render-history?)
+             :onChange #(m/toggle! this :ui/render-history?)})
+
         (ui/toolbar-action {:disabled (= 0 current-index)
-                            :onClick  #(comp/transact! this [(fetch-and-show-history {:data-history/current-index (dec current-index)})])}
+                            :onClick  #(comp/transact! this [(fetch-and-show-history {:ui/render?                 render-history?
+                                                                                      :data-history/current-index (dec current-index)})])}
           (ui/icon {:title "Back one version"} :chevron_left))
 
-        (dom/input {:type     "range" :min "0" :max (dec (count history))
-                    :value    (str current-index)
-                    :onChange #(comp/transact! this [(fetch-and-show-history {:data-history/current-index (js/parseInt (evt/target-value %))})])})
+        (dom/div {:style {:position  "relative"
+                          :textAlign "center"}}
+          (dom/input {:type     "range"
+                      :style    {:width "100%"}
+                      :min      "0" :max (dec (count history))
+                      :value    (str current-index)
+                      :onChange #(comp/transact! this [(fetch-and-show-history {:ui/render?                 render-history?
+                                                                                :data-history/current-index (js/parseInt (evt/target-value %))})])})
+          (when (and render-history? (not at-end?))
+            (dom/label {:style {:position "absolute"
+                                :width    "100%"
+                                :top      "70%"
+                                :left     "0%"
+                                :color    "#F55"
+                                :fontSize "6pt"}} "rendering history")))
+
 
         (ui/toolbar-action {:disabled at-end?
-                            :onClick  #(comp/transact! this [(fetch-and-show-history {:data-history/current-index (inc current-index)})])}
+                            :onClick  #(comp/transact! this [(fetch-and-show-history {:ui/render?                 render-history?
+                                                                                      :data-history/current-index (inc current-index)})])}
           (ui/icon {:title "Forward one version"} :chevron_right))
 
-        (ui/toolbar-action {:onClick #(comp/transact! this [(reset-app {:history/version version})])}
+        (ui/toolbar-action {:onClick (fn []
+                                       (comp/transact! this [(reset-app {:history/version version})])
+                                       (dio/transact! this (db.h/comp-app-uuid this) [(target/reset-app {:history/version version})]))}
           (ui/icon {:title (if at-end? "Force app re-render" "Reset App To This State")} :settings_backup_restore))
 
         (ui/toolbar-debounced-text-field
@@ -129,11 +151,12 @@
            :style       {:margin "0 6px"
                          :width  "210px"}
            :onKeyDown   (fn [e]
-                          (when (= (.-keyCode e) (get events/KEYS "return"))
-                            (.preventDefault e)
+                          (when (evt/enter-key? e)
+                            (evt/prevent-default! e)
                             (comp/transact! this [(data-viewer/search-expand
-                                                    {:viewer (::watcher/root-data watcher)
-                                                     :search search})])))
+                                                    {:viewer  (:data-watcher/data-viewer watcher)
+                                                     :content (:history/value history-step)
+                                                     :search  search})])))
            :onChange    #(m/set-string! this :data-history/search :event %)})
         (dom/div {:className (:flex ui/scss)}))
 

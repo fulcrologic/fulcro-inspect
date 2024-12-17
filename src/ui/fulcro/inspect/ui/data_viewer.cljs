@@ -3,6 +3,8 @@
             [com.fulcrologic.fulcro-css.localized-dom :as dom]
             [com.fulcrologic.fulcro.algorithms.tempid :as tempid]
             [com.fulcrologic.fulcro.application :as app]
+            [com.fulcrologic.fulcro.dom.events :as evt]
+            [taoensso.timbre :as log]
             [com.fulcrologic.fulcro.components :as fp]
             [com.fulcrologic.fulcro.data-fetch :as df]
             [com.fulcrologic.fulcro.mutations :as mutations]
@@ -388,7 +390,7 @@
         (assoc acc :last (conj last i) :result (conj result (conj last i))))
       {:last [] :result []} v)))
 
-(mutations/defmutation search-expand [{:keys [viewer search]}]
+(mutations/defmutation search-expand [{:keys [viewer content search]}]
   (action [{:keys [state]}]
     (let [data-view-ident (fp/get-ident DataViewer viewer)
           expanded-path   (conj data-view-ident :data-viewer/expanded)]
@@ -401,6 +403,6 @@
                                       acc
                                       (all-subvecs (butlast p)))
                                     acc)) old paths))
-        (paths-that-match [] (:ui/content viewer) search)))))
+        (paths-that-match [] content search)))))
 
 (def ui-data-viewer (fp/computed-factory DataViewer))

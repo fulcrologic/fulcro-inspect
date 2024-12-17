@@ -139,7 +139,7 @@
                                (assoc :history/value value)) step)]
     (-> state-map
       (prune-history*)
-      (merge/merge-component HistoryStep step
+      (merge/merge-component HistoryStep (log/spy :info step)
         :append [:data-history/id [:x id] :data-history/history])
       (auto-advance-history* id)
       )))
