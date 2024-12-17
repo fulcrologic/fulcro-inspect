@@ -287,7 +287,7 @@
    {:keys             [raw history-step]
     :data-viewer/keys [path-action search on-expand-change path]}
    css]
-  {:initial-state (fn [{:keys [id]}] {:data-viewer/id       [:x id]
+  {:initial-state (fn [{:keys [id]}] {:data-viewer/id       [:x (or id (random-uuid))]
                                       :data-viewer/expanded {}})
    :pre-merge     (fn [{:keys [current-normalized data-tree]}]
                     (merge {:data-viewer/id       (random-uuid)

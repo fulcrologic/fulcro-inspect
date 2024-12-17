@@ -68,7 +68,7 @@
             end-index       (dec (count history-to-keep))]
         (db.h/swap-entity! env
           (fn [e]
-            (-> (log/spy :info e)
+            (-> e
               (assoc :data-history/history history-to-keep)
               (assoc :data-history/current-index end-index))))))))
 
@@ -171,8 +171,11 @@
                     :fulcro.inspect.ui.multi-inspector/multi-inspector
                     :db-explorer/id
                     :data-history/id
-                    ;:fulcro.inspect.ui.transactions/tx-list-id
+                    :data-watcher/id
+                    :data-viewer/id
+                    :fulcro.inspect.ui.transactions/tx-list-id
                     :fulcro.inspect.ui.multi-oge/id
+                    :fulcro.inspect.ui.transactions/tx-id
                     :fulcro.inspect.ui.inspector/id
                     :oge/id
                     :history/id)))))))

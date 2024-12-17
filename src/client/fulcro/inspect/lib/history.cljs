@@ -84,7 +84,6 @@
          app-uuid (h/current-app-uuid state)]
      (closest-populated-history-step this app-uuid min-version)))
   ([this app-uuid min-version]
-   (log/spy :info [app-uuid min-version])
    (let [state        (app/current-state this)
          best-version (reduce-kv
                         (fn [found-version [id version] {:history/keys [value]}]
@@ -141,7 +140,7 @@
                                (assoc :history/value value)) step)]
     (-> state-map
       (prune-history*)
-      (merge/merge-component HistoryStep (log/spy :info step)
+      (merge/merge-component HistoryStep step
         :append [:data-history/id [:x id] :data-history/history])
       (auto-advance-history* id)
       )))

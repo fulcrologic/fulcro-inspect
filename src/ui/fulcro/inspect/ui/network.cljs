@@ -17,9 +17,9 @@
 
 (defmutation request-start [{::keys [remote] :as request}]
   (action [env]
-    (h/create-entity! env Request request :append ::requests)
-    (h/swap-entity! env update ::remotes conj remote)
-    (h/swap-entity! env update ::requests #(->> (take-last 50 %) vec))))
+    (h/create-entity! env Request request :append :network-history/requests)
+    (h/swap-entity! env update :network-history/remotes conj remote)
+    (h/swap-entity! env update :network-history/requests #(->> (take-last 50 %) vec))))
 
 (defmutation request-finish [{::keys [response-edn error request-finished-at] :as request}]
   (action [env]
@@ -29,9 +29,9 @@
       (when (get-in @state request-ref)                     ; prevent adding back a cleared request
         (when (get-in @state (conj request-ref :ui/request-edn-view))
           (if response-edn
-            (h/create-entity! env' data-viewer/DataViewer {:content response-edn} :replace :ui/response-edn-view))
+            (h/create-entity! env' data-viewer/DataViewer {} :replace :ui/response-edn-view))
           (if error
-            (h/create-entity! env' data-viewer/DataViewer {:content error} :replace :ui/error-view)))
+            (h/create-entity! env' data-viewer/DataViewer {} :replace :ui/error-view)))
 
         (swap! state merge/merge-component Request (cond-> request
                                                      (not request-finished-at)
@@ -40,33 +40,34 @@
 (defmutation select-request [{::keys [request-edn response-edn error] :as request}]
   (action [env]
     (let [{:keys [state] :as env} env
-          req-ref (log/spy :info (fp/ident Request request))]
-      (if-not (get-in @state (conj req-ref :ui/request-edn-view))
+          req-ref (fp/ident Request request)]
+      (when-not (get-in @state (conj req-ref :ui/request-edn-view))
         (let [env' (assoc env :ref req-ref)]
-          (h/create-entity! env' data-viewer/DataViewer {:content request-edn} :replace :ui/request-edn-view)
-          (if (log/spy :info response-edn)
-            (h/create-entity! env' data-viewer/DataViewer {:content response-edn} :replace :ui/response-edn-view))
+          (h/create-entity! env' data-viewer/DataViewer {} :replace :ui/request-edn-view)
+          (if response-edn
+            (h/create-entity! env' data-viewer/DataViewer {} :replace :ui/response-edn-view))
           (if error
-            (h/create-entity! env' data-viewer/DataViewer {:content error} :replace :ui/error-view))))
-      (h/swap-entity! env assoc ::active-request req-ref))))
+            (h/create-entity! env' data-viewer/DataViewer {} :replace :ui/error-view))))
+      (h/swap-entity! env assoc :network-history/active-request req-ref))))
 
 (defmutation clear-requests [_]
   (action [env]
-    (h/swap-entity! env assoc ::active-request nil ::remotes #{})
-    (h/remove-edge! env ::requests)))
+    (h/swap-entity! env assoc :network-history/active-request nil :network-history/remotes #{})
+    (h/remove-edge! env :network-history/requests)))
 
 (defn send-to-query [this app-uuid query]
   (fp/transact! this
-    `[(fulcro.inspect.ui.multi-oge/set-active-query {:query ~(h/pprint query)})]
-    {:ref [:fulcro.inspect.ui.multi-oge/id [:fulcro.inspect.core/app-uuid app-uuid]]})
+    [(fulcro.inspect.ui.multi-oge/set-active-query {:query (h/pprint query)})]
+    {:ref [:fulcro.inspect.ui.multi-oge/id [:x app-uuid]]})
 
   (fp/transact! this
     [(fm/set-props {:fulcro.inspect.ui.inspector/tab :fulcro.inspect.ui.inspector/page-oge})]
-    {:ref [:fulcro.inspect.ui.inspector/id app-uuid]}))
+    {:ref [:fulcro.inspect.ui.inspector/id [:x app-uuid]]}))
 
 (fp/defsc RequestDetails
   [this
-   {:ui/keys [request-edn-view response-edn-view error-view]}
+   {:ui/keys [request-edn-view response-edn-view error-view]
+    ::keys   [response-edn request-edn error]}
    {:fulcro.inspect.core/keys [app-uuid]}]
   {:ident [::request-id ::request-id]
    :query [::request-id ::request-edn ::response-edn ::request-started-at ::request-finished-at ::error
@@ -87,41 +88,37 @@
     (ui/info {::ui/title (dom/div
                            "Request"
                            (dom/button :.send-query
-                             {:onClick #(send-to-query this app-uuid (::data-viewer/content request-edn-view))}
+                             {:onClick #(send-to-query this app-uuid request-edn)}
                              "Send to query"))}
       (dom/pre {:style {:fontSize "10pt"}}
-        (h/pprint (::data-viewer/content request-edn-view))))
+        (h/pprint request-edn)))
 
-    (if response-edn-view
+    (if response-edn
       (ui/info {::ui/title "Response"}
         (dom/pre {:style {:fontSize "10pt"}}
-          (h/pprint (::data-viewer/content response-edn-view)))))
+          (h/pprint response-edn))))
 
-    (if error-view
+    (if error
       (ui/info {::ui/title "Error"}
         (dom/pre {:style {:fontSize "10pt"}}
-          (h/pprint (::data-viewer/content error-view)))))
+          (h/pprint error))))
 
-    (if-let [profile (-> response-edn-view ::data-viewer/content ::pp/profile)]
+    (if-let [profile (-> response-edn ::pp/profile)]
       (ui/info {::ui/title "Profile"}
         (dom/div :.flame (ui.flame/flame-graph {:profile profile}))))))
 
-(def request-details (fp/factory RequestDetails))
+(def ui-request-details (fp/factory RequestDetails))
 
 (fp/defsc Request
   [this
-   {::keys [request-edn-row-view response-edn error remote
+   {::keys [response-edn error remote request-edn
             request-started-at request-finished-at]}
    {::keys [columns on-select selected? show-remote?]}
    css]
-  {:initial-state (fn [{::keys [request-edn request-started-at] :as props}]
+  {:initial-state (fn [{::keys [request-started-at] :as props}]
                     (merge (cond-> {::request-id         (random-uuid)
                                     ::request-started-at (js/Date.)}
-                             request-edn
-                             (assoc ::request-edn-row-view (fp/get-initial-state data-viewer/DataViewer {:content request-edn}))
-
-                             request-started-at
-                             (assoc ::request-started-at request-started-at))
+                             request-started-at (assoc ::request-started-at request-started-at))
                       props))
    :ident         [::request-id ::request-id]
    :query         [::request-id ::request-edn ::request-edn-row-view ::response-edn ::remote
@@ -161,8 +158,7 @@
                                      :top      "50%"}}
         (ui/print-timestamp request-started-at)))
     (dom/div :.table-cell.flex.request {}
-      (let [{::data-viewer/keys [content]} request-edn-row-view]
-        (transactions/tx-printer {::transactions/content content})))
+      (transactions/tx-printer {::transactions/content request-edn}))
     (if show-remote?
       (dom/div :.table-cell {:style {:width (:remote columns)}}
         (str remote)))
@@ -180,18 +176,19 @@
       (if (and request-started-at request-finished-at)
         (str (- (.getTime request-finished-at) (.getTime request-started-at)) " ms")
         (dom/span :.pending {} "(pending...)")))))
-(def request (fp/computed-factory Request {:keyfn ::request-id}))
+(def ui-request (fp/computed-factory Request {:keyfn ::request-id}))
 
 (fp/defsc NetworkHistory
-  [this {::keys [requests active-request remotes]} _ css]
+  [this {:network-history/keys [requests active-request remotes]} _ css]
   {:initial-state (fn [{:keys [id]}]
-                    {::history-id [:x id]
-                     ::remotes    #{}
-                     ::requests   []})
-   :ident         [::history-id ::history-id]
-   :query         [::history-id ::remotes
-                   {::requests (fp/get-query Request)}
-                   {::active-request (fp/get-query RequestDetails)}]
+                    {:network-history/id       [:x id]
+                     :network-history/remotes  #{}
+                     :network-history/requests []})
+   :ident         :network-history/id
+   :query         [:network-history/id
+                   :network-history/remotes
+                   {:network-history/requests (fp/get-query Request)}
+                   {:network-history/active-request (fp/get-query RequestDetails)}]
    :css           (fn []
                     (let [border (str "1px solid " ui/color-bg-medium-border)]
                       [[:.container {:flex           1
@@ -247,7 +244,7 @@
           (if (seq requests)
             (->> requests
               rseq
-              (mapv (comp request
+              (mapv (comp ui-request
                       #(fp/computed %
                          {::show-remote?
                           show-remote?
@@ -259,7 +256,7 @@
                           (= (::request-id active-request) (::request-id %))
 
                           ::on-select
-                          (fn [r] (fp/transact! this `[(select-request ~r)]))})))))))
+                          (fn [r] (fp/transact! this [(select-request r)]))})))))))
 
       (if active-request
         (ui/focus-panel {:style {:height (str (or (fp/get-state this :detail-height) 400) "px")}}
@@ -267,10 +264,10 @@
             (ui/toolbar {::ui/classes [:details]}
               (ui/toolbar-spacer)
               (ui/toolbar-action {:title   "Close panel"
-                                  :onClick #(fm/set-value! this ::active-request nil)}
+                                  :onClick #(fm/set-value! this :network-history/active-request nil)}
                 (ui/icon :clear))))
           (ui/focus-panel-content {}
-            (request-details (fp/computed active-request {:fulcro.inspect.core/app-uuid (h/comp-app-uuid this)
-                                                          :parent                       this}))))))))
+            (ui-request-details (fp/computed active-request {:fulcro.inspect.core/app-uuid (h/comp-app-uuid this)
+                                                             :parent                       this}))))))))
 
 (def network-history (fp/factory NetworkHistory))

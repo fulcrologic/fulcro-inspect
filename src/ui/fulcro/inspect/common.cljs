@@ -97,8 +97,8 @@
       (fp/transact! app tx {:ref tx-ref})
       (fp/transact! app tx))))
 
-(defonce last-step-filled (volatile! nil))
-(defn- -fill-last-entry!
+#_(defonce last-step-filled (volatile! nil))
+#_(defn- -fill-last-entry!
   []
   (let [app       @global-inspector*
         state-map (app/current-state app)
@@ -109,23 +109,29 @@
         (vreset! last-step-filled version)
         (hist/fetch-history-step! app version)))))
 
-(def fill-last-entry!
+#_(def fill-last-entry!
   "Request the full state for the currently-selected application"
   (debounce -fill-last-entry! 5))
 
 (dres/defmutation send-started [env params]
   {::pc/sym `tapi/send-started}
   (log/info "Send started" params)
+  (fp/transact! @global-inspector* [(network/request-start params)]
+    {:ref [:network-history/id [:x (::app/id params)]]})
   nil)
 
 (dres/defmutation send-finished [env params]
   {::pc/sym `tapi/send-finished}
   (log/info "Send finished" params)
+  (fp/transact! @global-inspector* [(network/request-finish params)]
+    {:ref [:network-history/id [:x (::app/id params)]]})
   nil)
 
 (dres/defmutation send-failed [env params]
   {::pc/sym `tapi/send-failed}
   (log/info "Send failed" params)
+  (fp/transact! @global-inspector* [(network/request-finish params)]
+    {:ref [:network-history/id [:x (::app/id params)]]})
   nil)
 
 (defn new-client-tx [{::app/keys           [id]
@@ -137,7 +143,6 @@
 
 (dres/defmutation optimistic-action [env params]
   {::pc/sym `tapi/optimistic-action}
-  (log/info "Optimistic action" params)
   (new-client-tx params)
   nil)
 
@@ -145,7 +150,6 @@
                                          :history/keys [version value] :as history-step}]
   {::pc/sym `tapi/db-changed}
   (let [app @global-inspector*]
-    (log/info "DB change" history-step)
     (fp/transact! app [(hist/save-history-step history-step)])
     #_(fp/transact! app [(db-explorer/set-current-state step)] {:ref [:db-explorer/id [:x app-uuid]]})
     nil))
