@@ -165,7 +165,7 @@
           (watcher/ui-data-watcher watcher {:history-step history-step
                                             :search       search})))
 
-      (dom/pre
+      #_(dom/pre
         (with-out-str
           (pprint (dissoc (app/current-state this)
                     :fulcro.inspect.ui.multi-inspector/multi-inspector

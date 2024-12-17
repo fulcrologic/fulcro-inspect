@@ -129,7 +129,7 @@
         (tab-item {:title "Network" :page ::page-network})
         (tab-item {:title "EQL" :page ::page-oge})
         ;(tab-item {:title "i18n" :page ::page-i18n})
-        (tab-item {:title "Statecharts" :page ::page-statecharts})
+        #_(tab-item {:title "Statecharts" :page ::page-statecharts})
         (tab-item {:title "Settings" :page ::page-settings})
         (dom/div :.flex)
         #_(dom/div #js {:className (:more css)
@@ -161,7 +161,7 @@
           (oge/oge-view oge)
 
           #_#_::page-i18n (i18n/translations-viewer i18n)
-          ::page-statecharts (ui-statecharts statecharts)
+          ;::page-statecharts (ui-statecharts statecharts)
 
           ::page-settings
           (settings/ui-settings settings)
