@@ -128,9 +128,17 @@
   (log/info "Send failed" params)
   nil)
 
+(defn new-client-tx [{::app/keys           [id]
+                      :as                  txn}]
+  (let [inspector @global-inspector*]
+    (fp/transact! inspector
+      [(fulcro.inspect.ui.transactions/add-tx txn)]
+      {:ref [:fulcro.inspect.ui.transactions/tx-list-id [:x id]]})))
+
 (dres/defmutation optimistic-action [env params]
   {::pc/sym `tapi/optimistic-action}
   (log/info "Optimistic action" params)
+  (new-client-tx params)
   nil)
 
 (dres/defmutation update-client-db [env {::app/keys    [id]
@@ -139,20 +147,8 @@
   (let [app @global-inspector*]
     (log/info "DB change" history-step)
     (fp/transact! app [(hist/save-history-step history-step)])
-    #_(fp/transact! app [(db-explorer/set-current-state step)] {:ref [:db-explorer/id [::app/id app-uuid]]})
+    #_(fp/transact! app [(db-explorer/set-current-state step)] {:ref [:db-explorer/id [:x app-uuid]]})
     nil))
-
-(defn new-client-tx [{:fulcro.inspect.core/keys   [app-uuid]
-                      :fulcro.inspect.client/keys [tx]}]
-  (let [{:fulcro.history/keys [db-before-id
-                               db-after-id]} tx
-        inspector @global-inspector*
-        tx        (assoc tx
-                    :fulcro.history/db-before (hist/history-step inspector app-uuid db-before-id)
-                    :fulcro.history/db-after (hist/history-step inspector app-uuid db-after-id))]
-    (fp/transact! inspector
-      [(fulcro.inspect.ui.transactions/add-tx tx)]
-      {:ref [:fulcro.inspect.ui.transactions/tx-list-id [::app/id app-uuid]]})))
 
 (defn client-connection-id "websocket only" [event] (some-> event (gobj/get "client-id")))
 
@@ -204,7 +200,7 @@
                             (mapv (fn [path]
                                     (fp/get-initial-state data-watcher/WatchPin
                                       {:path     path
-                                       :id app-uuid
+                                       :id       app-uuid
                                        :expanded (storage/get [:data-watcher/watches-expanded app-uuid path] {})
                                        :content  (get-in (:history/value initial-history-step) path)})))))
                         #_(assoc-in [::inspector/element ::element/panel-id] [app-uuid-key app-uuid])
@@ -227,10 +223,10 @@
 
     (fp/transact! inspector
       [(db-explorer/set-current-state initial-history-step)]
-      {:ref [:db-explorer/id [::app/id app-uuid]]})
+      {:ref [:db-explorer/id [:x app-uuid]]})
     (fp/transact! inspector
       [(data-history/set-content initial-history-step)]
-      {:ref [:data-history/id [::app/id app-uuid]]})
+      {:ref [:data-history/id [:x app-uuid]]})
 
     new-inspector))
 

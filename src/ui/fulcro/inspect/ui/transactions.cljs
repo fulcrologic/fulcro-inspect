@@ -6,6 +6,7 @@
     [com.fulcrologic.fulcro-css.localized-dom :as dom]
     [com.fulcrologic.fulcro.algorithms.denormalize :as fdn]
     [com.fulcrologic.fulcro.algorithms.merge :as merge]
+    [com.fulcrologic.fulcro.application :as app]
     [com.fulcrologic.fulcro.components :as fp]
     [com.fulcrologic.fulcro.dom.html-entities :as ent]
     [com.fulcrologic.fulcro.mutations :as mutations :refer-macros [defmutation]]
@@ -13,8 +14,7 @@
     [fulcro.inspect.lib.diff :as diff]
     [fulcro.inspect.lib.history :as hist]
     [fulcro.inspect.ui.core :as ui]
-    [fulcro.inspect.ui.data-viewer :as data-viewer]
-    [taoensso.timbre :as log]))
+    [fulcro.inspect.ui.data-viewer :as data-viewer]))
 
 (def tx-options :com.fulcrologic.fulcro.algorithms.tx-processing/options)
 
@@ -90,8 +90,7 @@
    :ident         [::tx-id ::tx-id]
    :query         [::tx-id
                    :fulcro.history/client-time :fulcro.history/tx
-                   :fulcro.history/db-before :fulcro.history/db-after
-                   :fulcro.history/diff
+                   :fulcro.history/db-before-id :fulcro.history/db-after-id
                    :fulcro.history/network-sends :ident-ref :component
                    :ui/compress-count]
    :css           [[:.tx-data {:font-size "9pt"
@@ -162,7 +161,7 @@
 
 (fp/defsc Transaction
   [this {:keys                [ident-ref component]
-         :fulcro.history/keys [network-sends]
+         :fulcro.history/keys [network-sends db-before-id db-after-id tx client-time]
          :ui/keys             [tx-view sends-view
                                old-state-view new-state-view
                                diff-add-view diff-rem-view]
@@ -172,29 +171,21 @@
          :as                  transaction}]
      (merge {::tx-id (random-uuid)}
        transaction
-       {:ui/tx-view        (-> (fp/get-initial-state data-viewer/DataViewer {:content tx})
+       {:ui/tx-view        (-> (fp/get-initial-state data-viewer/DataViewer nil)
                              (assoc :data-viewer/expanded {[] true}))
-        :ui/sends-view     (fp/get-initial-state data-viewer/DataViewer {:content network-sends})
-        :ui/old-state-view (fp/get-initial-state data-viewer/DataViewer {:content db-before})
-        :ui/new-state-view (fp/get-initial-state data-viewer/DataViewer {:content db-after})
-        :ui/diff-add-view  (fp/get-initial-state data-viewer/DataViewer nil)
-        :ui/diff-rem-view  (fp/get-initial-state data-viewer/DataViewer nil)
+        :ui/sends-view     (fp/get-initial-state data-viewer/DataViewer {:id (random-uuid)})
+        :ui/old-state-view (fp/get-initial-state data-viewer/DataViewer {:id (random-uuid)})
+        :ui/new-state-view (fp/get-initial-state data-viewer/DataViewer {:id (random-uuid)})
+        :ui/diff-add-view  (fp/get-initial-state data-viewer/DataViewer {:id (random-uuid)})
+        :ui/diff-rem-view  (fp/get-initial-state data-viewer/DataViewer {:id (random-uuid)})
         :ui/full-computed? true}))
 
    :pre-merge
    (fn [{:keys [current-normalized data-tree] :as m}]
-     (let [tx            (merge-current m :fulcro.history/tx)
-           network-sends (merge-current m :fulcro.history/network-sends)
-           db-before     (merge-current m :fulcro.history/db-before)
-           db-after      (merge-current m :fulcro.history/db-after)]
+     (let [tx (merge-current m :fulcro.history/tx)]
        (merge {::tx-id (random-uuid)}
          {:ui/tx-view        {::data-viewer/content tx
                               :data-viewer/expanded {[] true}}
-          :ui/sends-view     {::data-viewer/content network-sends}
-          :ui/old-state-view {::data-viewer/content db-before}
-          :ui/new-state-view {::data-viewer/content db-after}
-          :ui/diff-add-view  {::data-viewer/content nil}
-          :ui/diff-rem-view  {::data-viewer/content nil}
           :ui/full-computed? true}
          current-normalized data-tree)))
 
@@ -204,9 +195,11 @@
    :query
    [::tx-id ::timestamp
     :fulcro.history/client-time :fulcro.history/tx
-    :fulcro.history/db-before :fulcro.history/db-after
-    :fulcro.history/diff
-    :fulcro.history/network-sends :ident-ref :component
+    :fulcro.history/db-before-id :fulcro.history/db-after-id
+    :fulcro.history/network-sends
+    :ident-ref
+    :component
+    :com.fulcrologic.fulcro.algorithms.tx-processing/options
     :ui/full-computed?
     {:ui/tx-view (fp/get-query data-viewer/DataViewer)}
     {:ui/sends-view (fp/get-query data-viewer/DataViewer)}
@@ -220,30 +213,27 @@
 
    :css-include
    [data-viewer/DataViewer]}
-  (let [css (css/get-classnames Transaction)]
+  (let [css    (css/get-classnames Transaction)
+        app-id (h/current-app-uuid (app/current-state this))
+        before (hist/history-step this app-id db-before-id)
+        {:history/keys [diff] :as after} (hist/history-step this app-id db-after-id)]
     (dom/div #js {:className (:container css)}
       (ui/info {::ui/title "Ref"}
         (ui/ident {} ident-ref))
 
       (ui/info {::ui/title "Transaction"}
         (dom/pre {:style {:fontSize "10pt"}}
-          (with-out-str (pprint (::data-viewer/content tx-view)))))
+          (with-out-str (pprint [tx]))))
 
       (if (seq network-sends)
-        (ui/info {::ui/title "Sends"}
-          (data-viewer/ui-data-viewer sends-view)))
+        (ui/info {::ui/title "Also sent on remotes:"}
+          (data-viewer/ui-data-viewer sends-view {:raw network-sends})))
 
       (ui/info {::ui/title "Data added/updated"}
-        (if (::data-viewer/content diff-add-view)
-          (data-viewer/ui-data-viewer diff-add-view {:raw? true})
-          (dom/button {:onClick (fn []
-                                  (fp/transact! this [(compute-diff props)]))} "Compute")))
+        (data-viewer/ui-data-viewer diff-add-view {:raw (:fulcro.inspect.lib.diff/updates diff)}))
 
       (ui/info {::ui/title "Data Removed"}
-        (if (::data-viewer/content diff-rem-view)
-          (data-viewer/ui-data-viewer diff-rem-view {:raw? true})
-          (dom/button {:onClick (fn []
-                                  (fp/transact! this [(compute-diff props)]))} "Compute")))
+        (data-viewer/ui-data-viewer diff-rem-view {:raw (:fulcro.inspect.lib.diff/removals diff)}))
 
       (if component
         (ui/info {::ui/title "Component"}
@@ -251,10 +241,10 @@
             (str component))))
 
       (ui/info {::ui/title "State before"}
-        (data-viewer/ui-data-viewer old-state-view {:allow-stale? false}))
+        (data-viewer/ui-data-viewer old-state-view {:history-step before}))
 
       (ui/info {::ui/title "State after"}
-        (data-viewer/ui-data-viewer new-state-view {:allow-stale? false})))))
+        (data-viewer/ui-data-viewer new-state-view {:history-step after})))))
 
 (def transaction (fp/factory Transaction {:keyfn ::tx-id}))
 
