@@ -2,6 +2,41 @@
 
 [![Clojars Project](https://img.shields.io/clojars/v/fulcrologic/fulcro-inspect.svg)](https://clojars.org/fulcrologic/fulcro-inspect)
 
+NEW: Fulcro Inspect has been rebased upon fulcro-devtools-remote.
+
+As of Fulcro version 3.8.0, you must use this as a library to use Fulcro Inspect
+in Chrome or via the 4.x releases of the Electron version.
+
+The setup is relatively easy:
+
+1. Add this library to your dependencies.
+2. Change the preload to one of:
+```
+:devtools   {:preloads [com.fulcrologic.devtools.electron-preload]}
+; OR
+:devtools   {:preloads [com.fulcrologic.devtools.chrome-preload]}
+```
+3. In your startup of your app, explicitly add Inspect as a dev tool:
+```
+(ns myapp.main
+  (:require
+    [com.fulcrologic.devtools.common.target :refer [ido]]
+    [fulcro.inspect.tool :as it]
+    ...))
+
+(defonce app (fulcro-app))
+(ido (it/add-fulcro-inspect! app))
+```
+
+The `ido` macro elides its body in release builds, and otherwise works just like `do`. Closure dead code elimination should remove all other traces of inspect from your release builds (aside from perhaps a few kb of stray bits).
+
+
+# FIXME
+
+The rest of this README needs updated....coming soon.
+
+
+
 Inspect Fulcro applications
 
 ## Usage for Fulcro 3.x with Chrome
