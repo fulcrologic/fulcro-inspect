@@ -1,6 +1,7 @@
 (ns fulcro.inspect.common
   (:require
     [cljs.core.async :refer [<! go put!]]
+    [com.fulcrologic.devtools.common.built-in-mutations :as bi]
     [com.fulcrologic.devtools.common.message-keys :as mk]
     [com.fulcrologic.fulcro-css.css-injection :as cssi]
     [com.fulcrologic.fulcro-css.localized-dom :as dom]
@@ -77,16 +78,14 @@
 (defn dispose-app [{::app/keys [id] :as params}]
   (let [app           @global-inspector*
         state         (app/current-state app)
-        inspector-ref [::inspector/id id]]
-
-    (if (= (get-in @state [::multi-inspector/multi-inspector "main" ::multi-inspector/current-app])
+        inspector-ref [::inspector/id [:x id]]]
+    (if (= (get-in state [::multi-inspector/multi-inspector "main" ::multi-inspector/current-app])
           inspector-ref)
       (reset! last-disposed-app* id)
       (reset! last-disposed-app* nil))
 
     (fp/transact! app [(hist/clear-history params)])
-    (fp/transact! app [(multi-inspector/remove-inspector params)]
-      {:ref [::multi-inspector/multi-inspector "main"]})))
+    (fp/transact! app [(multi-inspector/remove-inspector params)])))
 
 (defn reset-inspector []
   (-> @global-inspector* ::app/state-atom (reset! (fnorm/tree->db GlobalRoot (fp/get-initial-state GlobalRoot {}) true))))
@@ -99,19 +98,25 @@
 
 #_(defonce last-step-filled (volatile! nil))
 #_(defn- -fill-last-entry!
-  []
-  (let [app       @global-inspector*
-        state-map (app/current-state app)
-        app-uuid  (h/current-app-uuid state-map)
-        version   (hist/latest-state-version app app-uuid)]
-    (when (not= @last-step-filled version)
-      (do
-        (vreset! last-step-filled version)
-        (hist/fetch-history-step! app version)))))
+    []
+    (let [app       @global-inspector*
+          state-map (app/current-state app)
+          app-uuid  (h/current-app-uuid state-map)
+          version   (hist/latest-state-version app app-uuid)]
+      (when (not= @last-step-filled version)
+        (do
+          (vreset! last-step-filled version)
+          (hist/fetch-history-step! app version)))))
 
 #_(def fill-last-entry!
-  "Request the full state for the currently-selected application"
-  (debounce -fill-last-entry! 5))
+    "Request the full state for the currently-selected application"
+    (debounce -fill-last-entry! 5))
+
+(dres/defmutation connect-mutation [env {:keys [connected? target-id] :as params}]
+  {::pc/sym `bi/devtool-connected}
+  (log/info "Connection changed" params)
+  (when (and target-id (not connected?))
+    (dispose-app {::app/id target-id})))
 
 (dres/defmutation send-started [env params]
   {::pc/sym `tapi/send-started}
@@ -134,8 +139,8 @@
     {:ref [:network-history/id [:x (::app/id params)]]})
   nil)
 
-(defn new-client-tx [{::app/keys           [id]
-                      :as                  txn}]
+(defn new-client-tx [{::app/keys [id]
+                      :as        txn}]
   (let [inspector @global-inspector*]
     (fp/transact! inspector
       [(fulcro.inspect.ui.transactions/add-tx txn)]

@@ -72,10 +72,9 @@
   [app-ish app-uuid version]
   (get-in (app/current-state app-ish) (history-step-ident app-uuid version)))
 
-;; FIXME
 (fm/defmutation clear-history [{::app/keys [id]}]
   (action [{:keys [state]}]
-    (swap! state (fn [s] (enc/remove-keys (fn [[app-uuid _]] (= app-uuid id)) s)))))
+    (swap! state update :history/id (fn [s] (enc/remove-keys (fn [[app-uuid _]] (= app-uuid id)) s)))))
 
 (defn closest-populated-history-step
   "Find a history step that has a populated value, "

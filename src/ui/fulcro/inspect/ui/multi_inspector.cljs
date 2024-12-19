@@ -4,6 +4,7 @@
     [com.fulcrologic.fulcro-css.css-injection :refer [style-element]]
     [com.fulcrologic.fulcro-css.localized-dom :as dom]
     [com.fulcrologic.fulcro.algorithms.merge :as merge]
+    [com.fulcrologic.fulcro.algorithms.normalized-state :as fns]
     [com.fulcrologic.fulcro.application :as app]
     [com.fulcrologic.fulcro.components :as fp]
     [com.fulcrologic.fulcro.dom.events :as evt]
@@ -24,18 +25,19 @@
         (swap! state update-in ref assoc ::current-app inspector-ref)))))
 
 (m/defmutation remove-inspector [{::app/keys [id]}]
-  (action [{:keys [state ref] :as env}]
-    (let [inspector-ref [::inspector/id id]]
-      (swap! state db.h/deep-remove-ref inspector-ref)
-      (db.h/swap-entity! env update ::inspectors
-        (fn [x] (filterv #(not= inspector-ref %) x)))
+  (action [{:keys [state] :as env}]
+    (let [inspector-ref [::inspector/id [:x id]]
+          ref           [::multi-inspector "main"]]
+      (swap! state fns/remove-entity inspector-ref #{::inspector/app-state
+                                                     ::inspector/db-explorer
+                                                     :history/id
+                                                     ::inspector/network})
 
-      (when (= (get-in @state (conj ref ::current-app))
-              inspector-ref)
-        (db.h/swap-entity! env assoc ::current-app
+      #_(when-not (get-in @state (conj ref ::current-app))
+        (swap! state assoc-in (conj ref ::current-app)
           (first (get-in @state (conj ref ::inspectors))))))))
 
-(m/defmutation set-app [{::app/keys [id]}]
+(m/defmutation set-app [{::inspector/keys [id]}]
   (action [env]
     (let [{:keys [ref state]} env]
       (swap! state update-in ref assoc ::current-app [::inspector/id id]))))
@@ -105,8 +107,9 @@
         (dom/select {:value    (pr-str (::inspector/id current-app))
                      :onChange #(fp/transact! this [(set-app {::inspector/id (read-string (evt/target-value %))})])}
           (for [{::inspector/keys [id name]} (sort-by (comp str ::inspector/name) inspectors)]
-            (dom/option {:key   id
-                         :value (pr-str id)}
-              (str name))))))))
+            (when id
+              (dom/option {:key   id
+                           :value (pr-str id)}
+                (str name)))))))))
 
 (def multi-inspector (fp/factory MultiInspector {:keyfn ::multi-inspector}))
