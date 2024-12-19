@@ -7,11 +7,10 @@
     [com.fulcrologic.fulcro.components :as comp]
     [com.fulcrologic.fulcro.networking.mock-server-remote :as mock-net]
     [com.fulcrologic.statecharts.integration.fulcro :as scf]
-    [fulcro.inspect.common :as common :refer [GlobalRoot app-uuid-key global-inspector* websockets?]]
+    [fulcro.inspect.common :as common :refer [GlobalRoot global-inspector* websockets?]]
     [fulcro.inspect.lib.history :as hist]
     [fulcro.inspect.lib.local-storage :as storage]
     [fulcro.inspect.ui-parser :as ui-parser]
-    [fulcro.inspect.api.tool-impl] ; ensure that API implementation is loaded
     [taoensso.timbre :as log]))
 
 (defn ?handle-local-message [responses* type data]
