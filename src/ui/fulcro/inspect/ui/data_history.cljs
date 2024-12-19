@@ -64,7 +64,7 @@
   (action [{:keys [state ref] :as env}]
     (when version
       (let [{:data-history/keys [history]} (get-in @state ref)
-            history-to-keep (vec (take-while (fn [[_ [_ v]]] (<= v version)) history))
+            history-to-keep (vec (take-while (fn [[_ [_ v]]] (<= v version)) (log/spy :info history)))
             end-index       (dec (count history-to-keep))]
         (db.h/swap-entity! env
           (fn [e]
@@ -170,7 +170,6 @@
           (pprint (dissoc (app/current-state this)
                     :fulcro.inspect.ui.multi-inspector/multi-inspector
                     :db-explorer/id
-                    :data-history/id
                     :data-watcher/id
                     :data-viewer/id
                     :fulcro.inspect.ui.transactions/tx-list-id

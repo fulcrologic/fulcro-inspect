@@ -15,7 +15,7 @@
 
    This function is a noop if Fulcro Inspect is disabled by compiler flags"
   [app]
-  (ilet [id (app-uuid app)
+  (ilet [id     (app-uuid app)
          state* (state-atom app)]
     (when-not (contains? apps* id)
       (let [c     (volatile! nil)
@@ -23,8 +23,7 @@
                                 :tool-type       :fulcro/inspect
                                 :async-processor (fn [EQL]
                                                    (res/process-async-request {:fulcro/app         app
-                                                                               :devtool/connection @c} EQL))
-                                :description     (str (or id (:com.fulcrologic.fulcro.application/label app)))})]
+                                                                               :devtool/connection @c} EQL))})]
         (log/info "Inspect initializing app" id)
         (vreset! c tconn)
         (swap! apps* assoc id app)

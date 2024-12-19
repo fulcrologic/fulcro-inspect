@@ -134,15 +134,12 @@
         value      (cond
                      value value
                      (and base-value based-on diff) (diff/patch base-value diff))
-        step       (if value (-> step
-                               ;                 (dissoc :history/diff :history/based-on)
-                               (assoc :history/value value)) step)]
+        step       (if value (assoc step :history/value value) step)]
     (-> state-map
       (prune-history*)
       (merge/merge-component HistoryStep step
         :append [:data-history/id [:x id] :data-history/history])
-      (auto-advance-history* id)
-      )))
+      (auto-advance-history* id))))
 
 (fm/defmutation save-history-step
   "Mutation: Save a history step."

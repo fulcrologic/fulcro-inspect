@@ -200,9 +200,10 @@
 (defn start-app [{app-uuid                    ::app/id
                   :fulcro.inspect.client/keys [initial-history-step remotes]}]
   (let [inspector     @global-inspector*
+        app-name      (get-in initial-history-step [:history/value :fulcro.inspect.core/app-id] (str app-uuid))
         new-inspector (-> (fp/get-initial-state inspector/Inspector {:id      app-uuid
                                                                      :remotes remotes})
-                        (assoc ::inspector/name (dedupe-name app-uuid)) ; TODO
+                        (assoc ::inspector/name (dedupe-name app-name)) ; TODO
                         (assoc-in [::inspector/settings :ui/hide-websocket?] true)
                         (assoc-in [::inspector/app-state :data-history/watcher :data-watcher/watches]
                           (->> (storage/get [:data-watcher/watches app-uuid] [])
@@ -229,13 +230,6 @@
       (fp/transact! inspector
         [(multi-inspector/set-app {::inspector/id app-uuid})]
         {:ref [::multi-inspector/multi-inspector "main"]}))
-
-    (fp/transact! inspector
-      [(db-explorer/set-current-state initial-history-step)]
-      {:ref [:db-explorer/id [:x app-uuid]]})
-    (fp/transact! inspector
-      [(data-history/set-content initial-history-step)]
-      {:ref [:data-history/id [:x app-uuid]]})
 
     new-inspector))
 
