@@ -1,12 +1,11 @@
 (ns fulcro.inspect.tool
   (:require
-    [com.fulcrologic.fulcro.inspect.inspect-client
-     :refer [app-uuid db-changed! ilet record-history-entry! remotes state-atom]]
-    [com.fulcrologic.fulcro.inspect.tools :as tools]
-    [com.fulcrologic.devtools.common.target :as ct]
     [com.fulcrologic.devtools.common.resolvers :as res]
-    [com.fulcrologic.fulcro.inspect.target-impl :refer [handle-inspect-event apps*]]
-    [taoensso.timbre :as log]))
+    [com.fulcrologic.devtools.common.target :as ct]
+    [com.fulcrologic.fulcro.inspect.inspect-client
+     :refer [app-uuid db-changed! ilet record-history-entry! state-atom]]
+    [com.fulcrologic.fulcro.inspect.target-impl :refer [apps* handle-inspect-event]]
+    [com.fulcrologic.fulcro.inspect.tools :as tools]))
 
 (defonce tool-connections (atom {}))
 
@@ -15,7 +14,7 @@
 
    This function is a noop if Fulcro Inspect is disabled by compiler flags"
   [app]
-  (ilet [id     (app-uuid app)
+  (ilet [id (app-uuid app)
          state* (state-atom app)]
     (when-not (contains? apps* id)
       (let [c     (volatile! nil)
@@ -24,7 +23,6 @@
                                 :async-processor (fn [EQL]
                                                    (res/process-async-request {:fulcro/app         app
                                                                                :devtool/connection @c} EQL))})]
-        (log/info "Inspect initializing app" id)
         (vreset! c tconn)
         (swap! apps* assoc id app)
         (swap! tool-connections assoc id tconn)

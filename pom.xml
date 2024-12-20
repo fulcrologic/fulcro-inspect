@@ -5,7 +5,7 @@
     <packaging>jar</packaging>
     <groupId>com.fulcrologic</groupId>
     <artifactId>fulcro-inspect</artifactId>
-    <version>0.2.0-SNAPSHOT</version>
+    <version>1.0.0-SNAPSHOT</version>
     <name>fulcro-inspect</name>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -62,73 +62,16 @@
             <version>1.11.4</version>
         </dependency>
         <dependency>
-            <groupId>com.wsscode</groupId>
-            <artifactId>pathom</artifactId>
-            <version>2.4.0</version>
-        </dependency>
-        <dependency>
-            <groupId>edn-query-language</groupId>
-            <artifactId>eql</artifactId>
-            <version>1.0.2</version>
-        </dependency>
-        <dependency>
-            <groupId>com.fulcrologic</groupId>
-            <artifactId>fulcro-i18n</artifactId>
-            <version>1.1.2</version>
-        </dependency>
-        <dependency>
-            <groupId>gnl</groupId>
-            <artifactId>ghostwheel</artifactId>
-            <version>0.3.8</version>
-        </dependency>
-        <dependency>
-            <groupId>com.cognitect</groupId>
-            <artifactId>transit-cljs</artifactId>
-            <version>0.8.280</version>
-        </dependency>
-        <dependency>
-            <groupId>thheller</groupId>
-            <artifactId>shadow-cljs</artifactId>
-            <scope>compile</scope>
-            <version>2.28.19</version>
-        </dependency>
-        <dependency>
             <groupId>org.clojure</groupId>
             <artifactId>clojurescript</artifactId>
             <scope>provided</scope>
             <version>1.11.132</version>
         </dependency>
         <dependency>
-            <groupId>spec-coerce</groupId>
-            <artifactId>spec-coerce</artifactId>
-            <version>1.0.0-alpha5</version>
-        </dependency>
-        <dependency>
-            <groupId>fulcrologic</groupId>
-            <artifactId>fulcro-spec</artifactId>
-            <version>3.1.12</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>com.fulcrologic</groupId>
             <artifactId>fulcro</artifactId>
             <scope>provided</scope>
-            <version>3.7.11-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>com.taoensso</groupId>
-            <artifactId>sente</artifactId>
-            <version>1.19.2</version>
-        </dependency>
-        <dependency>
-            <groupId>binaryage</groupId>
-            <artifactId>devtools</artifactId>
-            <version>1.0.6</version>
-        </dependency>
-        <dependency>
-            <groupId>devcards</groupId>
-            <artifactId>devcards</artifactId>
-            <version>0.2.4</version>
+            <version>3.7.10</version>
         </dependency>
         <dependency>
             <groupId>com.taoensso</groupId>
@@ -138,27 +81,7 @@
         <dependency>
             <groupId>com.fulcrologic</groupId>
             <artifactId>fulcro-devtools-remote</artifactId>
-            <version>0.2.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>com.fulcrologic</groupId>
-            <artifactId>fulcro-garden-css</artifactId>
-            <version>3.0.9</version>
-        </dependency>
-        <dependency>
-            <groupId>com.google.javascript</groupId>
-            <artifactId>closure-compiler-unshaded</artifactId>
-            <version>v20240317</version>
-        </dependency>
-        <dependency>
-            <groupId>com.fulcrologic</groupId>
-            <artifactId>statecharts</artifactId>
-            <version>1.2.8-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.clojure</groupId>
-            <artifactId>core.async</artifactId>
-            <version>1.6.681</version>
+            <version>0.2.0</version>
         </dependency>
     </dependencies>
     <repositories>
