@@ -1,6 +1,6 @@
 # fulcro-inspect
 
-[![Clojars Project](https://img.shields.io/clojars/v/fulcrologic/fulcro-inspect.svg)](https://clojars.org/fulcrologic/fulcro-inspect)
+[![Clojars Project](https://img.shields.io/clojars/v/com.fulcrologic/fulcro-inspect.svg)](https://clojars.org/com.fulcrologic/fulcro-inspect)
 
 NEW: Fulcro Inspect has been rebased upon fulcro-devtools-remote.
 
@@ -9,7 +9,7 @@ in Chrome or via the 4.x releases of the Electron version.
 
 The setup is relatively easy:
 
-1. Add this library to your dependencies.
+1. Add this library to your dev-time dependencies.
 2. Change the preload to one of:
 ```
 :devtools   {:preloads [com.fulcrologic.devtools.electron-preload]}
