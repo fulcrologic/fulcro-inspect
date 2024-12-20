@@ -3,18 +3,15 @@
     [clojure.edn :as edn]
     [com.fulcrologic.fulcro-css.localized-dom :as dom]
     [com.fulcrologic.fulcro.algorithms.merge :as merge]
-    [com.fulcrologic.fulcro.algorithms.normalized-state :as fns]
-    [com.fulcrologic.fulcro.application :as app]
     [com.fulcrologic.fulcro.components :as comp :refer [defsc]]
+    [com.fulcrologic.fulcro.data-fetch :as df]
     [com.fulcrologic.fulcro.dom.events :as evt]
     [com.fulcrologic.fulcro.mutations :as m]
     [com.fulcrologic.fulcro.mutations :refer [defmutation]]
-    [com.fulcrologic.fulcro.data-fetch :as df]
-    [com.fulcrologic.statecharts.visualization.visualizer :as viz]
+    ;[com.fulcrologic.statecharts.visualization.visualizer :as viz]
     [com.fulcrologic.statecharts :as sc]
     [fulcro.inspect.helpers :as db.h]
-    [fulcro.inspect.ui.core :as ui]
-    [taoensso.timbre :as log]))
+    [fulcro.inspect.ui.core :as ui]))
 
 (declare Statecharts)
 
@@ -39,17 +36,17 @@
 
 (defn get-available-sessions [this]
   (let [app-id (db.h/comp-app-uuid this)]
-    (merge/merge-component! this viz/Visualizer {} :replace (conj (comp/get-ident this) :ui/viz))
+    #_(merge/merge-component! this viz/Visualizer {} :replace (conj (comp/get-ident this) :ui/viz))
     (df/load this :statecharts Statecharts
       {:params {:fulcro.inspect.core/app-uuid app-id
                 :target                       (comp/get-ident this)}})))
 
 (defsc Statecharts [this {:statechart/keys [available-sessions
                                             definitions]
-                          :ui/keys         [current-session viz] :as props}]
+                          :ui/keys         [current-session] :as props}]
   {:ident             ::id
    :query             [::id
-                       {:ui/viz (comp/get-query viz/Visualizer)}
+                       #_{:ui/viz (comp/get-query viz/Visualizer)}
                        {:ui/current-session (comp/get-query StatechartSession)}
                        {:statechart/available-sessions (comp/get-query StatechartSession)}
                        {:statechart/definitions (comp/get-query StatechartDefinition)}]
@@ -72,8 +69,8 @@
                            :key   (pr-str session-id)}
                 (str statechart-src "@" session-id)))
             available-sessions)))
-      (when (and viz current-session)
-        (viz/ui-visualizer viz {:chart (some-> current-session :com.fulcrologic.statecharts/statechart :statechart/chart)
-                                :current-configuration (:com.fulcrologic.statecharts/configuration current-session)})))))
+      #_(when (and viz current-session)
+          (viz/ui-visualizer viz {:chart                 (some-> current-session :com.fulcrologic.statecharts/statechart :statechart/chart)
+                                  :current-configuration (:com.fulcrologic.statecharts/configuration current-session)})))))
 
 (def ui-statecharts (comp/factory Statecharts))
