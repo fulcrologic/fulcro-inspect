@@ -387,7 +387,7 @@
                  :onChange    #(fm/set-string! this :ui/search-query :event %)
                  :onKeyDown   #(when (evt/enter-key? %)
                                  (search-for! this search-query version
-                                   [(.-shiftKey %) search-type]))
+                                   [(.-shiftKey ^js %) search-type]))
                  :classes     [:$flex]
                  :style       {:paddingRight "20px"}})
       (ui/toolbar-action {:onClick  #(pop-history! this)

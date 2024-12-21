@@ -13,14 +13,13 @@
           :chrome-content-script {:target           :browser
                                   :output-dir       "shells/chrome/js/content-script"
                                   :asset-path       "js/content-script"
-                                  :compiler-options {:closure-output-charset "US-ASCII" }
+                                  :compiler-options {:closure-output-charset "US-ASCII"}
                                   :modules          {:main {:entries [com.fulcrologic.devtools.chrome.content-script]}}}
           :chrome-devtool        {:target           :esm
                                   :runtime          :custom
                                   :output-dir       "shells/chrome/js/devtool"
                                   :asset-path       "js/devtool"
                                   :compiler-options {;:closure-output-charset "US-ASCII"
-                                                     :optimizations :simple
                                                      :source-map true}
                                   :dev              {:compiler-options {:external-config {:guardrails {:throw?                 false
                                                                                                        :guardrails/compact?    true
@@ -29,11 +28,11 @@
                                   ;:devtools         {:preloads [com.fulcrologic.fulcro.inspect.websocket-preload]}
                                   :modules          {:main {:entries [fulcro.inspect.chrome.devtool.main]}}}
 
-          :electron-main         {:target           :npm-module
-                                  :runtime          :node
-                                  :entries          [com.fulcrologic.devtools.electron.api.preload
-                                                     fulcro.inspect.electron.background.main]
-                                  :output-dir       "shells/electron/app/js"}
+          :electron-main         {:target     :npm-module
+                                  :runtime    :node
+                                  :entries    [com.fulcrologic.devtools.electron.api.preload
+                                               fulcro.inspect.electron.background.main]
+                                  :output-dir "shells/electron/app/js"}
 
           :electron-renderer     {:target     :browser
                                   :modules    {:app {:init-fn fulcro.inspect.electron.renderer.main/start}}

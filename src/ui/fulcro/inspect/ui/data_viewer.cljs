@@ -373,7 +373,7 @@
                     :elide-one?  elide-one?
                     :toggle      #(do
                                     (fp/transact! this [(toggle {:data-viewer/path %2
-                                                                 ::propagate?      (or (.-altKey %) (.-metaKey %))})])
+                                                                 ::propagate?      (or (.-altKey ^js %) (.-metaKey ^js %))})])
                                     (if on-expand-change
                                       (on-expand-change %2
                                         (-> this (app/current-state)
