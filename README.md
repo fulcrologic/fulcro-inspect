@@ -4,7 +4,7 @@
 
 NEW: Fulcro Inspect has been rebased upon fulcro-devtools-remote.
 
-As of Fulcro version 3.8.0, you must use this as a library to use Fulcro Inspect
+As of Fulcro version 3.8.0-alpha2, you must use this as a library to use Fulcro Inspect
 in Chrome or via the 4.x releases of the Electron version.
 
 The setup is relatively easy:
