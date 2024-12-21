@@ -4,5 +4,6 @@
 
 (remote-mutations
   reset-app
+  restart-websockets
   run-transaction
   run-network-request)

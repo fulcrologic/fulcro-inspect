@@ -1,26 +1,28 @@
 (ns fulcro.inspect.ui.inspector
-  (:require [com.fulcrologic.fulcro-css.localized-dom :as dom]
-            [com.fulcrologic.fulcro.mutations :as mutations]
-            [com.fulcrologic.fulcro.components :as comp]
-            [fulcro.inspect.ui.core :as ui]
-            [fulcro.inspect.ui.data-history :as data-history]
-            [fulcro.inspect.ui.data-viewer :as data-viewer]
-            [fulcro.inspect.ui.db-explorer :as db-explorer]
-            [fulcro.inspect.ui.data-watcher :as data-watcher]
-            [fulcro.inspect.ui.element :as element]
-            [fulcro.inspect.ui.i18n :as i18n]
-            [fulcro.inspect.ui.multi-oge :as oge]
-            [fulcro.inspect.ui.network :as network]
-            [fulcro.inspect.ui.settings :as settings]
-            [fulcro.inspect.ui.statecharts :refer [Statecharts ui-statecharts]]
-            [fulcro.inspect.ui.transactions :as transactions]))
+  (:require
+    [clojure.pprint :refer [pprint]]
+    [com.fulcrologic.fulcro-css.localized-dom :as dom]
+    [com.fulcrologic.fulcro.application :as app]
+    [com.fulcrologic.fulcro.components :as comp]
+    [com.fulcrologic.fulcro.mutations :as mutations]
+    [fulcro.inspect.ui.core :as ui]
+    [fulcro.inspect.ui.data-history :as data-history]
+    [fulcro.inspect.ui.db-explorer :as db-explorer]
+    [fulcro.inspect.ui.element :as element]
+    [fulcro.inspect.ui.i18n :as i18n]
+    [fulcro.inspect.ui.multi-oge :as oge]
+    [fulcro.inspect.ui.network :as network]
+    [fulcro.inspect.ui.settings :as settings]
+    [fulcro.inspect.ui.statecharts :refer [Statecharts ui-statecharts]]
+    [fulcro.inspect.ui.transactions :as transactions]))
 
 (comp/defsc Inspector
   [this
    {::keys   [app-state tab client-connection-id
               db-explorer #_element network transactions
               #_i18n oge statecharts settings]
-    :ui/keys [more-open?]} _ css]
+    :ui/keys [more-open?]
+    :as      props} _ css]
   {:initial-state
    (fn [{:keys [id] :as params}]
      {::id                   [:x id]

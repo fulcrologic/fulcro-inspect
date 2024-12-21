@@ -32,22 +32,6 @@
                         :data    data
                         ::msg-id msg-id})))))))
 
-(defresolver 'statecharts
-  {::pc/output [{:statecharts [:fulcro.inspect.ui.statecharts/id
-                               {:statechart/available-sessions [:statechart/session-id
-                                                                :statechart/history
-                                                                :statechart/configuration
-                                                                {:statechart/definition [:statechart/registry-key
-                                                                                         :statechart/chart]}]}
-                               {:statechart/definitions [:statechart/registry-key
-                                                         :statechart/chart]}]}]}
-  (fn [{:keys [query] :as env} _]
-    (go-catch
-      (let [{:keys [target] :as params} (log/spy :info (-> env :ast :params))
-            response (async/<! (client-request env :fulcro.inspect.client/statechart-sessions
-                                 (assoc params :query query)))]
-        {:statecharts (assoc response (first target) (second target))}))))
-
 (defresolver 'settings
   {::pc/output [:fulcro.inspect/settings]}
   (fn [{:keys [query] :as env} _]
@@ -57,7 +41,7 @@
                                  (assoc params :query query)))]
         {:fulcro.inspect/settings response}))))
 
-(defresolver 'oge
+#_(defresolver 'oge
   {::pc/output [:>/oge ::pp/profile]}
   (fn [{:keys [query] :as env} _]
     (log/info "Running oge query")
@@ -70,66 +54,6 @@
             response' (dissoc response ::pp/profile)]
         {::pp/profile (::pp/profile response)
          :>/oge       response'}))))
-
-(defresolver 'run-mutation
-  {::pc/output [:oge/mutation-result]}
-  (fn [env _]
-    (async/go
-      (let [params    (-> env :ast :params)
-            response  (async/<! (client-request env :fulcro.inspect.client/network-request params))
-            response' (dissoc response ::pp/profile)]
-        {:oge/mutation-result response'}))))
-
-(defresolver 'oge-index
-  {::pc/output [::pc/indexes]}
-  (fn [{:keys [query] :as env} _]
-    (let [params (-> env :ast :params)]
-      (async/go
-        (let [response (async/<! (client-request env :fulcro.inspect.client/network-request
-                                   (-> (select-keys params [:fulcro.inspect.core/app-uuid
-                                                            :fulcro.inspect.client/remote])
-                                     (assoc :query [{::pc/indexes query}]))))]
-          response)))))
-
-(defmutation 'reset-app
-  {}
-  (fn [{:keys [send-message]} input]
-    (send-message :fulcro.inspect.client/reset-app-state input)))
-
-(defmutation 'transact
-  {}
-  (fn [{:keys [send-message]} input]
-    (send-message :fulcro.inspect.client/transact input)))
-
-(defmutation 'pick-element
-  {}
-  (fn [{:keys [send-message]} input]
-    (send-message :fulcro.inspect.client/pick-element input)))
-
-(defmutation 'fetch-history-step
-  {}
-  (fn [{:keys [send-message]} input]
-    (send-message :fulcro.inspect.client/fetch-history-step input)))
-
-(defmutation 'save-settings
-  {}
-  (fn [{:keys [send-message]} input]
-    (send-message :fulcro.inspect.client/save-settings input)))
-
-(defmutation 'show-dom-preview
-  {}
-  (fn [{:keys [send-message]} input]
-    (send-message :fulcro.inspect.client/show-dom-preview input)))
-
-(defmutation 'hide-dom-preview
-  {}
-  (fn [{:keys [send-message]} input]
-    (send-message :fulcro.inspect.client/hide-dom-preview input)))
-
-(defmutation 'console-log
-  {::pc/params [:log :log-js :warn :error]}
-  (fn [{:keys [send-message]} input]
-    (send-message :fulcro.inspect.client/console-log input)))
 
 (defn ident-passthrough [{:keys [ast] :as env}]
   (if (p/ident? (:key ast))

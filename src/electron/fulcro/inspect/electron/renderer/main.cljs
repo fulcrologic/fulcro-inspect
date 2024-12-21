@@ -1,6 +1,7 @@
 (ns fulcro.inspect.electron.renderer.main
   (:require
     [cljs.core.async :refer [<! go put!]]
+    [com.fulcrologic.devtools.devtool-io :as dio]
     [com.fulcrologic.devtools.electron.devtool :as edt]
     [com.fulcrologic.fulcro-css.css :as css]
     [com.fulcrologic.fulcro.algorithms.tx-processing :as txn]
@@ -8,8 +9,8 @@
     [com.fulcrologic.fulcro.components :as fp]
     [com.fulcrologic.statecharts.integration.fulcro :as scf]
     [edn-query-language.core :as eql]
+    [fulcro.inspect.api.target-api :as tapi]
     [fulcro.inspect.common :as common :refer [global-inspector*]]
-    [fulcro.inspect.lib.history :as hist]
     [fulcro.inspect.ui-parser :as ui-parser]
     [fulcro.inspect.ui.multi-inspector :as multi-inspector]
     [taoensso.timbre :as log]))
@@ -47,15 +48,14 @@
                                                         (fn [cls extra-props]
                                                           (merge extra-props (css/get-classnames cls))))
 
-
                                     :shared
-                                    {::hist/db-hash-index               (atom {})
-                                     :fulcro.inspect.renderer/electron? true}
+                                    {:fulcro.inspect.renderer/electron? true}
 
                                     :remotes          {:remote
                                                        (make-network (ui-parser/parser) responses*)}})]
     (reset! global-inspector* app)
     (edt/add-devtool-remote! app)
+    (dio/transact! app (random-uuid) [(tapi/restart-websockets {})])
     (scf/install-fulcro-statecharts! app)
     (app/mount! app common/GlobalRoot "app")))
 

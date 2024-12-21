@@ -1,11 +1,13 @@
 (ns fulcro.inspect.lib.history
   (:require
+    [com.fulcrologic.devtools.devtool-io :as dio]
     [com.fulcrologic.devtools.devtool-io :as devt]
     [com.fulcrologic.fulcro.algorithms.merge :as merge]
     [com.fulcrologic.fulcro.algorithms.normalized-state :as fns]
-    [com.fulcrologic.fulcro.mutations :as fm]
     [com.fulcrologic.fulcro.application :as app]
+    [com.fulcrologic.fulcro.components :as fp]
     [com.fulcrologic.fulcro.components :as comp]
+    [com.fulcrologic.fulcro.mutations :as fm]
     [fulcro.inspect.helpers :as h]
     [fulcro.inspect.lib.diff :as diff]
     [taoensso.encore :as enc]
@@ -127,22 +129,38 @@
                     current-index)]
     (assoc-in state-map (conj ident :data-history/current-index) new-index)))
 
+(defonce loaded (volatile! #{}))
+
 (defn save-history-step* [state-map step]
   (let [{::app/keys    [id]
          :history/keys [based-on diff value]} step
         base-value (:history/value (get-in state-map [:history/id [id based-on]]))
         value      (cond
-                     value value
+                     (seq value) value
                      (and base-value based-on diff) (diff/patch base-value diff))
         step       (if value (assoc step :history/value value) step)]
+    (vreset! loaded #{})
     (-> state-map
       (prune-history*)
       (merge/merge-component HistoryStep step
         :append [:data-history/id [:x id] :data-history/history])
       (auto-advance-history* id))))
 
+(fm/defmutation patch-missing-history [{::app/keys [id]}]
+  (action [{:keys [app state]}]
+    (let [history (get @state :history/id)
+          ids     (filter #(= id (first %)) (keys history))]
+      (doseq [history-id ids]
+        (when-not (contains? @loaded history-id)
+          (let [entry (get-in @state [:history/id history-id])]
+            (when (empty? (:history/value entry))
+              (log/trace "Loading missing history step" (second history-id))
+              (vswap! loaded conj history-id)
+              (dio/load! app id [:history/id history-id] HistoryStep))))))))
+
 (fm/defmutation save-history-step
   "Mutation: Save a history step."
   [step]
   (action [{:keys [app state]}]
-    (swap! state save-history-step* step)))
+    (swap! state save-history-step* step)
+    (fp/transact! app [(patch-missing-history (select-keys step [::app/id]))])))

@@ -5,10 +5,9 @@
     [com.fulcrologic.devtools.common.message-keys :as mk]
     [com.fulcrologic.devtools.devtool-io :as dio]
     [com.fulcrologic.fulcro-css.localized-dom :as dom]
-    [com.fulcrologic.fulcro.application :as app]
-    [cljs.core.async :as async]
-    [com.fulcrologic.fulcro.components :as comp]
     [com.fulcrologic.fulcro.algorithms.tx-processing :as txn]
+    [com.fulcrologic.fulcro.application :as app]
+    [com.fulcrologic.fulcro.components :as comp]
     [com.fulcrologic.fulcro.components :as fp]
     [com.fulcrologic.fulcro.data-fetch :as fetch]
     [com.fulcrologic.fulcro.mutations :as mutations]
@@ -23,8 +22,8 @@
     [fulcro.inspect.api.target-api :as target]
     [fulcro.inspect.helpers :as db.h]
     [fulcro.inspect.ui.core :as cui]
-    [taoensso.timbre :as log]
-    [fulcro.inspect.ui.helpers :as h]))
+    [fulcro.inspect.ui.helpers :as h]
+    [taoensso.timbre :as log]))
 
 (mutations/defmutation clear-errors [_]
   (action [{:keys [state]}]
@@ -59,13 +58,16 @@
 
 (declare Oge)
 
+(comp/defsc Indexes [_ _] {:query [::pc/idents ::pc/index-io ::pc/autocomplete-ignore]})
+
 (defn update-index [this]
   (let [{:oge/keys [remote]} (fp/props this)
-        ident (fp/get-ident this)]
-    (fetch/load-field this ::pc/indexes {:marker  (keyword "oge-index" (p/ident-value* ident))
-                                         :refresh #{:ui/editor}
-                                         :params  {:fulcro.inspect.core/app-uuid (db.h/ref-app-uuid ident)
-                                                   :fulcro.inspect.client/remote remote}})))
+        ident (fp/get-ident this)
+        app-id (db.h/ref-app-uuid ident)]
+    (dio/load! this app-id
+      :pathom/indexes Indexes {:params {mk/target-id app-id
+                                     :remote remote}
+                            :target (conj ident ::pc/indexes)})))
 
 (fp/defsc Oge
   [this
