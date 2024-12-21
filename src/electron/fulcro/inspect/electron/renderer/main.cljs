@@ -8,7 +8,7 @@
     [com.fulcrologic.fulcro.components :as fp]
     [com.fulcrologic.statecharts.integration.fulcro :as scf]
     [edn-query-language.core :as eql]
-    [fulcro.inspect.common :as common :refer [global-inspector* last-disposed-app*]]
+    [fulcro.inspect.common :as common :refer [global-inspector*]]
     [fulcro.inspect.lib.history :as hist]
     [fulcro.inspect.ui-parser :as ui-parser]
     [fulcro.inspect.ui.multi-inspector :as multi-inspector]

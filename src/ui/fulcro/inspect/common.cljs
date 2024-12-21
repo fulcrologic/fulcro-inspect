@@ -3,6 +3,7 @@
     [cljs.core.async :refer [<! go put!]]
     [com.fulcrologic.devtools.common.built-in-mutations :as bi]
     [com.fulcrologic.devtools.common.message-keys :as mk]
+    [com.fulcrologic.devtools.common.resolvers :as dres]
     [com.fulcrologic.fulcro-css.css-injection :as cssi]
     [com.fulcrologic.fulcro-css.localized-dom :as dom]
     [com.fulcrologic.fulcro-i18n.i18n :as fulcro-i18n]
@@ -11,14 +12,15 @@
     [com.fulcrologic.fulcro.application :as app]
     [com.fulcrologic.fulcro.components :as fp]
     [com.fulcrologic.fulcro.data-fetch :as df]
-    [com.fulcrologic.fulcro.inspect.devtool-api :as tapi]
     [com.fulcrologic.fulcro.mutations :as fm]
+    [com.wsscode.pathom.connect :as pc]
     [fulcro.inspect.helpers :as h]
     [fulcro.inspect.lib.diff :as diff]
     [fulcro.inspect.lib.history :as hist]
     [fulcro.inspect.lib.local-storage :as storage]
     [fulcro.inspect.lib.version :as version]
     [fulcro.inspect.remote.transit :as encode]
+    [fulcro.inspect.target-api-impl]
     [fulcro.inspect.ui-parser :as ui-parser]
     [fulcro.inspect.ui.data-history :as data-history]
     [fulcro.inspect.ui.data-watcher :as data-watcher]
@@ -31,15 +33,12 @@
     [fulcro.inspect.ui.network :as network]
     [fulcro.inspect.ui.statecharts :as statecharts]
     [fulcro.inspect.ui.transactions :as transactions]
-    [com.fulcrologic.devtools.common.resolvers :as dres]
-    [com.wsscode.pathom.connect :as pc]
     [goog.functions :refer [debounce]]
     [goog.object :as gobj]
     [taoensso.timbre :as log]))
 
 (defonce websockets? (volatile! false))
 (defonce global-inspector* (atom nil))
-(defonce last-disposed-app* (atom nil))
 
 (fp/defsc GlobalRoot [this {:keys [ui/root]}]
   {:initial-state (fn [params] {:ui/root
@@ -75,18 +74,6 @@
         (recur (inc-id new-name))
         new-name))))
 
-(defn dispose-app [{::app/keys [id] :as params}]
-  (let [app           @global-inspector*
-        state         (app/current-state app)
-        inspector-ref [::inspector/id [:x id]]]
-    (if (= (get-in state [::multi-inspector/multi-inspector "main" ::multi-inspector/current-app])
-          inspector-ref)
-      (reset! last-disposed-app* id)
-      (reset! last-disposed-app* nil))
-
-    (fp/transact! app [(hist/clear-history params)])
-    (fp/transact! app [(multi-inspector/remove-inspector params)])))
-
 (defn reset-inspector []
   (-> @global-inspector* ::app/state-atom (reset! (fnorm/tree->db GlobalRoot (fp/get-initial-state GlobalRoot {}) true))))
 
@@ -111,53 +98,6 @@
 #_(def fill-last-entry!
     "Request the full state for the currently-selected application"
     (debounce -fill-last-entry! 5))
-
-(dres/defmutation connect-mutation [env {:keys [connected? target-id] :as params}]
-  {::pc/sym `bi/devtool-connected}
-  (log/info "Connection changed" params)
-  (when (and target-id (not connected?))
-    (dispose-app {::app/id target-id})))
-
-(dres/defmutation send-started [env params]
-  {::pc/sym `tapi/send-started}
-  (log/info "Send started" params)
-  (fp/transact! @global-inspector* [(network/request-start params)]
-    {:ref [:network-history/id [:x (::app/id params)]]})
-  nil)
-
-(dres/defmutation send-finished [env params]
-  {::pc/sym `tapi/send-finished}
-  (log/info "Send finished" params)
-  (fp/transact! @global-inspector* [(network/request-finish params)]
-    {:ref [:network-history/id [:x (::app/id params)]]})
-  nil)
-
-(dres/defmutation send-failed [env params]
-  {::pc/sym `tapi/send-failed}
-  (log/info "Send failed" params)
-  (fp/transact! @global-inspector* [(network/request-finish params)]
-    {:ref [:network-history/id [:x (::app/id params)]]})
-  nil)
-
-(defn new-client-tx [{::app/keys [id]
-                      :as        txn}]
-  (let [inspector @global-inspector*]
-    (fp/transact! inspector
-      [(fulcro.inspect.ui.transactions/add-tx txn)]
-      {:ref [:fulcro.inspect.ui.transactions/tx-list-id [:x id]]})))
-
-(dres/defmutation optimistic-action [env params]
-  {::pc/sym `tapi/optimistic-action}
-  (new-client-tx params)
-  nil)
-
-(dres/defmutation update-client-db [env {::app/keys    [id]
-                                         :history/keys [version value] :as history-step}]
-  {::pc/sym `tapi/db-changed}
-  (let [app @global-inspector*]
-    (fp/transact! app [(hist/save-history-step history-step)])
-    #_(fp/transact! app [(db-explorer/set-current-state step)] {:ref [:db-explorer/id [:x app-uuid]]})
-    nil))
 
 (defn client-connection-id "websocket only" [event] (some-> event (gobj/get "client-id")))
 
@@ -197,10 +137,9 @@
     (put! res-chan (::ui-parser/msg-response data))
     (log/error "Failed to respond locally to message:" type "with data:" data)))
 
-(defn start-app [{app-uuid                    ::app/id
-                  :fulcro.inspect.client/keys [initial-history-step remotes]}]
-  (let [inspector     @global-inspector*
-        app-name      (get-in initial-history-step [:history/value :fulcro.inspect.core/app-id] (str app-uuid))
+(defn start-app* [inspector {app-uuid                    ::app/id
+                             :fulcro.inspect.client/keys [initial-history-step remotes]}]
+  (let [app-name      (get-in initial-history-step [:history/value :fulcro.inspect.core/app-id] (str app-uuid))
         new-inspector (-> (fp/get-initial-state inspector/Inspector {:id      app-uuid
                                                                      :remotes remotes})
                         (assoc ::inspector/name (dedupe-name app-name)) ; TODO
@@ -224,17 +163,8 @@
     (fp/transact! inspector [(multi-inspector/add-inspector new-inspector)]
       {:ref [::multi-inspector/multi-inspector "main"]})
     (fp/transact! inspector [(hist/save-history-step initial-history-step)])
-
-    (when (= app-uuid @last-disposed-app*)
-      (reset! last-disposed-app* nil)
-      (fp/transact! inspector
-        [(multi-inspector/set-app {::inspector/id app-uuid})]
-        {:ref [::multi-inspector/multi-inspector "main"]}))
-
     new-inspector))
 
-(dres/defmutation app-started [env params]
-  {::pc/sym `tapi/app-started}
-  (log/info "App started: " params)
-  (start-app params)
-  nil)
+(fm/defmutation start-app [params]
+  (action [{:keys [app]}]
+    (start-app* app params)))

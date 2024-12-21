@@ -20,6 +20,7 @@
                                   :output-dir       "shells/chrome/js/devtool"
                                   :asset-path       "js/devtool"
                                   :compiler-options {;:closure-output-charset "US-ASCII"
+                                                     :optimizations :simple
                                                      :source-map true}
                                   :dev              {:compiler-options {:external-config {:guardrails {:throw?                 false
                                                                                                        :guardrails/compact?    true

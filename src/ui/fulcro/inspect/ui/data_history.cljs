@@ -1,6 +1,5 @@
 (ns fulcro.inspect.ui.data-history
   (:require
-    [taoensso.timbre :as log]
     [cljs.pprint :refer [pprint]]
     [com.fulcrologic.devtools.devtool-io :as dio]
     [com.fulcrologic.fulcro-css.localized-dom :as dom]
@@ -9,14 +8,14 @@
     [com.fulcrologic.fulcro.components :as comp]
     [com.fulcrologic.fulcro.dom.events :as evt]
     [com.fulcrologic.fulcro.mutations :as m]
-    [fulcro.inspect.helpers :as db.h]
     [fulcro.inspect.api.target-api :as target]
+    [fulcro.inspect.helpers :as db.h]
     [fulcro.inspect.lib.history :as hist]
     [fulcro.inspect.ui.core :as ui]
     [fulcro.inspect.ui.data-viewer :as data-viewer]
     [fulcro.inspect.ui.data-watcher :as watcher]
-    [fulcro.inspect.ui.events :as events]
-    [garden.selectors :as gs]))
+    [garden.selectors :as gs]
+    [taoensso.timbre :as log]))
 
 (def ^:dynamic *max-history* 80)
 
@@ -122,7 +121,8 @@
                           :textAlign "center"}}
           (dom/input {:type     "range"
                       :style    {:width "100%"}
-                      :min      "0" :max (dec (count history))
+                      :min      "0"
+                      :max      (dec (count history))
                       :value    (str current-index)
                       :onChange #(comp/transact! this [(fetch-and-show-history {:ui/render?                 render-history?
                                                                                 :data-history/current-index (js/parseInt (evt/target-value %))})])})
@@ -166,17 +166,17 @@
                                             :search       search})))
 
       #_(dom/pre
-        (with-out-str
-          (pprint (dissoc (app/current-state this)
-                    :fulcro.inspect.ui.multi-inspector/multi-inspector
-                    :db-explorer/id
-                    :data-watcher/id
-                    :data-viewer/id
-                    :fulcro.inspect.ui.transactions/tx-list-id
-                    :fulcro.inspect.ui.multi-oge/id
-                    :fulcro.inspect.ui.transactions/tx-id
-                    :fulcro.inspect.ui.inspector/id
-                    :oge/id
-                    :history/id)))))))
+          (with-out-str
+            (pprint (dissoc (app/current-state this)
+                      :fulcro.inspect.ui.multi-inspector/multi-inspector
+                      :db-explorer/id
+                      :data-watcher/id
+                      :data-viewer/id
+                      :fulcro.inspect.ui.transactions/tx-list-id
+                      :fulcro.inspect.ui.multi-oge/id
+                      :fulcro.inspect.ui.transactions/tx-id
+                      :fulcro.inspect.ui.inspector/id
+                      :oge/id
+                      :history/id)))))))
 
 (def data-history (comp/factory DataHistory))

@@ -122,7 +122,7 @@
   (let [ident     [:data-history/id [:x app-id]]
         {:data-history/keys [history current-index]} (get-in state-map ident)
         nsteps    (count history)
-        new-index (if (or (>= current-index nsteps) (= (- nsteps 2) current-index))
+        new-index (if (or (nil? current-index) (>= current-index nsteps) (= (- nsteps 2) current-index))
                     (dec nsteps)
                     current-index)]
     (assoc-in state-map (conj ident :data-history/current-index) new-index)))

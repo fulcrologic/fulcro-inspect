@@ -13,29 +13,58 @@
     [fulcro.inspect.helpers :as db.h]
     [fulcro.inspect.ui.core :as ui]
     [fulcro.inspect.ui.inspector :as inspector]
-    [fulcro.inspect.ui.settings :as settings]))
+    [fulcro.inspect.ui.settings :as settings]
+    [taoensso.timbre :as log]))
+
+(def multi-inspector-ident [::multi-inspector "main"])
 
 (m/defmutation add-inspector [inspector]
   (action [env]
     (let [{:keys [ref state]} env
           inspector-ref (fp/ident inspector/Inspector inspector)
           current       (get-in @state (conj ref ::current-app))]
-      (swap! state merge/merge-component inspector/Inspector inspector :append (conj ref ::inspectors))
+      (log/debug "Adding inspector for" inspector-ref)
+      (swap! state merge/merge-component inspector/Inspector inspector
+        :append (conj ref ::inspectors))
       (if (nil? current)
         (swap! state update-in ref assoc ::current-app inspector-ref)))))
 
+(defn remove-inspector* [state-map target-id]
+  (log/debug "Removing inspector for" target-id)
+  (let [inspector-ref [::inspector/id [:x target-id]]]
+    (fns/remove-entity state-map inspector-ref #{::inspector/app-state
+                                                 ::inspector/db-explorer
+                                                 :history/id
+                                                 ::inspector/network})))
+
+(m/defmutation remove-all-inspectors [_]
+  (action [{:keys [app state]}]
+    (log/debug "removing all inspectors and history")
+    (let [ids (mapv second (get @state ::inspector/id))]
+      (swap! state (fn [sm]
+                     (as-> sm $
+                       (reduce remove-inspector* $ ids)
+                       (assoc-in $ [::multi-inspector "main" ::inspectors] [])
+                       (assoc-in $ [::multi-inspector "main" ::current-app] nil)
+                       (dissoc $ :history/id :data-watcher/id
+                         :data-history/id :db-explorer/id)))))))
+
+(defn ensure-app-selected* [state-map]
+  (let [{::keys [current-app inspectors]} (get-in state-map multi-inspector-ident)
+        valid? (and current-app (contains? (set inspectors) current-app))]
+    (cond-> state-map
+      (not valid?) (assoc-in (conj multi-inspector-ident ::current-app) (first inspectors)))))
+
 (m/defmutation remove-inspector [{::app/keys [id]}]
   (action [{:keys [state] :as env}]
-    (let [inspector-ref [::inspector/id [:x id]]
-          ref           [::multi-inspector "main"]]
-      (swap! state fns/remove-entity inspector-ref #{::inspector/app-state
-                                                     ::inspector/db-explorer
-                                                     :history/id
-                                                     ::inspector/network})
+    (swap! state (fn [sm]
+                   (-> sm
+                     (remove-inspector* id)
+                     (ensure-app-selected*))))
 
-      #_(when-not (get-in @state (conj ref ::current-app))
+    #_(when-not (get-in @state (conj ref ::current-app))
         (swap! state assoc-in (conj ref ::current-app)
-          (first (get-in @state (conj ref ::inspectors))))))))
+          (first (get-in @state (conj ref ::inspectors)))))))
 
 (m/defmutation set-app [{::inspector/keys [id]}]
   (action [env]
@@ -103,7 +132,7 @@
                 "Show Settings"))))))
     (if (> (count inspectors) 1)
       (dom/div :.selector
-        (dom/div :.label "App")
+        (dom/div :.label "Select Application to Inspect")
         (dom/select {:value    (pr-str (::inspector/id current-app))
                      :onChange #(fp/transact! this [(set-app {::inspector/id (read-string (evt/target-value %))})])}
           (for [{::inspector/keys [id name]} (sort-by (comp str ::inspector/name) inspectors)]
