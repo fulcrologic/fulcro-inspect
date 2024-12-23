@@ -2,11 +2,9 @@
   (:require
     [com.fulcrologic.fulcro-css.css :as css]
     [com.fulcrologic.fulcro.algorithms.normalized-state :as fns]
-    [com.fulcrologic.fulcro.application :as app]
     [com.fulcrologic.fulcro.components :as fp]
     [com.fulcrologic.fulcro.dom :as dom]
     [com.fulcrologic.fulcro.mutations :as mutations :refer-macros [defmutation]]
-    [taoensso.timbre :as log]
     [fulcro.inspect.helpers :as db.h]
     [fulcro.inspect.lib.local-storage :as storage]
     [fulcro.inspect.ui.core :as ui]
@@ -23,7 +21,7 @@
         :prepend :data-watcher/watches)
       (storage/update! [:data-watcher/watches app-id] #(into [path] %)))))
 
-(defmutation remove-data-watch [{:keys [index]
+(defmutation remove-data-watch [{:keys           [index]
                                  :watch-pin/keys [path id]}]
   (action [{:keys [ref state] :as env}]
     (let [app-uuid (db.h/ref-app-id @state ref)]

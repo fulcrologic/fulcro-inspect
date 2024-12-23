@@ -10,8 +10,7 @@
     [fulcro.inspect.ui.core :as ui]
     [fulcro.inspect.ui.data-viewer :as data-viewer]
     [fulcro.inspect.ui.transactions :as transactions]
-    [garden.selectors :as gs]
-    [taoensso.timbre :as log]))
+    [garden.selectors :as gs]))
 
 (declare Request)
 

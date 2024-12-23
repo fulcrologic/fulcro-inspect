@@ -1,11 +1,11 @@
 (ns fulcro.inspect.ui.index-explorer
   (:require
     [cljs.reader :refer [read-string]]
-    [com.fulcrologic.fulcro.components :as fp]
     [com.fulcrologic.fulcro-css.localized-dom :as dom]
+    [com.fulcrologic.fulcro.components :as fp]
     [com.fulcrologic.fulcro.data-fetch :as df]
-    [fulcro.inspect.helpers :as db.h]
     [com.fulcrologic.fulcro.mutations :as fm]
+    [fulcro.inspect.helpers :as db.h]
     [fulcro.inspect.ui.core :as cui]))
 
 (defn explorer->remote [{::iex/keys [id]}]

@@ -1,13 +1,13 @@
 (ns fulcro.inspect.ui.i18n
-  (:require [com.fulcrologic.fulcro.mutations :as mutations :refer [defmutation]]
-            [cljs.reader :refer [read-string]]
-            [com.fulcrologic.fulcro-css.css :as css]
-            [com.fulcrologic.fulcro-i18n.i18n :as i18n]
-            [fulcro.inspect.ui.core :as ui]
-            [fulcro.inspect.helpers :as h]
-            [com.fulcrologic.fulcro-css.localized-dom :as dom]
-            [com.fulcrologic.fulcro.components :as fp]
-            [fulcro.inspect.helpers :as db.h]))
+  (:require
+    [cljs.reader :refer [read-string]]
+    [com.fulcrologic.fulcro-css.localized-dom :as dom]
+    [com.fulcrologic.fulcro-i18n.i18n :as i18n]
+    [com.fulcrologic.fulcro.components :as fp]
+    [com.fulcrologic.fulcro.mutations :refer [defmutation]]
+    [fulcro.inspect.helpers]
+    [fulcro.inspect.helpers :as db.h]
+    [fulcro.inspect.ui.core :as ui]))
 
 (declare TranslationsViewer)
 
@@ -16,7 +16,7 @@
     (db.h/swap-entity! env assoc ::current-locale locale))
   (remote [env]
     (-> (db.h/remote-mutation env 'transact)
-        (update :params assoc :tx `[(i18n/change-locale {:locale ~locale})]))))
+      (update :params assoc :tx `[(i18n/change-locale {:locale ~locale})]))))
 
 (fp/defsc TranslationsViewer [this {::keys [locales current-locale]}]
   {:initial-state (fn [params] (merge {::id (random-uuid)} params))

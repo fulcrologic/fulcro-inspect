@@ -1,20 +1,17 @@
 (ns fulcro.inspect.ui.data-viewer
-  (:require [clojure.string :as str]
-            [com.fulcrologic.fulcro-css.localized-dom :as dom]
-            [com.fulcrologic.fulcro.algorithms.tempid :as tempid]
-            [com.fulcrologic.fulcro.application :as app]
-            [com.fulcrologic.fulcro.dom.events :as evt]
-            [taoensso.timbre :as log]
-            [com.fulcrologic.fulcro.components :as fp]
-            [com.fulcrologic.fulcro.data-fetch :as df]
-            [com.fulcrologic.fulcro.mutations :as mutations]
-            [fulcro.inspect.helpers :as h]
-            [fulcro.inspect.helpers.clipboard :as clip]
-            [fulcro.inspect.lib.history :as hist]
-            [fulcro.inspect.ui.core :as ui]
-            [fulcro.inspect.ui.effects :as effects]
-            [fulcro.inspect.ui.events :as events]
-            [goog.object :as gobj]))
+  (:require
+    [clojure.string :as str]
+    [com.fulcrologic.fulcro-css.localized-dom :as dom]
+    [com.fulcrologic.fulcro.algorithms.tempid :as tempid]
+    [com.fulcrologic.fulcro.application :as app]
+    [com.fulcrologic.fulcro.components :as fp]
+    [com.fulcrologic.fulcro.mutations :as mutations]
+    [fulcro.inspect.helpers.clipboard :as clip]
+    [fulcro.inspect.lib.history :as hist]
+    [fulcro.inspect.ui.core :as ui]
+    [fulcro.inspect.ui.effects :as effects]
+    [fulcro.inspect.ui.events :as events]
+    [goog.object :as gobj]))
 
 (declare DataViewer)
 

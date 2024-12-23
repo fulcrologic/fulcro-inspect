@@ -1,7 +1,7 @@
 (ns com.wsscode.oge.ui.helpers
-  (:require [clojure.string :as str]
-            [goog.object :as gobj]
-            [cljs.spec.alpha :as s]))
+  (:require [cljs.spec.alpha :as s]
+            [clojure.string :as str]
+            [goog.object :as gobj]))
 
 (defn js-get-in [x path]
   (gobj/getValueByKeys x (clj->js path)))

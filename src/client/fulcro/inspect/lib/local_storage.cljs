@@ -1,7 +1,7 @@
 (ns fulcro.inspect.lib.local-storage
   (:refer-clojure :exclude [get set!])
   (:require [cljs.reader :refer [read-string]]
-            [fulcro.inspect.remote.transit :as transit]
+            [com.fulcrologic.fulcro.inspect.transit :as transit]
             [taoensso.timbre :as log]))
 
 (defn read-transit [s]

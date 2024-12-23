@@ -13,8 +13,7 @@
     [fulcro.inspect.lib.history :as hist]
     [fulcro.inspect.ui.core :as ui]
     [fulcro.inspect.ui.data-watcher :as dw]
-    [taoensso.encore :as enc]
-    [taoensso.timbre :as log]))
+    [taoensso.encore :as enc]))
 
 (defn re-pattern-insensitive [pattern]
   (re-pattern (str "(?i)" pattern)))

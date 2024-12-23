@@ -1,8 +1,6 @@
 (ns fulcro.inspect.ui.inspector
   (:require
-    [clojure.pprint :refer [pprint]]
     [com.fulcrologic.fulcro-css.localized-dom :as dom]
-    [com.fulcrologic.fulcro.application :as app]
     [com.fulcrologic.fulcro.components :as comp]
     [com.fulcrologic.fulcro.mutations :as mutations]
     [fulcro.inspect.ui.core :as ui]

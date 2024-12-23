@@ -2,9 +2,9 @@
   (:require
     [com.fulcrologic.fulcro-css.localized-dom :as dom]
     [com.fulcrologic.fulcro.components :as fp :refer [defsc]]
+    [com.fulcrologic.fulcro.data-fetch :as df]
     [com.fulcrologic.fulcro.dom.events :as evt]
     [com.fulcrologic.fulcro.mutations :refer [defmutation]]
-    [com.fulcrologic.fulcro.data-fetch :as df]
     [fulcro.inspect.ui.core :as ui]))
 
 (defmutation update-settings [params]

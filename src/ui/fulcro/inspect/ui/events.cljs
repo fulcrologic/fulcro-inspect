@@ -1,9 +1,10 @@
 (ns fulcro.inspect.ui.events
-  (:require [cljs.spec.alpha :as s]
-            [clojure.string :as str]
-            [goog.object :as gobj]
-            [com.fulcrologic.fulcro.dom :as dom]
-            [com.fulcrologic.fulcro.components :as fp]))
+  (:require
+    [cljs.spec.alpha :as s]
+    [clojure.string :as str]
+    [com.fulcrologic.fulcro.components :as fp]
+    [com.fulcrologic.fulcro.dom :as dom]
+    [goog.object :as gobj]))
 
 (def KEYS
   {"backspace" 8

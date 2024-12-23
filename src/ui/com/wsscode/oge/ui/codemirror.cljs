@@ -1,6 +1,5 @@
 (ns com.wsscode.oge.ui.codemirror
   (:require
-    [taoensso.timbre :as log]
     [cljs.reader :refer [read-string]]
     [cljs.spec.alpha :as s]
     [cljsjs.codemirror]

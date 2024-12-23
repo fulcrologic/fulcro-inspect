@@ -15,6 +15,7 @@
     [fulcro.inspect.ui.multi-inspector :as multi-inspector]
     [taoensso.timbre :as log]))
 
+;; TODO: Re-constitute saving/loading settings, esp websocket port
 (defn handle-local-message [{:keys [responses*]} event]
   (when-let [{:keys [type data]} (common/event-data event)]
     (case type
@@ -58,12 +59,6 @@
     (dio/transact! app (random-uuid) [(tapi/restart-websockets {})])
     (scf/install-fulcro-statecharts! app)
     (app/mount! app common/GlobalRoot "app")))
-
-(defn global-inspector
-  ([] @global-inspector*)
-  ([options]
-   (start-global-inspector options)
-   @global-inspector*))
 
 (defn start []
   (if @global-inspector*

@@ -43,7 +43,7 @@
                       :responses*   responses*}
                      edn))))}))
 
-(defn start-global-inspector [options]
+(defn start-global-inspector []
   (let [port*      (atom nil)
         responses* (atom {})
         app        (app/fulcro-app
@@ -62,9 +62,8 @@
     app))
 
 (defn global-inspector
-  ([] @global-inspector*)
-  ([options]
-   (or @global-inspector*
-     (reset! global-inspector* (start-global-inspector options)))))
+  []
+  (or @global-inspector*
+    (reset! global-inspector* (start-global-inspector))))
 
-(global-inspector {})
+(global-inspector)

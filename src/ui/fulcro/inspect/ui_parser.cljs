@@ -1,14 +1,10 @@
 (ns fulcro.inspect.ui-parser
-  (:require [cljs.core.async :as async]
-            [cljs.spec.alpha :as s]
-            [com.wsscode.common.async-cljs :refer [<? go-catch]]
-            [com.wsscode.pathom.connect :as pc]
-            [com.wsscode.pathom.core :as p]
-            [com.wsscode.pathom.profile :as pp]
-            [taoensso.timbre :as log]))
-
-;; LANDMARK: This is the general code that abstract communication between the Fulcro UI and whatever environment it
-;; happens to be embedded within (Chrome browser plugin or Electron app)
+  (:require
+    [cljs.core.async :as async]
+    [cljs.spec.alpha :as s]
+    [com.wsscode.common.async-cljs :refer [<? go-catch]]
+    [com.wsscode.pathom.connect :as pc]
+    [com.wsscode.pathom.core :as p]))
 
 (s/def ::msg-id uuid?)
 
@@ -40,20 +36,6 @@
             response (async/<! (client-request env :fulcro.inspect.client/load-settings
                                  (assoc params :query query)))]
         {:fulcro.inspect/settings response}))))
-
-#_(defresolver 'oge
-  {::pc/output [:>/oge ::pp/profile]}
-  (fn [{:keys [query] :as env} _]
-    (log/info "Running oge query")
-    (async/go
-      (let [params    (-> env :ast :params)
-            response  (async/<! (client-request env :fulcro.inspect.client/network-request
-                                  (-> (select-keys params [:fulcro.inspect.core/app-uuid
-                                                           :fulcro.inspect.client/remote])
-                                    (assoc :query query))))
-            response' (dissoc response ::pp/profile)]
-        {::pp/profile (::pp/profile response)
-         :>/oge       response'}))))
 
 (defn ident-passthrough [{:keys [ast] :as env}]
   (if (p/ident? (:key ast))
