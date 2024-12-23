@@ -4,7 +4,7 @@
     <packaging>jar</packaging>
     <groupId>com.fulcrologic</groupId>
     <artifactId>fulcro-inspect</artifactId>
-    <version>1.0.2-SNAPSHOT</version>
+    <version>1.0.2</version>
     <name>fulcro-inspect</name>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -21,7 +21,7 @@
         <url>https://github.com/fulcrologic/fulcro-inspect</url>
         <connection>scm:git:git://github.com/fulcrologic/fulcro-inspect.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/fulcrologic/fulcro-inspect.git</developerConnection>
-      <tag>HEAD</tag>
+      <tag>fulcro-inspect-1.0.2</tag>
   </scm>
     <distributionManagement>
         <repository>
