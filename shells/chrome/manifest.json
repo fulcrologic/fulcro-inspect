@@ -3,9 +3,6 @@
  "devtools_page":"devtools.html",
  "permissions":[
     "activeTab",
-    "scripting",
-    "storage",
-    "contextMenus",
     "tabs"
  ],
  "host_permissions": [
