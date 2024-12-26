@@ -11,7 +11,7 @@
     [com.fulcrologic.fulcro.mutations :as fm]
     [fulcro.inspect.lib.history :as hist]
     [fulcro.inspect.lib.local-storage :as storage]
-    [fulcro.inspect.target-api-impl]
+    [fulcro.inspect.devtool-api-impl]
     [fulcro.inspect.ui-parser :as ui-parser]
     [fulcro.inspect.ui.data-watcher :as data-watcher]
     [fulcro.inspect.ui.element :as element]

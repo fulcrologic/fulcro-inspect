@@ -9,7 +9,7 @@
                                   :output-dir "shells/chrome/js/extension"
                                   :asset-path "js/extension"
                                   :runtime    :custom
-                                  :modules    {:service-worker {:init-fn com.fulcrologic.devtools.chrome.background-worker/init}}}
+                                  :modules    {:service-worker {:entries [com.fulcrologic.devtools.chrome.background-worker]}}}
           :chrome-content-script {:target           :browser
                                   :output-dir       "shells/chrome/js/content-script"
                                   :asset-path       "js/content-script"

@@ -7,7 +7,7 @@
            org.clojure/clojure                    {:mvn/version "1.11.4"}
            org.clojure/clojurescript              {:mvn/version "1.11.132"}
            org.clojure/core.async                 {:mvn/version "1.6.681"}
-           com.fulcrologic/fulcro-devtools-remote {:mvn/version "0.2.4"}
+           com.fulcrologic/fulcro-devtools-remote {:mvn/version "0.2.5"}
            com.cognitect/transit-cljs             {:mvn/version "0.8.280"}}
  :aliases {:tool {:extra-paths ["src/client" "src/ui" "src/chrome" "src/electron" "resources"]
                   :extra-deps  {com.wsscode/pathom                {:mvn/version "2.4.0"}
