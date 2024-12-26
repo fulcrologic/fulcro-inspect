@@ -66,3 +66,6 @@
     (start-global-inspector {})))
 
 (start)
+
+(defn refresh []
+  (app/mount! @global-inspector* common/GlobalRoot "app"))

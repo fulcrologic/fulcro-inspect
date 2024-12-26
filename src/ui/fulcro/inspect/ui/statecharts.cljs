@@ -1,15 +1,18 @@
 (ns fulcro.inspect.ui.statecharts
   (:require
     [clojure.edn :as edn]
+    [com.fulcrologic.devtools.common.resolvers :as dres]
+    [com.fulcrologic.devtools.devtool-io :as dio]
     [com.fulcrologic.fulcro-css.localized-dom :as dom]
     [com.fulcrologic.fulcro.algorithms.merge :as merge]
     [com.fulcrologic.fulcro.components :as comp :refer [defsc]]
-    [com.fulcrologic.fulcro.data-fetch :as df]
     [com.fulcrologic.fulcro.dom.events :as evt]
     [com.fulcrologic.fulcro.mutations :as m]
     [com.fulcrologic.fulcro.mutations :refer [defmutation]]
-    ;[com.fulcrologic.statecharts.visualization.visualizer :as viz]
     [com.fulcrologic.statecharts :as sc]
+    [com.fulcrologic.statecharts.integration.fulcro-impl :refer [statechart-event]]
+    [com.fulcrologic.statecharts.visualization.visualizer :as viz]
+    [com.wsscode.pathom.connect :as pc]
     [fulcro.inspect.helpers :as db.h]
     [fulcro.inspect.ui.core :as ui]))
 
@@ -36,17 +39,25 @@
 
 (defn get-available-sessions [this]
   (let [app-id (db.h/comp-app-uuid this)]
-    #_(merge/merge-component! this viz/Visualizer {} :replace (conj (comp/get-ident this) :ui/viz))
-    (df/load this :statecharts Statecharts
-      {:params {:fulcro.inspect.core/app-uuid app-id
-                :target                       (comp/get-ident this)}})))
+    (merge/merge-component! this viz/Visualizer {} :replace (conj (comp/get-ident this) :ui/viz))
+    (dio/load! this app-id (comp/get-ident this) Statecharts
+      {:params {:com.fulcrologic.fulcro.application/id app-id}})))
+
+(dres/defmutation statechart-event-mutation [{:fulcro/keys [app]} params]
+  {::pc/sym `statechart-event}
+  (comp/transact! app [(update-session params)])
+  nil)
 
 (defsc Statecharts [this {:statechart/keys [available-sessions
                                             definitions]
-                          :ui/keys         [current-session] :as props}]
+                          :ui/keys         [current-session viz] :as props}]
   {:ident             ::id
+   :initial-state     (fn [{:keys [id]}]
+                        {::id                [:x id]
+                         :ui/current-session nil
+                         :ui/viz             (comp/get-initial-state viz/Visualizer)})
    :query             [::id
-                       #_{:ui/viz (comp/get-query viz/Visualizer)}
+                       {:ui/viz (comp/get-query viz/Visualizer)}
                        {:ui/current-session (comp/get-query StatechartSession)}
                        {:statechart/available-sessions (comp/get-query StatechartSession)}
                        {:statechart/definitions (comp/get-query StatechartDefinition)}]
@@ -60,6 +71,11 @@
         (dom/select {:name     "session-id"
                      :id       "session-id"
                      :value    (pr-str (:com.fulcrologic.statecharts/session-id current-session))
+                     :onClick  (fn [evt]
+                                 (let [app-id (db.h/comp-app-uuid this)]
+                                   (dio/load! this app-id :statechart/available-sessions StatechartSession
+                                     {:params {:com.fulcrologic.fulcro.application/id app-id}
+                                      :target (conj (comp/get-ident this) :statechart/available-sessions)})))
                      :onChange (fn [evt]
                                  (when-let [v (some-> (evt/target-value evt) (edn/read-string))]
                                    (m/set-value! this :ui/current-session [:com.fulcrologic.statecharts/session-id v])))}
@@ -69,8 +85,8 @@
                            :key   (pr-str session-id)}
                 (str statechart-src "@" session-id)))
             available-sessions)))
-      #_(when (and viz current-session)
-          (viz/ui-visualizer viz {:chart                 (some-> current-session :com.fulcrologic.statecharts/statechart :statechart/chart)
-                                  :current-configuration (:com.fulcrologic.statecharts/configuration current-session)})))))
+      (when (and viz current-session)
+        (viz/ui-visualizer viz {:chart                 (some-> current-session :com.fulcrologic.statecharts/statechart :statechart/chart)
+                                :current-configuration (:com.fulcrologic.statecharts/configuration current-session)})))))
 
 (def ui-statecharts (comp/factory Statecharts))

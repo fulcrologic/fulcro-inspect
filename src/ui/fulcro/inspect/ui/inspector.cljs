@@ -36,7 +36,7 @@
       ::network              (comp/get-initial-state network/NetworkHistory params)
       ::oge                  (comp/get-initial-state oge/OgeView params)
       ::transactions         (comp/get-initial-state transactions/TransactionList params)
-      ;::statecharts          (comp/get-initial-state Statecharts [])
+      ::statecharts          (comp/get-initial-state Statecharts params)
       ::settings             (comp/get-initial-state settings/Settings {})
       :ui/more-open?         false})
 
@@ -129,7 +129,7 @@
         (tab-item {:title "Network" :page ::page-network})
         (tab-item {:title "EQL" :page ::page-oge})
         ;(tab-item {:title "i18n" :page ::page-i18n})
-        #_(tab-item {:title "Statecharts" :page ::page-statecharts})
+        (tab-item {:title "Statecharts" :page ::page-statecharts})
         (tab-item {:title "Settings" :page ::page-settings})
         (dom/div :.flex)
         #_(dom/div #js {:className (:more css)
@@ -161,7 +161,7 @@
           (oge/oge-view oge)
 
           #_#_::page-i18n (i18n/translations-viewer i18n)
-          ;::page-statecharts (ui-statecharts statecharts)
+          ::page-statecharts (ui-statecharts statecharts)
 
           ::page-settings
           (settings/ui-settings settings)
