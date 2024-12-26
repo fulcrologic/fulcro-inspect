@@ -36,4 +36,4 @@
    "matches":["<all_urls>"],
    "run_at":"document_idle"}],
  "manifest_version":3,
- "version":"4.0.5"}
+ "version":"4.0.6"}
