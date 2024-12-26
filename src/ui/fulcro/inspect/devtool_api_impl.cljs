@@ -9,7 +9,8 @@
     [fulcro.inspect.lib.history :as hist]
     [fulcro.inspect.ui.inspector :as inspector]
     [fulcro.inspect.ui.multi-inspector :as multi-inspector]
-    [fulcro.inspect.ui.network :as network]))
+    [fulcro.inspect.ui.network :as network]
+    [taoensso.timbre :as log]))
 
 (dres/defmutation app-started [{:fulcro/keys [app]} params]
   {::pc/sym `dapi/app-started}
@@ -63,6 +64,8 @@
 
 (dres/defmutation focus-target [{:fulcro/keys [app]} {::app/keys [id]}]
   {::pc/sym `dapi/focus-target}
+  (log/info "Asked to focus" id)
   (when id
-    (fp/transact! app [(multi-inspector/set-app {::inspector/id [:x id]})]))
+    (fp/transact! app [(multi-inspector/set-app {::inspector/id [:x id]})]
+      {:ref multi-inspector/multi-inspector-ident}))
   nil)

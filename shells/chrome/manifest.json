@@ -2,8 +2,7 @@
  "Fulcro is a development framework that uses React and CLJS. This extension adds ability to track Fulcro DB, transactions and network",
  "devtools_page":"devtools.html",
  "permissions":[
-    "activeTab",
-    "tabs"
+    "activeTab"
  ],
  "host_permissions": [
    "file:///*",
@@ -37,4 +36,4 @@
    "matches":["<all_urls>"],
    "run_at":"document_idle"}],
  "manifest_version":3,
- "version":"4.0.4"}
+ "version":"4.0.5"}
