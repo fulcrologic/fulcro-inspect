@@ -80,7 +80,7 @@
         <dependency>
             <groupId>com.fulcrologic</groupId>
             <artifactId>fulcro-devtools-remote</artifactId>
-            <version>0.2.4</version>
+            <version>0.2.6</version>
         </dependency>
     </dependencies>
     <repositories>
