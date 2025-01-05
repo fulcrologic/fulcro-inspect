@@ -11,7 +11,8 @@ chrome:
 releases:
 	script/release-chrome
 	shadow-cljs release electron-main electron-renderer
-	cd shells/electron
-	electron-builder -m
-	electron-builder --win --x64
-	electron-builder --linux --x64
+	(cd shells/electron; electron-builder -m)
+	(cd shells/electron; electron-builder --win --x64)
+	(cd shells/electron; electron-builder --linux --x64)
+
+.PHONY: releases
