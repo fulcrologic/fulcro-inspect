@@ -3,6 +3,9 @@
 [![Clojars Project](https://img.shields.io/clojars/v/com.fulcrologic/fulcro-inspect.svg)](https://clojars.org/com.fulcrologic/fulcro-inspect)
 
 NEW: Fulcro Inspect has been rebased upon fulcro-devtools-remote.
+NOTE: When you first install Inspect you need to open a new tab or restart chrome to make sure it is working.
+
+There is a known bug in the latest release for Chrome where you sometimes have to right-click on Inspect and reload frame (if you've reloaded the app on the page, it sometimes loses connection).
 
 As of Fulcro version 3.8.0-alpha2, you must use this as a library to use Fulcro Inspect
 in Chrome or via the 4.x releases of the Electron version.
