@@ -31,8 +31,14 @@ The setup is relatively easy:
 (ido (it/add-fulcro-inspect! app))
 ```
 
-The `ido` macro elides its body in release builds, and otherwise works just like `do`. Closure dead code elimination should remove all other traces of inspect from your release builds (aside from perhaps a few kb of stray bits).
+The `ido` macro elides its body in release builds, and otherwise works just like `do`. Closure dead code elimination
+should remove all other traces of inspect from your release builds (aside from perhaps a few kb of stray bits). If you
+need the body in a release build, set the closure defines in your shadow-cljs.edn to:
 
+```clojure
+{:closure-defines  {com.fulcrologic.fulcro.inspect.inspect-client/INSPECT true
+                    com.fulcrologic.devtools.common.target/INSPECT true}}
+```
 
 # FIXME
 

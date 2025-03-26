@@ -18,7 +18,7 @@
   [app]
   (ilet [id (app-uuid app)
          state* (state-atom app)]
-    (when-not (contains? apps* id)
+    (when-not (contains? @apps* id)
       (let [c     (volatile! nil)
             tconn (ct/connect! {:target-id       id
                                 :tool-type       :fulcro/inspect
