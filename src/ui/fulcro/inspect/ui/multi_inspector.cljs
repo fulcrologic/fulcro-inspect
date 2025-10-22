@@ -1,6 +1,7 @@
 (ns fulcro.inspect.ui.multi-inspector
   (:require
     [cljs.reader :refer [read-string]]
+    [clojure.string :as str]
     [com.fulcrologic.fulcro-css.css-injection :refer [style-element]]
     [com.fulcrologic.fulcro-css.localized-dom :as dom]
     [com.fulcrologic.fulcro.algorithms.merge :as merge]
@@ -18,15 +19,31 @@
 
 (def multi-inspector-ident [::multi-inspector "main"])
 
+(defn- base-name-matches?
+  "Check if new-name matches the base name of current-name (accounting for deduplication suffixes like -0, -1)"
+  [current-name new-name]
+  (when (and current-name new-name)
+    (let [current-name (str/replace current-name #"-[^-]*$" "")
+          new-name     (str/replace new-name #"-[^-]*$" "")]
+      (= current-name new-name))))
+
 (m/defmutation add-inspector [inspector]
   (action [env]
     (let [{:keys [ref state]} env
-          inspector-ref (fp/ident inspector/Inspector inspector)
-          current       (get-in @state (conj ref ::current-app))]
+          inspector-ref  (fp/ident inspector/Inspector inspector)
+          current        (get-in @state (conj ref ::current-app))
+          new-name       (::inspector/name inspector)
+          current-name   (when current (get-in @state (conj current ::inspector/name)))
+          should-switch? (or (nil? current)
+                           (base-name-matches? current-name new-name))]
       (log/debug "Adding inspector for" inspector-ref)
+      (when should-switch?
+        (log/info "Auto-selecting newly connected inspector" inspector-ref
+          (when (and current (not (nil? current)))
+            (str "(replacing " current " with matching name)"))))
       (swap! state merge/merge-component inspector/Inspector inspector
         :append (conj ref ::inspectors))
-      (if (nil? current)
+      (when should-switch?
         (swap! state update-in ref assoc ::current-app inspector-ref)))))
 
 (defn remove-inspector* [state-map target-id]

@@ -1,21 +1,21 @@
 {:paths   ["src/lib"]
 
- :deps    {com.fulcrologic/fulcro                 {:mvn/version "3.8.6"}
+ :deps    {com.fulcrologic/fulcro                 {:mvn/version "3.9.0-rc11"}
            com.taoensso/timbre                    {:mvn/version "6.8.0"}
            edn-query-language/eql                 {:mvn/version "2025.09.27"}
            com.fulcrologic/guardrails             {:mvn/version "1.2.9"}
            org.clojure/clojure                    {:mvn/version "1.11.4"}
            org.clojure/clojurescript              {:mvn/version "1.11.132"}
            org.clojure/core.async                 {:mvn/version "1.6.681"}
-           com.fulcrologic/fulcro-devtools-remote {:mvn/version "0.2.6"}
+           com.fulcrologic/fulcro-devtools-remote {:mvn/version "0.2.8"}
            com.cognitect/transit-cljs             {:mvn/version "0.8.280"}}
  :aliases {:tool {:extra-paths ["src/client" "src/ui" "src/chrome" "src/electron" "resources"]
                   :extra-deps  {com.wsscode/pathom                {:mvn/version "2.4.0"}
                                 com.fulcrologic/fulcro-i18n       {:mvn/version "1.1.2"}
                                 com.fulcrologic/fulcro-garden-css {:mvn/version "3.0.9"}
-                                com.fulcrologic/statecharts       {:mvn/version "1.2.22"}
                                 devcards/devcards                 {:mvn/version "0.2.4"}}}
            :test {:extra-deps {fulcrologic/fulcro-spec {:mvn/version "3.1.12"}}}
            :dev  {:extra-deps {com.google.javascript/closure-compiler-unshaded {:mvn/version "v20240317"}
+                               com.fulcrologic/statecharts                     {:mvn/version "1.2.24"}
                                thheller/shadow-cljs                            {:mvn/version "2.28.19"}
                                binaryage/devtools                              {:mvn/version "1.0.6"}}}}}

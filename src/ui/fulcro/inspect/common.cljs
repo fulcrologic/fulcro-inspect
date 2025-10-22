@@ -78,6 +78,7 @@
 (defn start-app* [inspector {app-uuid                    ::app/id
                              :fulcro.inspect.client/keys [initial-history-step remotes]}]
   (let [app-name      (get-in initial-history-step [:history/value :fulcro.inspect.core/app-id] (str app-uuid))
+        _             (log/info "Starting inspector for app:" app-name "with UUID:" app-uuid)
         new-inspector (-> (fp/get-initial-state inspector/Inspector {:id      app-uuid
                                                                      :remotes remotes})
                         (assoc ::inspector/name (dedupe-name app-name)) ; TODO
@@ -98,9 +99,11 @@
                                                                               (mapv #(vector (::fulcro-i18n/locale %) (:ui/locale-name %)))))
                         )]
 
+    (log/debug "Adding inspector with deduped name:" (::inspector/name new-inspector))
     (fp/transact! inspector [(multi-inspector/add-inspector new-inspector)]
       {:ref [::multi-inspector/multi-inspector "main"]})
     (fp/transact! inspector [(hist/save-history-step initial-history-step)])
+    (log/debug "Inspector added successfully")
     new-inspector))
 
 (fm/defmutation start-app [params]
