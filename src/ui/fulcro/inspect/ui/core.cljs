@@ -546,7 +546,7 @@
                     (let [start    (gobj/get this "start")
                           size     (gobj/get this "startSize")
                           value    (gobj/get dd axis)
-                          new-size (+ size (if (= "x" axis) (- value start) (- start value)))]
+                          new-size (+ size (- value start))]
                       (fc/set-state! this {attribute new-size})))}
     (dom/div (merge {:style {:pointerEvents "all"
                              :cursor        (if (= "x" axis) "ew-resize" "ns-resize")}}
