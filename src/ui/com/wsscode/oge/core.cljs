@@ -95,9 +95,9 @@
                                                                           "editor divisor result"
                                                                           "hdiv divisor result"
                                                                           "flame divisor result"])}
-                    [:&.simple {:grid-template-rows  "auto 1fr"
-                                :grid-template-areas (helpers/strings ["title title title"
-                                                                       "editor divisor result"])}]
+                    [:&.simple {:grid-template-columns "100vw"
+                                :grid-template-rows  "30px 100px 10px auto"
+                                :grid-template-areas (helpers/strings ["title" "editor" "divisor" "result"])}]
                     [:$CodeMirror {:height "100%" :width "100%" :position "absolute"}
                      [:$cm-atom-composite {:color "#ab890d"}]
                      [:$cm-atom-ident {:color       "#219"
@@ -153,7 +153,7 @@
                        (when-not (fetch/loading? query-marker)
                          (oge-query this (-> this fp/props :oge/query))))]
     (dom/div :.container {:className (if-not profile (:simple css))
-                          :style     {:gridTemplateColumns (str (or (fp/get-state this :query-width) 400) "px 12px 1fr")}}
+                          :style     {:gridTemplateRows (str "30px " (or (fp/get-state this :query-height) 100) "px 10px auto")}}
       (dom/div :.title
         (if (> (count remotes) 1)
           (dom/div :.remote-selector
@@ -201,9 +201,9 @@
                                               "Cmd-J"       "ogeJoin"
                                               "Ctrl-Space"  "autocomplete"}}
                        :onChange            #(mutations/set-value!! this :oge/query %)})
-      (cui/drag-resize this {:attribute :query-width
-                             :axis      "x"
-                             :default   400
+      (cui/drag-resize this {:attribute :query-height
+                             :axis      "y"
+                             :default   100
                              :props     {:className (:divisor css)}}
         (dom/div))
       (codemirror/clojure {:className           (:result css)
