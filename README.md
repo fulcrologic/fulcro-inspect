@@ -160,7 +160,13 @@ To copy contents from maps or sequences, expand it and them click on the copy bu
 
 ## Building Chrome Extension
 
-If you want to build the extension yourself and run from it, first run the release builder:
+If you want to build the extension yourself and run from it, first install the npm packages:
+
+```
+npm install
+```
+
+And then run the release builder:
 
 ```
 ./script/release-chrome
