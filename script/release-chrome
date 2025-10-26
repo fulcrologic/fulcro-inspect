@@ -1,6 +1,9 @@
 #!/bin/bash
 
 npx shadow-cljs release chrome-content-script chrome-background chrome-devtool
+if [[ $? -ne 0 ]] ; then
+    exit 1
+fi
 mkdir -p releases
 rm -rf releases/chrome
 cp -rf shells/chrome releases
