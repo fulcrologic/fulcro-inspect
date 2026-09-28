@@ -1,5 +1,6 @@
 saveExact: true
 minimumReleaseAge: 10080   # minutes = 7 days
+shamefullyHoist: true      # shadow-cljs resolves transitive npm deps (e.g. scheduler) from top-level node_modules
 allowBuilds:
   electron: false
   fsevents: false
