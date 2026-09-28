@@ -3,8 +3,13 @@
   "version": "4.1.0",
   "description": "Electron Version of Fulcro Inspect",
   "packageManager": "pnpm@11.21.0",
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "11.21.0"
+    }
+  },
   "scripts": {
-    "preinstall": "npx only-allow@1.2.2 pnpm",
     "install-app-deps": "install-app-deps",
     "start": "electron ./app",
     "pack": "electron-builder --dir",

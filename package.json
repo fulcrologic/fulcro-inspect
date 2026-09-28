@@ -3,8 +3,13 @@
   "version": "1.0.0",
   "description": "",
   "packageManager": "pnpm@11.21.0",
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "11.21.0"
+    }
+  },
   "scripts": {
-    "preinstall": "npx only-allow@1.2.2 pnpm",
     "dev-chrome": "shadow-cljs watch chrome-devtool chrome workspaces",
     "dev-electron": "shadow-cljs watch electron-main electron-renderer workspaces"
   },
