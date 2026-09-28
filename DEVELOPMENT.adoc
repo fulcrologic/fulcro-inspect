@@ -26,15 +26,22 @@ See Fulcro Devtool Remote for more details.
 Building MacOS Electron releases is done as follows:
 
 ----
-$ npm install
+$ pnpm install
 $ cd shells/electron
 $ vi package.json     # Update version number
-$ yarn
+$ pnpm install
+$ pnpm rebuild electron
+$ pnpm run install-app-deps
 $ cd ../..
-$ shadow-cljs release electron-main electron-renderer
+$ pnpm exec shadow-cljs release electron-main electron-renderer
 $ cd shells/electron
-$ electron-builder build -m
+$ pnpm exec electron-builder build -m
 ----
+
+pnpm is configured (in `pnpm-workspace.yaml`) to never run dependency install scripts, so after installing in
+`shells/electron` you must deliberately fetch the Electron binary with `pnpm rebuild electron`. electron-builder's
+`install-app-deps` is no longer a `postinstall` hook either; run `pnpm run install-app-deps` there yourself when native
+dependencies need rebuilding for Electron.
 
 See the `Makefile` for other builds
 
@@ -45,7 +52,7 @@ First, make sure to update the version number in `shells/chrome/manifest.edn`.
 Then build the zip file that can be uploaded to the Chrome store:
 
 ----
-npm install
+pnpm install
 script/release-chrome
 ----
 

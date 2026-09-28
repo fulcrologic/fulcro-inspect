@@ -521,21 +521,21 @@ Supports nested map diffing for efficient storage.
 
 **Start Chrome Extension Development**:
 ```bash
-npx shadow-cljs watch chrome-background chrome-content-script chrome-devtool
+pnpm exec shadow-cljs watch chrome-background chrome-content-script chrome-devtool
 # Load unpacked extension from shells/chrome/build
 ```
 
 **Start Electron App Development**:
 ```bash
-npx shadow-cljs watch electron-main electron-renderer
+pnpm exec shadow-cljs watch electron-main electron-renderer
 # Start electron from shells/electron
 ```
 
 **Build Production**:
 ```bash
-npx shadow-cljs release chrome-background chrome-content-script chrome-devtool
+pnpm exec shadow-cljs release chrome-background chrome-content-script chrome-devtool
 # or
-npx shadow-cljs release electron-main electron-renderer
+pnpm exec shadow-cljs release electron-main electron-renderer
 ```
 
 ### Testing Integration
@@ -618,7 +618,7 @@ npx shadow-cljs release electron-main electron-renderer
 3. Click "Fulcro Inspect" panel
 
 **Electron App**:
-1. Start Electron inspector: `npm start` (in electron shell)
+1. Start Electron inspector: `pnpm start` (in electron shell)
 2. Set WebSocket port if different from 8237
 3. Inspector auto-connects to running apps
 

@@ -160,10 +160,10 @@ To copy contents from maps or sequences, expand it and them click on the copy bu
 
 ## Building Chrome Extension
 
-If you want to build the extension yourself and run from it, first install the npm packages:
+If you want to build the extension yourself and run from it, first install the npm packages (this project uses [pnpm](https://pnpm.io)):
 
 ```
-npm install
+pnpm install
 ```
 
 And then run the release builder:
@@ -183,13 +183,13 @@ and navigate to the `releases/chrome` diretory to load the extension from there.
 To run the development version of the extension, first install the npm packages:
 
 ```
-npm install
+pnpm install
 ```
 
 And then run the shadow compilation:
 
 ```
-npm run dev-chrome
+pnpm run dev-chrome
 ```
 
 The go in at Chrome extensions and add the unpackaged version from the path `shells/chrome`.

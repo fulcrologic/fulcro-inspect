@@ -38,15 +38,19 @@ The following steps are necessary to hack on Fulcro Inspect electron app:
 
 In the project root:
 
-1. `npm install`
-2. `shadow-cljs server`, go to the web dashboard, and start the 2 electron builds
+1. `pnpm install`
+2. `pnpm exec shadow-cljs server`, go to the web dashboard, and start the 2 electron builds
 
-Then, cd into the `shells/electron` folder and do a `yarn`.
+Then, cd into the `shells/electron` folder and do a `pnpm install` followed by `pnpm rebuild electron`.
+pnpm is configured (in `pnpm-workspace.yaml`) to never run dependency install scripts, so after installing in
+`shells/electron` you must deliberately fetch the Electron binary with `pnpm rebuild electron`. electron-builder's
+`install-app-deps` is no longer a `postinstall` hook either; run `pnpm run install-app-deps` there yourself when native
+dependencies need rebuilding for Electron.
 
 Once that is done (and the shadow compiles are done), go BACK to the project root and run:
 
 ```
-electron shells/electron
+shells/electron/node_modules/.bin/electron shells/electron
 ```
 
 You should now have a working app.

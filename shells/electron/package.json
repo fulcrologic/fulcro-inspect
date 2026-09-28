@@ -2,6 +2,14 @@
   "name": "fulcro-inspect-electron",
   "version": "4.1.0",
   "description": "Electron Version of Fulcro Inspect",
+  "packageManager": "pnpm@11.21.0",
+  "scripts": {
+    "preinstall": "npx only-allow@1.2.2 pnpm",
+    "install-app-deps": "install-app-deps",
+    "start": "electron ./app",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
   "homepage": "https://github.com/fulcrologic/fulcro-inspect",
   "main": "app/main.js",
   "author": {
@@ -11,20 +19,14 @@
   "license": "MIT",
   "repository": "https://github.com:/fulcrologic/fulcro-inspect.git",
   "dependencies": {
-    "cors": "^2.8.5",
-    "electron-settings": "^4.0.4",
-    "express": "^4.21.2",
+    "cors": "2.8.5",
+    "electron-settings": "4.0.4",
+    "express": "4.21.2",
     "express-ws": "5.0.2"
   },
   "devDependencies": {
     "electron": "33.2.1",
     "electron-builder": "25.1.8"
-  },
-  "scripts": {
-    "postinstall": "install-app-deps",
-    "start": "npm install && electron ./app",
-    "pack": "electron-builder --dir",
-    "dist": "electron-builder"
   },
   "build": {
     "appId": "com.fulcrologic.fulcro.inspect",
