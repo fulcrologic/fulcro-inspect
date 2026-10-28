@@ -117,6 +117,105 @@
    :shadow-input           "rgba(0, 0, 0, 0.078)"
    :shadow-copied          "#00000038"})
 
+(def dark-theme-colors
+  "The value of every color role of `light-theme-colors` in the dark theme. It must have the same keys: a role
+   missing here keeps its light value in the dark theme."
+  {;; backgrounds
+   :bg                     "#202124"
+   :bg-alt                 "#242528"
+   :bg-subtle              "#27282b"
+   :bg-toolbar             "#292a2d"
+   :bg-code                "#1c1d20"
+   :bg-muted               "#35363a"
+   :bg-tab-hover           "#3a3b3f"
+   :bg-zoom-hover          "#3a3b3f"
+   :bg-list-index          "#3a3b3f"
+   :bg-row-hover           "#28344a"
+   :bg-row-selected        "#3a3b3f"
+   :bg-notice              "#4d4320"
+   :bg-highlight           "#7a6a00"
+   :bg-display-name        "#1d3557"
+   :bg-badge               "#5f6368"
+   :bg-tx-count            "#4a5f87"
+   :bg-toggler-hover       "#45464a"
+   :bg-toggler-pressed     "#6a6b6f"
+   :bg-toggler-active      "#55565a"
+   :bg-diff-added          "rgba(100, 255, 100, 0.04)"
+   :bg-index-state         "#9aa0a6"
+   :index-ready            "#36c74b"
+   :index-loading          "#efe43b"
+   :index-unavailable      "#848484"
+   ;; accents and controls
+   :accent                 "#3a7be0"
+   :accent-border          "#4a87e6"
+   :accent-hover           "#5591ea"
+   :accent-disabled        "#2c4a75"
+   :accent-disabled-border "#33527f"
+   :button-text            "#8ab4f8"
+   :button-text-disabled   "#4a5f80"
+   :tab-selected           "#8ab4f8"
+   :icon-accent            "#8ab4f8"
+   :link                   "#8ab4f8"
+   :link-alt               "#a8c7fa"
+   :text-on-accent         "#fff"
+   :text-shadow-on-accent  "#000"
+   :oge-button             "#2b74db"
+   :oge-button-hover       "#1f5fb8"
+   :oge-button-hover-border "#1a54a3"
+   :oge-input-text         "#d4d7db"
+   :oge-input-border       "rgba(255,255,255,.2)"
+   :oge-input-focus        "#5cb3fd"
+   :success                "#5cb85c"
+   :warning                "#f0ad4e"
+   ;; text and icons
+   :text-max               "#fff"
+   :text-dark              "#e8eaed"
+   :text-strong            "#dadce0"
+   :text-normal            "#bdc1c6"
+   :text-faded             "#6f7378"
+   :text-muted             "#9aa0a6"
+   :text-timestamp         "#9aa0a6"
+   :text-triangle          "#9aa0a6"
+   :text-separator         "#5f6368"
+   :text-label             "#c4cad1"
+   :text-panel-header      "#d0d3d7"
+   :text-display-name      "#d2e3fc"
+   :text-table             "#d0d4d9"
+   :text-namespace         "#9aa0a6"
+   :text-error             "#ff6b6b"
+   :text-error-strong      "#ff5252"
+   :icon-normal            "#9aa0a6"
+   :icon-strong            "#dadce0"
+   ;; data syntax
+   :syntax-nil             "#9aa0a6"
+   :syntax-string          "#f28b82"
+   :syntax-keyword         "#d59bf6"
+   :syntax-symbol          "#8ab4f8"
+   :syntax-number          "#99a6ff"
+   :syntax-boolean         "#5fd3c9"
+   :syntax-eql-composite   "#e0c050"
+   :syntax-eql-ident       "#8fa6ff"
+   ;; borders
+   :border                 "#4a4c50"
+   :border-tab             "#4a4c50"
+   :border-light           "#3c3d41"
+   :border-statechart      "#45464a"
+   :border-faint           "#323337"
+   :border-watcher         "#333438"
+   :border-table           "#45464a"
+   :border-toolbar         "#3c3d41"
+   :border-input           "#5f6368"
+   :border-panel           "#5f6368"
+   :border-bg-light        "#3c3d41"
+   :border-bg-medium       "#4a4c50"
+   :border-diff            "rgba(120, 200, 120, 0.2)"
+   :border-list-index      "rgba(200, 200, 200, 0.2)"
+   ;; shadows
+   :shadow-strong          "rgba(0, 0, 0, 0.6)"
+   :shadow-soft            "rgba(0, 0, 0, 0.5)"
+   :shadow-input           "rgba(0, 0, 0, 0.3)"
+   :shadow-copied          "#00000080"})
+
 (defn color
   "Returns a CSS `var()` reference to the theme color for `role`, a key of `light-theme-colors`. Throws on an
    unknown `role`, because the browser would otherwise drop the declaration without an error."
@@ -125,9 +224,51 @@
     (throw (ex-info (str "Unknown theme color " role) {:role role})))
   (str "var(--fi-" (name role) ")"))
 
+(defn- theme-variables
+  "Returns a garden property map that declares each color of `theme-colors` as a `--fi-` CSS custom property."
+  [theme-colors]
+  (into {} (map (fn [[role value]] [(str "--fi-" (name role)) value])) theme-colors))
+
 (def css-theme-variables
   "A garden rule that declares every theme color as a CSS custom property on the document root."
-  [":root" (into {} (map (fn [[role value]] [(str "--fi-" (name role)) value])) light-theme-colors)])
+  [":root" (theme-variables light-theme-colors)])
+
+(def dark-theme-selector
+  "The CSS selector that matches the document root while the dark theme is on. `apply-theme!` turns the theme on
+   by setting the `data-theme` attribute of the `html` element."
+  ":root[data-theme=\"dark\"]")
+
+(def css-dark-theme
+  "Garden rules for the dark theme: the dark values of the theme colors, plus overrides for the CodeMirror and
+   flame graph stylesheets, which the shells load from static CSS files that do not use the theme colors."
+  (let [dark (fn [selector] (str dark-theme-selector " " selector))]
+    (list
+      [dark-theme-selector (assoc (theme-variables dark-theme-colors) :color-scheme "dark")]
+      [(dark "body") {:background (color :bg) :color (color :text-normal)}]
+      ;; `fulcro-icon` SVGs have no class, so the default fill (black) applies to them
+      [(dark "svg[role=\"img\"]") {:fill (color :icon-strong)}]
+      [(dark ".CodeMirror") {:background (color :bg-code) :color (color :text-strong)}]
+      [(dark ".CodeMirror-gutters") {:background   (color :bg-toolbar)
+                                     :border-right (str "1px solid " (color :border))}]
+      [(dark ".CodeMirror-scrollbar-filler") {:background (color :bg)}]
+      [(dark ".CodeMirror-gutter-filler") {:background (color :bg)}]
+      [(dark ".CodeMirror-linenumber") {:color (color :text-muted)}]
+      [(dark ".CodeMirror-guttermarker") {:color (color :text-strong)}]
+      [(dark ".CodeMirror-cursor") {:border-left (str "1px solid " (color :text-max))}]
+      [(dark ".CodeMirror-selected") {:background (color :bg-muted)}]
+      [(dark ".CodeMirror-focused .CodeMirror-selected") {:background (color :bg-display-name)}]
+      [(dark ".CodeMirror-activeline-background") {:background (color :bg-row-hover)}]
+      [(dark ".CodeMirror-hints") {:background (color :bg-alt) :border (str "1px solid " (color :border))}]
+      [(dark ".CodeMirror-hint") {:color (color :text-strong)}]
+      [(dark ".cm-s-default .cm-keyword") {:color (color :syntax-keyword)}]
+      [(dark ".cm-s-default .cm-atom") {:color (color :syntax-eql-ident)}]
+      [(dark ".cm-s-default .cm-number") {:color (color :syntax-number)}]
+      [(dark ".cm-s-default .cm-def") {:color (color :link)}]
+      [(dark ".cm-s-default .cm-string") {:color (color :syntax-string)}]
+      [(dark ".cm-s-default .cm-comment") {:color (color :text-muted)}]
+      [(dark ".cm-s-default .cm-bracket") {:color (color :text-muted)}]
+      [(dark ".cm-s-default .cm-builtin") {:color (color :syntax-keyword)}]
+      [(dark ".d3-flame-graph rect") {:stroke (color :bg)}])))
 
 (def color-bg-light (color :bg-subtle))
 (def color-bg-light-border (color :border-bg-light))
@@ -590,6 +731,7 @@
 
 (fc/defsc CSS [_ _]
   {:css         [css-theme-variables
+                 css-dark-theme
                  [:.focused-panel {:border-top     (str "1px solid " (color :border-panel))
                                    :display        "flex"
                                    :flex-direction "column"

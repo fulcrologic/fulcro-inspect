@@ -13,6 +13,7 @@
     [fulcro.inspect.common :as common :refer [global-inspector*]]
     [fulcro.inspect.ui-parser :as ui-parser]
     [fulcro.inspect.ui.multi-inspector :as multi-inspector]
+    [fulcro.inspect.ui.settings :as settings]
     [taoensso.timbre :as log]))
 
 ;; TODO: Apply a saved websocket port on startup
@@ -46,7 +47,7 @@
 
 (defn start-global-inspector [_options]
   (let [responses* (atom {})
-        app        (app/fulcro-app {; :client-did-mount (fn [app] (settings/load-settings app))
+        app        (app/fulcro-app {:client-did-mount (fn [app] (settings/load-settings app))
                                     :props-middleware (fp/wrap-update-extra-props
                                                         (fn [cls extra-props]
                                                           (merge extra-props (css/get-classnames cls))))

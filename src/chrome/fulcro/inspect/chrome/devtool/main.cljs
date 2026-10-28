@@ -9,6 +9,7 @@
     [com.fulcrologic.statecharts.integration.fulcro :as scf]
     [fulcro.inspect.common :as common :refer [GlobalRoot global-inspector* websockets?]]
     [fulcro.inspect.lib.history :as hist]
+    [fulcro.inspect.ui.settings :as settings]
     [fulcro.inspect.ui-parser :as ui-parser]))
 
 (defn ?handle-local-message [responses* type data]
@@ -29,7 +30,8 @@
   (let [port*      (atom nil)
         responses* (atom {})
         app        (app/fulcro-app
-                     {:props-middleware (comp/wrap-update-extra-props
+                     {:client-did-mount (fn [app] (settings/load-settings app))
+                      :props-middleware (comp/wrap-update-extra-props
                                           (fn [cls extra-props]
                                             (merge extra-props (css/get-classnames cls))))
 

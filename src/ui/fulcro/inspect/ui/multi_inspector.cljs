@@ -94,8 +94,18 @@
 
 (rc/defnc InspectorRef [::inspector/id ::inspector/name])
 
+(defn- theme-setting
+  "Returns the `:setting/theme` value in the props of a `MultiInspector`."
+  [props]
+  (get-in props [::settings :fulcro.inspect/settings :setting/theme]))
+
 (fp/defsc MultiInspector [this {::keys [inspectors current-app show-settings? settings]}]
-  {:initial-state (fn [_] {::inspectors     []
+  {:componentDidMount  (fn [this] (settings/apply-theme! (theme-setting (fp/props this))))
+   :componentDidUpdate (fn [this prev-props _]
+                         (let [theme (theme-setting (fp/props this))]
+                           (when (not= theme (theme-setting prev-props))
+                             (settings/apply-theme! theme))))
+   :initial-state (fn [_] {::inspectors     []
                            ::settings       (fp/get-initial-state settings/Settings {})
                            ::current-app    nil
                            ::show-settings? false
