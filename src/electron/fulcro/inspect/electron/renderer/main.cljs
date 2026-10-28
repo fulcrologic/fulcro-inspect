@@ -15,7 +15,7 @@
     [fulcro.inspect.ui.multi-inspector :as multi-inspector]
     [taoensso.timbre :as log]))
 
-;; TODO: Re-constitute saving/loading settings, esp websocket port
+;; TODO: Apply a saved websocket port on startup
 (defn handle-local-message [{:keys [responses*]} event]
   (when-let [{:keys [type data]} (common/event-data event)]
     (case type
@@ -31,7 +31,9 @@
       nil)))
 
 (defn make-network [parser responses*]
-  (let [parser-env {:responses* responses*}]
+  (let [parser-env {:responses*   responses*
+                    :send-message (fn [type data]
+                                    (common/handle-settings-message! responses* type data))}]
     {:transmit! (fn transmit! [_ {:keys [::txn/ast ::txn/result-handler ::txn/update-handler]}]
                   (go
                     (try

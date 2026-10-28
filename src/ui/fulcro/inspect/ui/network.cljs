@@ -74,14 +74,14 @@
            {:ui/response-edn-view (fp/get-query data-viewer/DataViewer)}
            {:ui/error-view (fp/get-query data-viewer/DataViewer)}]
    :css   [[:.container ui/css-flex-column]
-           [:.flame {:background "#f6f7f8"
+           [:.flame {:background (ui/color :bg-code)
                      :width      "400px"}]
            [:.trace {:display     "flex"
                      :min-height  "300px"
                      :flex        "1"
                      :margin-top  "4px"
                      :padding-top "18px"
-                     :border-top  "1px solid #eee"}]
+                     :border-top  (str "1px solid " (ui/color :border-faint))}]
            [:.send-query {:margin-left "5px"}]]}
   (dom/div :.container
     (ui/info {::ui/title (dom/div
@@ -128,7 +128,7 @@
                                :display "flex"}
                         [(gs/& (gs/nth-child :odd)) {:background ui/color-bg-light}]
                         [:&:hover {:background (str ui/color-row-hover "!important")}]
-                        [:&.error {:color "#e80000"}]
+                        [:&.error {:color (ui/color :text-error-strong)}]
                         [:&.selected {:background (str ui/color-row-selected "!important")}]]
                        [:.pending {:color ui/color-text-faded}]
                        [:.table-cell {:border-right  border
@@ -199,7 +199,7 @@
                                  :font-size       ui/label-font-size
                                  :width           "100%"
                                  :border-collapse "collapse"
-                                 :color           "#313942"
+                                 :color           (ui/color :text-table)
                                  :flex            "1"
                                  :display         "flex"
                                  :flex-direction  "column"

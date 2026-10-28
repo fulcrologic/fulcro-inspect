@@ -64,18 +64,18 @@
     [:.tabs {:font-family   ui/label-font-family
              :font-size     ui/label-font-size
              :display       "flex"
-             :background    "#f3f3f3"
+             :background    (ui/color :bg-toolbar)
              :color         ui/color-text-normal
-             :border-bottom "1px solid #ccc"
+             :border-bottom (str "1px solid " (ui/color :border))
              :position      "relative"
              :user-select   "none"}]
     [:.flex {:flex "1"}]
     [:.tab {:cursor  "pointer"
             :padding "6px 10px 5px"}
 
-     [:&:hover {:background "#e5e5e5"
+     [:&:hover {:background (ui/color :bg-tab-hover)
                 :color      ui/color-text-strong}]
-     [:&.tab-selected {:border-bottom "2px solid #5c7ebb"
+     [:&.tab-selected {:border-bottom (str "2px solid " (ui/color :tab-selected))
                        :color         ui/color-text-strong
                        :margin-bottom "-1px"}]
      [:&.tab-disabled {:color  ui/color-text-faded
@@ -93,9 +93,9 @@
                    :z-index       "1"
                    :right         "0"
                    :top           "26px"
-                   :background    "#f3f3f3"
+                   :background    (ui/color :bg-toolbar)
                    :padding       "14px"
-                   :border        "1px solid #C8C8C8"
+                   :border        (str "1px solid " (ui/color :border-tab))
                    :border-radius "4px"
                    :box-shadow    ui/box-shadow}]
     [:.dock-side {:display     "flex"

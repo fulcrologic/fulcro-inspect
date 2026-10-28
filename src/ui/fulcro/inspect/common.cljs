@@ -75,6 +75,28 @@
     (put! res-chan (::ui-parser/msg-response data))
     (log/error "Failed to respond locally to message:" type "with data:" data)))
 
+(defn handle-settings-message!
+  "Answers a settings message of the given `type` that the UI parser sends through its `send-message`, keeping
+   settings in the browser's localStorage. Returns `:ok` when `type` is a settings message, and nil otherwise."
+  [responses* type data]
+  (case type
+    :fulcro.inspect.client/load-settings
+    (let [settings (into {}
+                     (remove (comp #{::not-found} second))
+                     (for [k (:query data)]
+                       [k (storage/get k ::not-found)]))]
+      (respond-to-load! responses* type
+        {::ui-parser/msg-response settings
+         ::ui-parser/msg-id       (::ui-parser/msg-id data)})
+      :ok)
+    :fulcro.inspect.client/save-settings
+    (do
+      (doseq [[k v] data]
+        (log/trace "Saving setting:" k "=>" v)
+        (storage/set! k v))
+      :ok)
+    #_else nil))
+
 (defn start-app* [inspector {app-uuid                    ::app/id
                              :fulcro.inspect.client/keys [initial-history-step remotes]}]
   (let [app-name      (get-in initial-history-step [:history/value :fulcro.inspect.core/app-id] (str app-uuid))

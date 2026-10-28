@@ -99,8 +99,8 @@
                                 :grid-template-areas (helpers/strings ["title title title"
                                                                        "editor divisor result"])}]
                     [:$CodeMirror {:height "100%" :width "100%" :position "absolute"}
-                     [:$cm-atom-composite {:color "#ab890d"}]
-                     [:$cm-atom-ident {:color       "#219"
+                     [:$cm-atom-composite {:color (cui/color :syntax-eql-composite)}]
+                     [:$cm-atom-ident {:color       (cui/color :syntax-eql-ident)
                                        :font-weight "bold"}]]]
 
                    [:$CodeMirror-hint {:font-size "10px"}]
@@ -109,24 +109,24 @@
                              :display       "flex"
                              :align-items   "center"
                              :padding       "2px"
-                             :border-bottom "1px solid #e0e0e0"}]
+                             :border-bottom (str "1px solid " (cui/color :border-light))}]
                    [:.title-oge {:margin "0" :margin-bottom "8px"}]
                    [:.divisor {:grid-area     "divisor"
-                               :background    "#eee"
-                               :border        "1px solid #e0e0e0"
+                               :background    (cui/color :bg-muted)
+                               :border        (str "1px solid " (cui/color :border-light))
                                :border-top    "0"
                                :border-bottom "0"}]
                    [:.editor {:grid-area "editor"
                               :position  "relative"}]
                    [:.result {:grid-area "result"
                               :position  "relative"}
-                    [:$CodeMirror {:background "#f6f7f8"}]]
+                    [:$CodeMirror {:background (cui/color :bg-code)}]]
                    [:.hdiv {:grid-area    "hdiv"
-                            :background   "#eee"
-                            :border       "1px solid #e0e0e0"
+                            :background   (cui/color :bg-muted)
+                            :border       (str "1px solid " (cui/color :border-light))
                             :border-width "1px 0"}]
                    [:.flame {:grid-area  "flame"
-                             :background "#f6f7f8"}]
+                             :background (cui/color :bg-code)}]
                    [:.remote-selector {:display     "flex"
                                        :align-items "center"
                                        :font-family cui/label-font-family
@@ -134,16 +134,16 @@
                                        :color       cui/color-text-normal}]
                    [:.remote-selector-label {:margin-right "8px"
                                              :margin-left  "4px"}]
-                   [:.index-state {:background    "#000"
+                   [:.index-state {:background    (cui/color :bg-index-state)
                                    :border-radius "100%"
                                    :cursor        "pointer"
                                    :width         "14px"
                                    :height        "14px"
                                    :margin        "0px 4px"
                                    :transition    "background 150ms"}
-                    [:&.index-ready {:background "#36c74b"}]
-                    [:&.index-loading {:background "#efe43b"}]
-                    [:&.index-unavailable {:background "#848484"}]]
+                    [:&.index-ready {:background (cui/color :index-ready)}]
+                    [:&.index-loading {:background (cui/color :index-loading)}]
+                    [:&.index-unavailable {:background (cui/color :index-unavailable)}]]
                    [:.flex {:flex "1"}]]
    :css-include   [ui/CSS]}
 

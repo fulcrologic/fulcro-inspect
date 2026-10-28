@@ -38,7 +38,7 @@
                                  :flex           "1"
                                  :flex-direction "column"
                                  :width          "100%"}
-                    [:a {:color           "#6ea6e4"
+                    [:a {:color           (cui/color :link-alt)
                          :font-weight     "bold"
                          :text-decoration "none"}]]
                    [:.title {:grid-area     "title"
@@ -46,23 +46,23 @@
                              :align-items   "center"
                              :padding       "3px"
                              :margin-bottom "5px"
-                             :border-bottom "1px solid #e0e0e0"}]
+                             :border-bottom (str "1px solid " (cui/color :border-light))}]
                    [:.flex {:flex "1"}]
                    [:.empty {:flex            "1"
-                             :background      "#777"
+                             :background      (cui/color :bg-badge)
                              :margin-top      "-5px"
                              :display         "flex"
                              :padding         "30px"
                              :align-items     "center"
                              :justify-content "center"
-                             :color           "#fff"
+                             :color           (cui/color :text-on-accent)
                              :font-size       "21px"}
                     [:&.help {:font-size "14px"}]]
                    [:.help {:flex       "1"
-                            :background "#777"
+                            :background (cui/color :bg-badge)
                             :margin-top "-5px"
                             :padding    "30px"
-                            :color      "#fff"
+                            :color      (cui/color :text-on-accent)
                             :font-size  "14px"}]
                    [:.remote-selector {:display     "flex"
                                        :align-items "center"

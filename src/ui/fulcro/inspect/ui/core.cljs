@@ -17,28 +17,140 @@
 (def label-font-family "sans-serif")
 (def label-font-size "12px")
 
-(def color-bg-light "#f5f5f5")
-(def color-bg-light-border "#e1e1e1")
-(def color-bg-medium-border "#cdcdcd")
+(def light-theme-colors
+  "Every color the inspector UI uses, keyed by the role it plays, with its value in the light theme. Components
+   refer to a color through `color`, never by value, so that a theme can restyle the UI by redefining the CSS
+   custom properties that `css-theme-variables` declares."
+  {;; backgrounds
+   :bg                     "#fff"
+   :bg-alt                 "#fafafa"
+   :bg-subtle              "#f5f5f5"
+   :bg-toolbar             "#f3f3f3"
+   :bg-code                "#f6f7f8"
+   :bg-muted               "#eee"
+   :bg-tab-hover           "#e5e5e5"
+   :bg-zoom-hover          "#e0e0e0"
+   :bg-list-index          "#dddddd"
+   :bg-row-hover           "#eef3fa"
+   :bg-row-selected        "#e6e6e6"
+   :bg-notice              "#fff4c5"
+   :bg-highlight           "yellow"
+   :bg-display-name        "#e5efff"
+   :bg-badge               "#777"
+   :bg-tx-count            "#6D84AF"
+   :bg-toggler-hover       "#c2c2c2"
+   :bg-toggler-pressed     "#797979"
+   :bg-toggler-active      "#aaa"
+   :bg-diff-added          "rgba(100, 255, 100, 0.08)"
+   :bg-index-state         "#000"
+   :index-ready            "#36c74b"
+   :index-loading          "#efe43b"
+   :index-unavailable      "#848484"
+   ;; accents and controls
+   :accent                 "#1973e7"
+   :accent-border          "#2b7ce8"
+   :accent-hover           "#3a86e8"
+   :accent-disabled        "#a7c5f1"
+   :accent-disabled-border "#a3c2f1"
+   :button-text            "#1873E8"
+   :button-text-disabled   "#adcbf7"
+   :tab-selected           "#5c7ebb"
+   :icon-accent            "#4682E9"
+   :link                   "#4183c4"
+   :link-alt               "#6ea6e4"
+   :text-on-accent         "#fff"
+   :text-shadow-on-accent  "#1b1b1b"
+   :oge-button             "#0275d8"
+   :oge-button-hover       "#025aa5"
+   :oge-button-hover-border "#01549b"
+   :oge-input-text         "#464a4c"
+   :oge-input-border       "rgba(0,0,0,.15)"
+   :oge-input-focus        "#5cb3fd"
+   :success                "#5cb85c"
+   :warning                "#f0ad4e"
+   ;; text and icons
+   :text-max               "#000"
+   :text-dark              "#222"
+   :text-strong            "#333"
+   :text-normal            "#5a5a5a"
+   :text-faded             "#bbb"
+   :text-muted             "#666"
+   :text-timestamp         "#808080"
+   :text-triangle          "#8f8f8f"
+   :text-separator         "#b8b8b8"
+   :text-label             "#434C54"
+   :text-panel-header      "#424242"
+   :text-display-name      "#051d38"
+   :text-table             "#313942"
+   :text-namespace         "grey"
+   :text-error             "#F55"
+   :text-error-strong      "#e80000"
+   :icon-normal            "#6e6e6e"
+   :icon-strong            "#333"
+   ;; data syntax
+   :syntax-nil             "#808080"
+   :syntax-string          "#c41a16"
+   :syntax-keyword         "#881391"
+   :syntax-symbol          "#134f91"
+   :syntax-number          "#1c00cf"
+   :syntax-boolean         "#009999"
+   :syntax-eql-composite   "#ab890d"
+   :syntax-eql-ident       "#219"
+   ;; borders
+   :border                 "#ccc"
+   :border-tab             "#C8C8C8"
+   :border-light           "#e0e0e0"
+   :border-statechart      "#ddd"
+   :border-faint           "#eee"
+   :border-watcher         "#efeef1"
+   :border-table           "#d3d3d3"
+   :border-toolbar         "#dadada"
+   :border-input           "#c7c7c7"
+   :border-panel           "#a3a3a3"
+   :border-bg-light        "#e1e1e1"
+   :border-bg-medium       "#cdcdcd"
+   :border-diff            "rgba(60, 90, 60, 0.1)"
+   :border-list-index      "rgba(100, 100, 100, 0.2)"
+   ;; shadows
+   :shadow-strong          "rgba(0, 0, 0, 0.26)"
+   :shadow-soft            "rgba(0, 0, 0, 0.19)"
+   :shadow-input           "rgba(0, 0, 0, 0.078)"
+   :shadow-copied          "#00000038"})
 
-(def color-text-normal "#5a5a5a")
-(def color-text-strong "#333")
-(def color-text-faded "#bbb")
+(defn color
+  "Returns a CSS `var()` reference to the theme color for `role`, a key of `light-theme-colors`. Throws on an
+   unknown `role`, because the browser would otherwise drop the declaration without an error."
+  [role]
+  (when-not (contains? light-theme-colors role)
+    (throw (ex-info (str "Unknown theme color " role) {:role role})))
+  (str "var(--fi-" (name role) ")"))
 
-(def color-icon-normal "#6e6e6e")
-(def color-icon-strong "#333")
+(def css-theme-variables
+  "A garden rule that declares every theme color as a CSS custom property on the document root."
+  [":root" (into {} (map (fn [[role value]] [(str "--fi-" (name role)) value])) light-theme-colors)])
 
-(def color-row-hover "#eef3fa")
-(def color-row-selected "#e6e6e6")
+(def color-bg-light (color :bg-subtle))
+(def color-bg-light-border (color :border-bg-light))
+(def color-bg-medium-border (color :border-bg-medium))
 
-(def box-shadow "0 6px 6px rgba(0, 0, 0, 0.26), 0 9px 20px rgba(0, 0, 0, 0.19)")
+(def color-text-normal (color :text-normal))
+(def color-text-strong (color :text-strong))
+(def color-text-faded (color :text-faded))
+
+(def color-icon-normal (color :icon-normal))
+(def color-icon-strong (color :icon-strong))
+
+(def color-row-hover (color :bg-row-hover))
+(def color-row-selected (color :bg-row-selected))
+
+(def box-shadow (str "0 6px 6px " (color :shadow-strong) ", 0 9px 20px " (color :shadow-soft)))
 
 (def css-label-font
   {:font-family label-font-family
    :font-size   label-font-size})
 
 (def css-info-group
-  {:border-top "1px solid #eee"
+  {:border-top (str "1px solid " (color :border-faint))
    :padding    "7px 0"})
 
 (def css-info-label
@@ -51,7 +163,7 @@
 (def css-timestamp
   {:font-family "monospace"
    :font-size   "11px"
-   :color       "#808080"
+   :color       (color :text-timestamp)
    :margin      "0 4px 0 7px"})
 
 (def css-flex-column
@@ -62,7 +174,7 @@
 (def css-triangle
   {:font-family    label-font-family
    :font-size      label-font-size
-   :color          "#8f8f8f"
+   :color          (color :text-triangle)
    :cursor         "pointer"
    :vertical-align "middle"
    :margin-right   "3px"})
@@ -80,8 +192,8 @@
     :font-family label-font-family
     :font-size   label-font-size
     :padding     "6px"}
-   [:&:hover {:border "1px solid #e0e0e0"}]
-   [:&:focus {:border "1px solid #1973E7"}]])
+   [:&:hover {:border (str "1px solid " (color :border-light))}]
+   [:&:focus {:border (str "1px solid " (color :accent))}]])
 
 ;;; helpers
 
@@ -170,7 +282,7 @@
   {:css         [[:.container {:display     "flex"
                                :align-items "baseline"
                                :flex-wrap   "wrap"}]
-                 [:.separator {:color       "#b8b8b8"
+                 [:.separator {:color       (color :text-separator)
                                :font-size   "24px"
                                :font-family "inherit"
                                :margin      "0 8px"
@@ -188,7 +300,7 @@
 (fc/defsc TableCell
   [this props]
   {:css [[:.container css-label-font
-          {:border  "1px solid #d3d3d3"
+          {:border  (str "1px solid " (color :border-table))
            :padding "3px 5px"}]]}
   (dom/td :.container props (fc/children this)))
 
@@ -197,9 +309,9 @@
 (fc/defsc TableHead
   [this props]
   {:css [[:.container css-label-font
-          {:background  "#f3f3f3"
-           :border      "1px solid #d3d3d3"
-           :color       "#000"
+          {:background  (color :bg-toolbar)
+           :border      (str "1px solid " (color :border-table))
+           :color       (color :text-max)
            :font-weight "normal"
            :padding     "8px 4px"
            :text-align  "left"}]]}
@@ -212,7 +324,7 @@
   {:css [[:.container {}
           [(gs/& (gs/nth-child 2))
            [(component-class TableCell :.container)
-            {:background "#f5f5f5"}]]]]}
+            {:background (color :bg-subtle)}]]]]}
   (dom/tr :.container props (fc/children this)))
 
 (def tr (fc/factory TableRow))
@@ -233,7 +345,7 @@
 
 (fc/defsc Table
   [this props]
-  {:css         [[:.container {:border          "1px solid #d3d3d3"
+  {:css         [[:.container {:border          (str "1px solid " (color :border-table))
                                :border-collapse "collapse"
                                :width           "100%"}]]
    :css-include [TableHeader TableBody TableRow TableHead TableCell]}
@@ -252,25 +364,25 @@
 (fc/defsc Button
   [this props]
   {:css [[:.button css-info-label
-          {:background    "#fff"
-           :border        "1px solid #ccc"
+          {:background    (color :bg)
+           :border        (str "1px solid " (color :border))
            :cursor        "pointer"
            :margin        "0"
-           :color         "#1873E8"
+           :color         (color :button-text)
            :border-radius "4px"
            :padding       "6px 12px"
            :font-size     "12px"}
-          [:&:hover {:background "#f3f3f3"}]
+          [:&:hover {:background (color :bg-toolbar)}]
           [:&:disabled {:cursor "default"
-                        :color  "#adcbf7"}
-           [:&:hover {:background "#fff"}]]
+                        :color  (color :button-text-disabled)}
+           [:&:hover {:background (color :bg)}]]
 
-          [:&.primary {:background   "#1973e7"
-                       :border-color "#2b7ce8"
-                       :color        "#fff"}
-           [:&:hover {:background "#3a86e8"}]
-           [:&:disabled {:background   "#a7c5f1"
-                         :border-color "#a3c2f1"}]]]]}
+          [:&.primary {:background   (color :accent)
+                       :border-color (color :accent-border)
+                       :color        (color :text-on-accent)}
+           [:&:hover {:background (color :accent-hover)}]
+           [:&:disabled {:background   (color :accent-disabled)
+                         :border-color (color :accent-disabled-border)}]]]]}
   (dom/button :.button props (fc/children this)))
 
 (def button (fc/factory Button))
@@ -287,7 +399,7 @@
 
 (fc/defsc Label
   [this props]
-  {:css [[:.label {:color        "#434C54"
+  {:css [[:.label {:color        (color :text-label)
                    :font-family  label-font-family
                    :font-weight  "normal"
                    :font-size    "13px"
@@ -302,7 +414,7 @@
                     :font-weight    "normal"
                     :font-size      "22px"
                     :padding-bottom "14px"
-                    :border-bottom  "1px solid #eee"}]]}
+                    :border-bottom  (str "1px solid " (color :border-faint))}]]}
   (dom/h2 :.header props (fc/children this)))
 
 (def header (fc/factory Header))
@@ -315,30 +427,30 @@
                      :font-weight   "normal"
                      :font-size     "13px"
                      :padding       "1px 4px"}
-          [:&:hover {:background  "#c2c2c2"
-                     :color       "#fff"
-                     :text-shadow "0 1px #1b1b1b"}]
-          [:&:active {:background  "#797979"
-                      :color       "#fff"
-                      :text-shadow "0 1px #1b1b1b"}]
-          [:&.active {:background  "#aaa"
-                      :color       "#fff"
-                      :text-shadow "0 1px #1b1b1b"}]]]}
+          [:&:hover {:background  (color :bg-toggler-hover)
+                     :color       (color :text-on-accent)
+                     :text-shadow (str "0 1px " (color :text-shadow-on-accent))}]
+          [:&:active {:background  (color :bg-toggler-pressed)
+                      :color       (color :text-on-accent)
+                      :text-shadow (str "0 1px " (color :text-shadow-on-accent))}]
+          [:&.active {:background  (color :bg-toggler-active)
+                      :color       (color :text-on-accent)
+                      :text-shadow (str "0 1px " (color :text-shadow-on-accent))}]]]}
   (dom/div :.toggler props (fc/children this)))
 
 (def toggler (fc/factory Toggler))
 
 (fc/defsc ToolBar [this _]
   {:css (fn []
-          [[:.container {:border-bottom "1px solid #dadada"
+          [[:.container {:border-bottom (str "1px solid " (color :border-toolbar))
                          :display       "flex"
                          :align-items   "center"}
             [:$c-icon {:fill      color-icon-normal
                        :transform "scale(0.7)"}
              [:&:hover {:fill color-icon-strong}]]
 
-            [:&.details {:background    "#f3f3f3"
-                         :border-bottom "1px solid #ccc"
+            [:&.details {:background    (color :bg-toolbar)
+                         :border-bottom (str "1px solid " (color :border))
                          :display       "flex"
                          :align-items   "center"
                          :height        "28px"}]
@@ -353,7 +465,7 @@
             [(gs/& (gs/attr "disabled")) {:cursor "not-allowed"}
              [:$c-icon {:fill color-icon-normal}]]]
 
-           [:.separator {:background "#ccc"
+           [:.separator {:background (color :border)
                          :width      "1px"
                          :height     "16px"
                          :margin     "0 6px"}]
@@ -406,8 +518,8 @@
                    [:.label {:color       color-text-strong
                              :font-family label-font-family
                              :font-size   label-font-size}]
-                   [:.input {:border     "1px solid #c7c7c7"
-                             :box-shadow "0px 1px 3px 1px rgba(0, 0, 0, 0.078)"
+                   [:.input {:border     (str "1px solid " (color :border-input))
+                             :box-shadow (str "0px 1px 3px 1px " (color :shadow-input))
                              :outline    "none"
                              :width      "100%"}]]
    :css-include   []}
@@ -477,14 +589,15 @@
    "x-large"  (str space-x-large " !important")})
 
 (fc/defsc CSS [_ _]
-  {:css         [[:.focused-panel {:border-top     "1px solid #a3a3a3"
+  {:css         [css-theme-variables
+                 [:.focused-panel {:border-top     (str "1px solid " (color :border-panel))
                                    :display        "flex"
                                    :flex-direction "column"
                                    :height         "50%"}]
                  [:.focused-container css-flex-column {:overflow "auto"
                                                        :padding  "0 10px"}]
 
-                 [:a {:color           "#4183c4"
+                 [:a {:color           (color :link)
                       :text-decoration "none"}]
 
                  [:.info-group css-info-group
@@ -493,15 +606,15 @@
                  [:.flex {:flex "1"}]
                  [:$flex {:flex "1"}]
                  [:$flex-100 {:flex "1" :max-width "100%"}]
-                 [:$highlight {:background "yellow"}]
+                 [:$highlight {:background (color :bg-highlight)}]
                  [:.ident {:padding     "5px 6px"
-                           :background  "#f3f3f3"
-                           :color       "#424242"
+                           :background  (color :bg-toolbar)
+                           :color       (color :text-panel-header)
                            :display     "inline-block"
                            :font-family mono-font-family
                            :font-size   label-font-size}]
-                 [:.display-name {:background  "#e5efff"
-                                  :color       "#051d38"
+                 [:.display-name {:background  (color :bg-display-name)
+                                  :color       (color :text-display-name)
                                   :display     "inline-block"
                                   :padding     "4px 8px"
                                   :font-family mono-font-family

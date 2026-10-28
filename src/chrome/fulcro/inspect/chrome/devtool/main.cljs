@@ -9,28 +9,10 @@
     [com.fulcrologic.statecharts.integration.fulcro :as scf]
     [fulcro.inspect.common :as common :refer [GlobalRoot global-inspector* websockets?]]
     [fulcro.inspect.lib.history :as hist]
-    [fulcro.inspect.lib.local-storage :as storage]
-    [fulcro.inspect.ui-parser :as ui-parser]
-    [taoensso.timbre :as log]))
+    [fulcro.inspect.ui-parser :as ui-parser]))
 
 (defn ?handle-local-message [responses* type data]
-  (case type
-    :fulcro.inspect.client/load-settings
-    (let [settings (into {}
-                     (remove (comp #{::not-found} second))
-                     (for [k (:query data)]
-                       [k (storage/get k ::not-found)]))]
-      (common/respond-to-load! responses* type
-        {::ui-parser/msg-response settings
-         ::ui-parser/msg-id       (::ui-parser/msg-id data)})
-      :ok)
-    :fulcro.inspect.client/save-settings
-    (do
-      (doseq [[k v] data]
-        (log/trace "Saving setting:" k "=>" v)
-        (storage/set! k v))
-      :ok)
-    #_else nil))
+  (common/handle-settings-message! responses* type data))
 
 (defn make-network [port* parser responses*]
   (mock-net/mock-http-server

@@ -99,7 +99,7 @@
                    [:.toolbar {:padding-left "4px"}]
                    [:.row-content {:display "flex"
                                    :flex    "1"}]
-                   [(gs/> :.snapshots (gs/div (gs/nth-child "odd"))) {:background "#f5f5f5"}]]
+                   [(gs/> :.snapshots (gs/div (gs/nth-child "odd"))) {:background (ui/color :bg-subtle)}]]
    :css-include   [ui/CSS watcher/DataWatcher]}
   (let [at-end? (= (dec (count history)) current-index)
         {:history/keys [version value]
@@ -131,7 +131,7 @@
                                 :width    "100%"
                                 :top      "70%"
                                 :left     "0%"
-                                :color    "#F55"
+                                :color    (ui/color :text-error)
                                 :fontSize "6pt"}} "rendering history")))
 
 

@@ -62,7 +62,7 @@
                                  :display        "flex"
                                  :flex-direction "column"}
                     [:.icon-active
-                     [:svg.c-icon {:fill "#4682E9"}]]]]
+                     [:svg.c-icon {:fill (ui/color :icon-accent)}]]]]
    :css-include   [ui/CSS Details]}
   (let [{:keys [ui/picking? ::panel-id] :as props} (fp/props this)
         css (css/get-classnames Panel)]

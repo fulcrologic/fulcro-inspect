@@ -67,7 +67,7 @@
                                  :padding        "12px"
                                  :overflow       "hidden"}]
                    [:.fixed-header {:flex             "0 0 auto"
-                                    :background-color "#fff"
+                                    :background-color (ui/color :bg)
                                     :z-index          "10"
                                     :width            "100%"
                                     :position         "relative"}]
@@ -76,24 +76,24 @@
                                      :gap              "8px"
                                      :margin           "12px 0"
                                      :padding          "8px"
-                                     :background-color "#f5f5f5"
+                                     :background-color (ui/color :bg-subtle)
                                      :border-radius    "4px"}]
                    [:.zoom-button {:padding          "4px 12px"
-                                   :border           "1px solid #ccc"
+                                   :border           (str "1px solid " (ui/color :border))
                                    :border-radius    "3px"
-                                   :background-color "#fff"
+                                   :background-color (ui/color :bg)
                                    :cursor           "pointer"
                                    :font-size        "14px"}]
-                   [:.zoom-button:hover {:background-color "#e0e0e0"}]
+                   [:.zoom-button:hover {:background-color (ui/color :bg-zoom-hover)}]
                    [:.zoom-label {:font-size "14px"
-                                  :color     "#666"}]
+                                  :color     (ui/color :text-muted)}]
                    [:.scrollable-content {:flex       "1 1 auto"
                                           :overflow   "auto"
                                           :min-height "0"
                                           :width      "100%"}]
-                   [:.visualizer-wrapper {:border           "1px solid #ddd"
+                   [:.visualizer-wrapper {:border           (str "1px solid " (ui/color :border-statechart))
                                           :border-radius    "4px"
-                                          :background-color "#fff"
+                                          :background-color (ui/color :bg)
                                           :display          "inline-block"
                                           :min-width        "100%"}]
                    [:.visualizer-scaled {:transform-origin "top left"}]]}

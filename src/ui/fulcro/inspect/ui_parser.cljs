@@ -37,6 +37,11 @@
                                  (assoc params :query query)))]
         {:fulcro.inspect/settings response}))))
 
+(defmutation 'save-settings
+  {}
+  (fn [{:keys [send-message]} input]
+    (send-message :fulcro.inspect.client/save-settings input)))
+
 (defn ident-passthrough [{:keys [ast] :as env}]
   (if (p/ident? (:key ast))
     (p/join (atom {}) (assoc env ::parent-params (:params ast)))

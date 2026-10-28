@@ -1,5 +1,6 @@
 (ns fulcro.inspect.ui.effects
-  (:require [goog.dom :as gdom]
+  (:require [fulcro.inspect.ui.core :as ui]
+            [goog.dom :as gdom]
             [goog.object :as gobj]
             [goog.style :as gstyle]))
 
@@ -22,10 +23,10 @@
         node   (js/document.createElement "div")]
     (doto node
       (gstyle/setStyle #js {:align-items     "center"
-                            :background      "#fff"
+                            :background      (ui/color :bg)
                             :border-radius   "5px"
-                            :box-shadow      "1px 1px 7px #00000038"
-                            :color           "#000"
+                            :box-shadow      (str "1px 1px 7px " (ui/color :shadow-copied))
+                            :color           (ui/color :text-max)
                             :display         "block"
                             :font-size       "12px"
                             :justify-content "center"

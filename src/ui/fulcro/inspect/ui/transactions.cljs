@@ -99,17 +99,17 @@
                    [:.container {:display       "flex"
                                  :cursor        "pointer"
                                  :flex          "1"
-                                 :border-bottom "1px solid #eee"
+                                 :border-bottom (str "1px solid " (ui/color :border-faint))
                                  :align-items   "center"
                                  :padding       "5px 0"}
                     [:.icon {:display "none"}]
                     [:&:hover {:background ui/color-row-hover}
                      [:.icon {:display "block"}]]
                     [:&.selected {:background ui/color-row-selected}]]
-                   [:.compress-count {:color         "#fff"
+                   [:.compress-count {:color         (ui/color :text-on-accent)
                                       :font-family   ui/mono-font-family
                                       :font-size     "13px"
-                                      :background    "#6D84AF"
+                                      :background    (ui/color :bg-tx-count)
                                       :padding       "0px 3px"
                                       :margin        "0 3px 0 2px"
                                       :border-radius "5px"

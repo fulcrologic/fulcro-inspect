@@ -54,11 +54,11 @@
                                   :margin-bottom "10px"}]
                    [:.toggle-button ui/css-triangle]
                    [:.path (merge ui/css-code-font
-                             {:background "#fafafa"
-                              :border     "1px solid #efeef1"
+                             {:background (ui/color :bg-alt)
+                              :border     (str "1px solid " (ui/color :border-watcher))
                               :margin     "0 5px"
                               :padding    "3px 3px 1px"
-                              :color      "#222"
+                              :color      (ui/color :text-dark)
                               :cursor     "pointer"})
                     [:&:hover {:text-decoration "line-through"}]]]
    :css-include   [f.data-viewer/DataViewer]}

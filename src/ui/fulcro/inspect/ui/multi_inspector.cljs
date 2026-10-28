@@ -114,14 +114,14 @@
                                 :font-size   ui/label-font-size
                                 :display     "flex"
                                 :align-items "center"
-                                :background  "#f3f3f3"
+                                :background  (ui/color :bg-toolbar)
                                 :color       ui/color-text-normal
-                                :border-top  "1px solid #ccc"
+                                :border-top  (str "1px solid " (ui/color :border))
                                 :padding     "12px"
                                 :user-select "none"}]
                    [:.label {:margin-right "10px"}]
                    [:.no-app {:display         "flex"
-                              :background      "#f3f3f3"
+                              :background      (ui/color :bg-toolbar)
                               :font-family     ui/label-font-family
                               :font-size       "23px"
                               :flex            1
@@ -129,7 +129,7 @@
                               :justify-content "center"}]
                    [:.flex {:flex "1"}]
                    [:.stale-notice
-                    {:background  "#fff4c5"
+                    {:background  (ui/color :bg-notice)
                      :display     "flex"
                      :align-items "center"
                      :padding     "7px 10px"}]

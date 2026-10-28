@@ -206,7 +206,7 @@
   "Emit DOM for highlighting the given search string if it is contained withing the string s. Otherwise returns s."
   [s search]
   (if (matches? s search)
-    (dom/span {:style {:backgroundColor "yellow"}} s)
+    (dom/span {:style {:backgroundColor (ui/color :bg-highlight)}} s)
     s))
 
 (defn paths-that-match
@@ -299,12 +299,12 @@
                    :data-viewer/static?
                    [::app/active-remotes '_]]
    :css           [[:.container ui/css-code-font]
-                   [:.nil {:color "#808080"}]
-                   [:.string {:color "#c41a16"}]
-                   [:.keyword {:color "#881391"}]
-                   [:.symbol {:color "#134f91"}]
-                   [:.number {:color "#1c00cf"}]
-                   [:.boolean {:color "#009999"}]
+                   [:.nil {:color (ui/color :syntax-nil)}]
+                   [:.string {:color (ui/color :syntax-string)}]
+                   [:.keyword {:color (ui/color :syntax-keyword)}]
+                   [:.symbol {:color (ui/color :syntax-symbol)}]
+                   [:.number {:color (ui/color :syntax-number)}]
+                   [:.boolean {:color (ui/color :syntax-boolean)}]
 
                    [:.data-row {:display     "flex"
                                 :margin-left "3px"}]
@@ -313,9 +313,9 @@
                    [:.list-inline-item {:margin "0 4px"}]
 
                    [:.list-container {:padding          "3px 12px"
-                                      :border-top       "2px solid rgba(60, 90, 60, 0.1)"
+                                      :border-top       (str "2px solid " (ui/color :border-diff))
                                       :margin           "0px 1px 1px"
-                                      :background-color "rgba(100, 255, 100, 0.08)"}]
+                                      :background-color (ui/color :bg-diff-added)}]
 
                    [:.toggle-button ui/css-triangle
                     [:svg
@@ -331,17 +331,17 @@
 
                    [:.list-item {:display     "flex"
                                  :align-items "flex-start"}]
-                   [:.list-item-index {:background    "#dddddd"
-                                       :border-right  "2px solid rgba(100, 100, 100, 0.2)"
+                   [:.list-item-index {:background    (ui/color :bg-list-index)
+                                       :border-right  (str "2px solid " (ui/color :border-list-index))
                                        :min-width     "35px"
                                        :margin-bottom "1px"
                                        :margin-right  "5px"
                                        :padding       "0 3px"}]
 
                    [:.map-container {:padding               "3px 12px"
-                                     :border-top            "2px solid rgba(60, 90, 60, 0.1)"
+                                     :border-top            (str "2px solid " (ui/color :border-diff))
                                      :margin                "0px 1px 1px"
-                                     :background-color      "rgba(100, 255, 100, 0.08)"
+                                     :background-color      (ui/color :bg-diff-added)
 
                                      :display               "grid"
                                      :grid-template-columns "max-content 1fr"}]

@@ -97,7 +97,7 @@
     (keyword? x)
     (span {:style {:whiteSpace "nowrap"}} ":"
       (when (namespace x)
-        (span {:title (namespace x) :style {:color "grey"}}
+        (span {:title (namespace x) :style {:color (ui/color :text-namespace)}}
           (str (compact env (namespace x)) "/")))
       (span {:style {:fontWeight "bold"}}
         (name x)))
