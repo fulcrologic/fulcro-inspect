@@ -1,6 +1,6 @@
 {
   "name": "fulcro-inspect-electron",
-  "version": "4.1.0",
+  "version": "4.2.0",
   "description": "Electron Version of Fulcro Inspect",
   "packageManager": "pnpm@11.21.0",
   "devEngines": {
